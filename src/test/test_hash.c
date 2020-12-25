@@ -58,5 +58,6 @@ int main() {
     }
     
     obj_hash_table_stats(table);
+    obj_hash_table_destroy(table);
     return 0;
 }

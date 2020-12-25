@@ -2,7 +2,7 @@
 #include "mem/obj_mem.h"
 
 static unsigned long obj_hash_table_next_power(unsigned long size);
-static void obj_hash_table_reset(obj_hash_table_t *table);
+/* static void obj_hash_table_reset(obj_hash_table_t *table); */
 static obj_global_error_code_t obj_hash_table_generic_delete(obj_hash_table_t *table, const void *key, obj_bool_t nofree);
 
 /* hash functions */
@@ -27,6 +27,7 @@ static unsigned long obj_hash_table_next_power(unsigned long size) {
 }
 
 /* reset the hash table, only called by obj_hash_table_clear */
+/*
 static void obj_hash_table_reset(obj_hash_table_t *table) {
     table->table = NULL;
     table->used = 0;
@@ -35,7 +36,7 @@ static void obj_hash_table_reset(obj_hash_table_t *table) {
     table->n_buckets = 0;
     table->mask = 0;
 }
-
+*/
 
 
 /* create a hash table */
@@ -82,16 +83,12 @@ obj_hash_table_t *obj_hash_table_create(obj_hash_table_methods_t *methods, unsig
 }
 
 
-/* clear a hash table */
-void obj_hash_table_clear(obj_hash_table_t *table) {
+/* destroy a hash table, not thread-safe */
+void obj_hash_table_destroy(obj_hash_table_t *table) {
     unsigned long i;
     obj_hash_table_entry_t *entry, *next_entry;
-    pthread_mutex_t *lock;
     for (i = 0; i < table->n_buckets; i++) {
-        lock = obj_hash_table_find_lock(table, i);
-        pthread_mutex_lock(lock);
         if ((entry = table->table[i]) == NULL) {
-            pthread_mutex_unlock(lock);
             continue;
         }
         while(entry) {
@@ -103,10 +100,11 @@ void obj_hash_table_clear(obj_hash_table_t *table) {
             obj_atomic_decr(table->used, 1);
         }
         table->table[i] = NULL;
-        pthread_mutex_unlock(lock);
     }
     obj_free(table->table);
-    obj_hash_table_reset(table);
+    obj_free(table->mutexes);
+    obj_free(table->used_mutex);
+    obj_free(table);
 }
 
 
@@ -311,5 +309,3 @@ void obj_hash_table_default_key_free(void *key) {
 void obj_hash_table_default_value_free(void *value) {
     obj_free(value);
 }
-
-

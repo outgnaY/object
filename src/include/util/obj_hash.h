@@ -77,7 +77,7 @@ struct obj_hash_table_entry_s {
 
 /* functions */
 obj_hash_table_t *obj_hash_table_create(obj_hash_table_methods_t *methods, unsigned long buckets);
-void obj_hash_table_clear(obj_hash_table_t *table);
+void obj_hash_table_destroy(obj_hash_table_t *table);
 obj_global_error_code_t obj_hash_table_add(obj_hash_table_t *table, void *key, void *value);
 obj_global_error_code_t obj_hash_table_delete(obj_hash_table_t *table, const void *key);
 obj_hash_table_entry_t *obj_hash_table_find(obj_hash_table_t *table, const void *key);
