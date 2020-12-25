@@ -1,0 +1,71 @@
+#ifndef OBJ_COMMON_H
+#define OBJ_COMMON_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <assert.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <assert.h>
+#include <endian.h>
+#include <pthread.h>
+
+#include "util/obj_atomic.h"
+#include "util/obj_string.h"
+
+#include "obj_config.h"
+
+typedef enum obj_global_error_code obj_global_error_code_t;
+
+#define OBJ_INT32_MAX 0x7fffffff
+
+/* alignment requiredment */
+#define OBJ_ALIGNMENT sizeof(unsigned long)
+
+/* align SIZE to given ALIGN */
+#define OBJ_ALIGN(SIZE, ALIGN) (((SIZE) + (ALIGN - 1)) & ~(ALIGN - 1))
+
+/* determine number of elements of an array */
+#define NELEM(a) (sizeof(a) / sizeof(a[0]))
+
+/* error code */
+enum obj_global_error_code {
+    OBJ_CODE_OK = 0,
+    /* bson error code */
+    OBJ_CODE_BSON_VALIDATE_EXCEED_MAX_DEPTH = 10001,
+    OBJ_CODE_BSON_VALIDATE_NOMEM = 10002,
+    OBJ_CODE_BSON_VALIDATE_WRONG_SIZE = 10003,
+    OBJ_CODE_BSON_INVALID_BSON = 10004,
+    OBJ_CODE_BSON_INVALID_BSON_TYPE = 10005,
+    OBJ_CODE_BSON_SIZE_OVERFLOW = 10006,
+    OBJ_CODE_BSON_INVALID_BOOLEAN_VALUE = 10007,
+    OBJ_CODE_BSON_NOT_NULL_TERMINATED_STRING = 10008,
+    OBJ_CODE_BSON_NOT_NULL_TERMINATED_CSTRING = 10009,
+    /* hash error code */
+    OBJ_CODE_HASH_TABLE_DUP_KEY = 20001,
+    OBJ_CODE_HASH_TABLE_NOMEM = 20002,
+    OBJ_CODE_HASH_TABLE_KEY_NOT_EXISTS = 20003
+};
+
+/* types */
+typedef size_t obj_size_t;
+typedef int8_t obj_int8_t;
+typedef int16_t obj_int16_t;
+typedef int32_t obj_int32_t;
+typedef int64_t obj_int64_t;
+typedef u_int8_t obj_uint8_t;
+typedef u_int16_t obj_uint16_t;
+typedef u_int32_t obj_uint32_t;
+typedef u_int64_t obj_uint64_t;
+
+typedef int obj_bool_t;
+#define true 1
+#define false 0
+
+
+#define obj_inline inline
+#define obj_assert(expr) assert(expr)
+
+#endif  /* OBJ_COMMON_H */
