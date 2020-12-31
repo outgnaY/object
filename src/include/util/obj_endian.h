@@ -1,7 +1,7 @@
 #ifndef OBJ_ENDIAN_H
 #define OBJ_ENDIAN_H
 
-#include "obj_common.h"
+#include "obj_core.h"
 
 static inline obj_uint16_t obj_uint16_swap(obj_uint16_t v) {
     return ((v & 0x00ff) << 8) | ((v & 0xff00) >> 8);

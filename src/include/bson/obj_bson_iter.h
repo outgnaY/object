@@ -1,7 +1,7 @@
 #ifndef OBJ_BSON_ITER_H
 #define OBJ_BSON_ITER_H
 
-#include "obj_common.h"
+#include "obj_core.h"
 #include "bson/obj_bson.h"
 
 typedef struct obj_bson_iter_s obj_bson_iter_t;

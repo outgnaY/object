@@ -43,7 +43,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include "obj_common.h"
+#include "obj_core.h"
 
 /* Fast tolower() alike function that does not care about locale
  * but just returns a-z insetad of A-Z. */

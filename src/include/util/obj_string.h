@@ -1,7 +1,7 @@
 #ifndef OBJ_STRING_H
 #define OBJ_STRING_H
 
-#include "obj_common.h"
+#include "obj_core.h"
 
 #define obj_memzero(buf, n)     (void) memset(buf, 0, n)
 #define obj_memset(buf, c, n)   (void) memset(buf, c, n)

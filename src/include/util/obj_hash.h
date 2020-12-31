@@ -1,7 +1,7 @@
 #ifndef OBJ_HASH_H
 #define OBJ_HASH_H
 
-#include "obj_common.h"
+#include "obj_core.h"
 
 /* hash table */
 typedef struct obj_hash_table_methods_s obj_hash_table_methods_t;

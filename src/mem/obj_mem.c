@@ -1,6 +1,4 @@
-#include "mem/obj_mem.h"
-#include "mem/obj_mem_simple.h"
-#include "util/obj_string.h"
+#include "obj_core.h"
 
 void *obj_lib_alloc(obj_size_t size) {
     void *p;

@@ -1,5 +1,4 @@
-#include "mem/obj_mem.h"
-#include "mem/obj_mem_simple.h"
+#include "obj_core.h"
 
 typedef struct test_s test_t;
 

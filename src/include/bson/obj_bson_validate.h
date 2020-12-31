@@ -1,7 +1,7 @@
 #ifndef OBJ_BSON_VALIDATE_H
 #define OBJ_BSON_VALIDATE_H
 
-#include "obj_common.h"
+#include "obj_core.h"
 
 /* bson max allowable depth */
 #define OBJ_BSON_VALIDATE_MAX_DEPTH 10

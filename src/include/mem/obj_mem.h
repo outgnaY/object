@@ -1,8 +1,6 @@
 #ifndef OBJ_MEM_H
 #define OBJ_MEM_H
 
-#include "obj_common.h"
-
 /* typedefs */
 typedef struct obj_mem_context_methods_s obj_mem_context_methods_t;
 typedef struct obj_mem_context_s obj_mem_context_t;

@@ -1,7 +1,7 @@
 #ifndef OBJ_BSON_H
 #define OBJ_BSON_H
 
-#include "obj_common.h"
+#include "obj_core.h"
 #include "util/obj_endian.h"
 
 #define OBJ_BSON_LITTLE_ENDIAN 0

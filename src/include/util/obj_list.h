@@ -1,7 +1,7 @@
 #ifndef OBJ_LIST_H
 #define OBJ_LIST_H
 
-#include "obj_common.h"
+#include "obj_core.h"
 
 typedef struct obj_list_node_s obj_list_node_t;
 typedef struct obj_list_s obj_list_t;

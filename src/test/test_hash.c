@@ -1,6 +1,4 @@
-#include <pthread.h>
-#include "mem/obj_mem.h"
-#include "util/obj_hash.h"
+#include "obj_core.h"
 
 typedef struct test_arg_s test_arg_t;
 
@@ -20,11 +18,10 @@ void *test_func(void *arg) {
         len = sprintf(buffer, "key%d", i + index * 1000);
         buffer[len] = '\0';
         code = obj_hash_table_add(table, buffer, "value");
-        /*
+        
         if (code != OBJ_CODE_OK) {
             printf("error, code = %d\n", code);
         }
-        */
     }
     return NULL;
 }

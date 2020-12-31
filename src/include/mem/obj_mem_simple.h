@@ -1,9 +1,6 @@
 #ifndef OBJ_MEM_SIMPLE_H
 #define OBJ_MEM_SIMPLE_H
 
-#include "obj_common.h"
-
-
 
 #define OBJ_ALLOC_MINBITS 3
 #define OBJ_MEM_SIMPLE_CONTEXT_FREELISTS 11
@@ -17,7 +14,6 @@
 #define OBJ_MEM_CHUNK_GET_PTR(chunk) ((void *)(((char *)(chunk)) + OBJ_MEM_CHUNK_HEADER_SIZE))
 
 #define OBJ_SINGLE_CHUNK_GET_POOL(chunk) ((obj_mem_pool_t *)(((char *)(chunk)) - OBJ_MEM_POOL_HEADER_SIZE))
-
 
 
 /* concrete memory alloc context */

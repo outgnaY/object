@@ -1,6 +1,4 @@
-#include "mem/obj_mem.h"
-#include "mem/obj_mem_simple.h"
-#include "util/obj_string.h"
+#include "obj_core.h"
 
 obj_mem_context_t *g_context;
 

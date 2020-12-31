@@ -1,21 +1,30 @@
 #ifndef OBJ_COMMON_H
 #define OBJ_COMMON_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <assert.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#include <assert.h>
-#include <endian.h>
-#include <pthread.h>
 
-#include "util/obj_atomic.h"
-#include "util/obj_string.h"
+/*
+#define DEBUG
+*/
 
-#include "obj_config.h"
+/* types */
+typedef size_t obj_size_t;
+typedef int8_t obj_int8_t;
+typedef int16_t obj_int16_t;
+typedef int32_t obj_int32_t;
+typedef int64_t obj_int64_t;
+typedef u_int8_t obj_uint8_t;
+typedef u_int16_t obj_uint16_t;
+typedef u_int32_t obj_uint32_t;
+typedef u_int64_t obj_uint64_t;
+
+typedef int obj_bool_t;
+#define true 1
+#define false 0
+
+
+#define obj_inline inline
+#define obj_assert(expr) assert(expr)
 
 typedef enum obj_global_error_code obj_global_error_code_t;
 
@@ -49,23 +58,5 @@ enum obj_global_error_code {
     OBJ_CODE_HASH_TABLE_KEY_NOT_EXISTS = 20003
 };
 
-/* types */
-typedef size_t obj_size_t;
-typedef int8_t obj_int8_t;
-typedef int16_t obj_int16_t;
-typedef int32_t obj_int32_t;
-typedef int64_t obj_int64_t;
-typedef u_int8_t obj_uint8_t;
-typedef u_int16_t obj_uint16_t;
-typedef u_int32_t obj_uint32_t;
-typedef u_int64_t obj_uint64_t;
-
-typedef int obj_bool_t;
-#define true 1
-#define false 0
-
-
-#define obj_inline inline
-#define obj_assert(expr) assert(expr)
 
 #endif  /* OBJ_COMMON_H */
