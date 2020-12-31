@@ -23,3 +23,5 @@ autom4te.cache
 /src/compile
 /src/autom4te.cache
 /src/test_hash
+/src/stamp-h1
+/src/depcomp
