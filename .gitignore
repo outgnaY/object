@@ -1,7 +1,7 @@
 .vscode
 bin
 obj
-.core
+core
 aclocal.m4
 config.log
 config.status
