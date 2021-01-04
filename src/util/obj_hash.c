@@ -40,7 +40,7 @@ static void obj_hash_table_reset(obj_hash_table_t *table) {
 
 
 /* create a hash table */
-obj_hash_table_t *obj_hash_table_create(obj_hash_table_methods_t *methods, unsigned long buckets) {
+obj_hash_table_t *obj_hash_table_create(obj_hash_table_methods_t *methods, unsigned long buckets, obj_bool_t need_lock) {
     obj_hash_table_t *table = obj_alloc(sizeof(obj_hash_table_t));
     unsigned long n_mutexes;
     unsigned long i;
@@ -59,6 +59,15 @@ obj_hash_table_t *obj_hash_table_create(obj_hash_table_methods_t *methods, unsig
     for (i = 0; i < buckets; i++) {
         table->table[i] = NULL;
     }
+    table->need_lock = need_lock;
+    if (need_lock) {
+        goto init_lock;
+    } 
+    /* don't need lock */
+    table->n_mutexes = 0;
+    table->mutexes = NULL;
+    goto end;
+init_lock:
     if (buckets <= OBJ_HASH_TABLE_SEGMENTS) {
         n_mutexes = buckets;
     } else {
@@ -69,14 +78,12 @@ obj_hash_table_t *obj_hash_table_create(obj_hash_table_methods_t *methods, unsig
         obj_free(table->table);
         return NULL;
     }
-    if ((table->used_mutex = (pthread_mutex_t *)obj_alloc(sizeof(pthread_mutex_t))) == NULL) {
-        obj_free(table->table);
-        obj_free(table->mutexes);
-    }
     /* init mutexes */
     for (i = 0; i < n_mutexes; i++) {
         pthread_mutex_init(&table->mutexes[i], NULL);
     }
+    pthread_mutex_init(&table->used_mutex, NULL);
+end:
     table->methods = methods;
     table->mask = buckets - 1;
     return table;
@@ -102,8 +109,10 @@ void obj_hash_table_destroy(obj_hash_table_t *table) {
         table->table[i] = NULL;
     }
     obj_free(table->table);
-    obj_free(table->mutexes);
-    obj_free(table->used_mutex);
+    if (table->need_lock) {
+        obj_assert(table->mutexes != NULL);
+        obj_free(table->mutexes);
+    }
     obj_free(table);
 }
 
@@ -113,10 +122,13 @@ void obj_hash_table_destroy(obj_hash_table_t *table) {
 obj_global_error_code_t obj_hash_table_add(obj_hash_table_t *table, void *key, void *value) {
     obj_hash_table_entry_t *entry = NULL;
     unsigned long index;
+    pthread_mutex_t *lock = NULL;
     obj_uint64_t hash = obj_hash_table_hash_key(table, key);
     index = hash & table->mask;
-    pthread_mutex_t *lock = obj_hash_table_find_lock(table, index);
-    pthread_mutex_lock(lock);
+    if (table->need_lock) {
+        lock = obj_hash_table_find_lock(table, index);
+        pthread_mutex_lock(lock);
+    }
     entry = table->table[index];
     while (entry) {
         if (key == entry->key || obj_hash_table_compare_keys(table, key, entry->key) == 0) {
@@ -135,7 +147,9 @@ obj_global_error_code_t obj_hash_table_add(obj_hash_table_t *table, void *key, v
     obj_atomic_incr(table->used, 1);
     obj_hash_table_set_key(table, entry, key);
     obj_hash_table_set_value(table, entry, value);
-    pthread_mutex_unlock(lock);
+    if (table->need_lock) {
+        pthread_mutex_unlock(lock);
+    }
     return OBJ_CODE_OK;
 }
 
@@ -148,10 +162,13 @@ static obj_global_error_code_t obj_hash_table_generic_delete(obj_hash_table_t *t
     obj_hash_table_entry_t *entry, *prev_entry;
     obj_uint64_t hash;
     unsigned long index;
+    pthread_mutex_t *lock = NULL;
     hash = obj_hash_table_hash_key(table, key);
     index = hash & table->mask;
-    pthread_mutex_t *lock = obj_hash_table_find_lock(table, index);
-    pthread_mutex_lock(lock);
+    if (table->need_lock) {
+        lock = obj_hash_table_find_lock(table, index);
+        pthread_mutex_lock(lock);
+    }
     entry = table->table[index];
     prev_entry = NULL;
     while (entry) {
@@ -169,13 +186,17 @@ static obj_global_error_code_t obj_hash_table_generic_delete(obj_hash_table_t *t
                 obj_free(entry);
             }
             obj_atomic_decr(table->used, 1);
-            pthread_mutex_unlock(lock);
+            if (table->need_lock) {
+                pthread_mutex_unlock(lock);
+            }
             return OBJ_CODE_OK;
         }
         prev_entry = entry;
         entry = entry->next;
     }
-    pthread_mutex_unlock(lock);
+    if (table->need_lock) {
+        pthread_mutex_unlock(lock);
+    }
     return OBJ_CODE_HASH_TABLE_KEY_NOT_EXISTS;
 }
 
@@ -186,22 +207,29 @@ obj_hash_table_entry_t *obj_hash_table_find(obj_hash_table_t *table, const void 
     obj_hash_table_entry_t *entry;
     obj_uint64_t hash;
     unsigned long index;
+    pthread_mutex_t *lock = NULL;
     if (obj_hash_table_used(table) == 0) {
         return NULL;
     }
     hash = obj_hash_table_hash_key(table, key);
     index = hash & table->mask;
-    pthread_mutex_t *lock = obj_hash_table_find_lock(table, index);
-    pthread_mutex_lock(lock);
+    if (table->need_lock) {
+        lock = obj_hash_table_find_lock(table, index);
+        pthread_mutex_lock(lock);
+    }
     entry = table->table[index];
     while (entry) {
         if (key == entry->key || obj_hash_table_compare_keys(table, key, entry->key) == 0) {
-            pthread_mutex_unlock(lock);
+            if (table->need_lock) {
+                pthread_mutex_unlock(lock);
+            }
             return entry;
         }
         entry = entry->next;
     }
-    pthread_mutex_unlock(lock);
+    if (table->need_lock) {
+        pthread_mutex_unlock(lock);
+    }
     return NULL;
 }
 
@@ -217,16 +245,21 @@ obj_global_error_code_t obj_hash_table_update(obj_hash_table_t *table, void *key
     obj_hash_table_entry_t *entry;
     obj_uint64_t hash;
     unsigned long index;
+    pthread_mutex_t *lock = NULL;
     hash = obj_hash_table_hash_key(table, key);
     index = hash & table->mask;
-    pthread_mutex_t *lock = obj_hash_table_find_lock(table, index);
-    pthread_mutex_lock(lock);
+    if (table->need_lock) {
+        lock = obj_hash_table_find_lock(table, index);
+        pthread_mutex_lock(lock);
+    }
     entry = table->table[index];
     while (entry) {
         if (key == entry->key || obj_hash_table_compare_keys(table, key, entry->key) == 0) {
             obj_hash_table_free_value(table, entry);
             obj_hash_table_set_value(table, entry, value);
-            pthread_mutex_unlock(lock);
+            if (table->need_lock) {
+                pthread_mutex_unlock(lock);
+            }
             return OBJ_CODE_OK;
         }
     }
@@ -241,10 +274,14 @@ obj_global_error_code_t obj_hash_table_update(obj_hash_table_t *table, void *key
         obj_atomic_incr(table->used, 1);
         obj_hash_table_set_key(table, entry, key);
         obj_hash_table_set_value(table, entry, value);
-        pthread_mutex_unlock(lock);
+        if (table->need_lock) {
+            pthread_mutex_unlock(lock);
+        }
         return OBJ_CODE_OK;
     }
-    pthread_mutex_unlock(lock);
+    if (table->need_lock) {
+        pthread_mutex_unlock(lock);
+    }
     return OBJ_CODE_HASH_TABLE_KEY_NOT_EXISTS;
 }
 
@@ -252,15 +289,19 @@ obj_global_error_code_t obj_hash_table_update(obj_hash_table_t *table, void *key
 void obj_hash_table_stats(obj_hash_table_t *table) {
     obj_hash_table_entry_t *entry;
     unsigned long i;
-    pthread_mutex_t *lock;
+    pthread_mutex_t *lock = NULL;
     unsigned long cnt = 0;
     unsigned long sum = 0;
     for (i = 0; i < table->n_buckets; i++) {
         printf("bucket %lu ", i);
-        lock = obj_hash_table_find_lock(table, i);
-        pthread_mutex_lock(lock);
+        if (table->need_lock) {
+            lock = obj_hash_table_find_lock(table, i);
+            pthread_mutex_lock(lock);
+        }
         if ((entry = table->table[i]) == NULL) {
-            pthread_mutex_unlock(lock);
+            if (table->need_lock) {
+                pthread_mutex_unlock(lock);
+            }
             continue;
         }
         while (entry) {
@@ -270,7 +311,9 @@ void obj_hash_table_stats(obj_hash_table_t *table) {
         sum += cnt;
         printf("cnt %lu\n", cnt);
         cnt = 0;
-        pthread_mutex_unlock(lock);
+        if (table->need_lock) {
+            pthread_mutex_unlock(lock);
+        }
     }
     printf("table->used = %lu, sum = %lu\n", table->used, sum);
 }

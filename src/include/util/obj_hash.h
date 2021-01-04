@@ -20,12 +20,13 @@ struct obj_hash_table_methods_s {
 
 /* hash table */
 struct obj_hash_table_s {
+    obj_bool_t need_lock;                        /* flag if we need a lock */
     obj_hash_table_methods_t *methods;
     unsigned long n_buckets;
     obj_hash_table_entry_t **table;
     unsigned long n_mutexes;
     pthread_mutex_t *mutexes;
-    pthread_mutex_t *used_mutex; 
+    pthread_mutex_t used_mutex; 
     unsigned long used;
     unsigned long mask;
 };
@@ -75,8 +76,9 @@ struct obj_hash_table_entry_s {
 
 #define obj_hash_table_find_lock(table, index) (&table->mutexes[(index << OBJ_HASH_TABLE_SEGMENTS_SHIFT) / table->n_buckets])
 
+
 /* functions */
-obj_hash_table_t *obj_hash_table_create(obj_hash_table_methods_t *methods, unsigned long buckets);
+obj_hash_table_t *obj_hash_table_create(obj_hash_table_methods_t *methods, unsigned long buckets, obj_bool_t need_lock);
 void obj_hash_table_destroy(obj_hash_table_t *table);
 obj_global_error_code_t obj_hash_table_add(obj_hash_table_t *table, void *key, void *value);
 obj_global_error_code_t obj_hash_table_delete(obj_hash_table_t *table, const void *key);

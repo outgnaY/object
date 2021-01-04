@@ -8,7 +8,9 @@ test_hash_SOURCES = test/test_hash.c util/obj_hash.c util/obj_siphash.c mem/obj_
 
 all:
 	mv -f test_hash ../bin/test_hash
-	mv -f bson/*.o mem/*.o network/*.o storage/*.o test/*.o util/*.o ../obj
+	mv -f mem/*.o test/*.o util/*.o ../obj
 clean:
 	rm -f ../bin/test_hash
 	rm -f ../obj/*
+clean-local:
+	-rm config.log 

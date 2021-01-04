@@ -37,10 +37,10 @@ int main() {
         obj_hash_table_default_key_free,
         obj_hash_table_default_value_free
     };
-    table = obj_hash_table_create(&methods, 32);
-
+    /* test hash table with lock */
+    table = obj_hash_table_create(&methods, 32, true);
+    obj_assert(table != NULL);
     /* test_func(table); */
-    
     pthread_t id[16];
     test_arg_t *arg;
     int i = 0;
@@ -56,5 +56,23 @@ int main() {
     
     obj_hash_table_stats(table);
     obj_hash_table_destroy(table);
+    table  = NULL;
+    /* test hash table without lock */
+    table = obj_hash_table_create(&methods, 32, false);
+    obj_assert(table != NULL);
+    char buffer[16];
+    int len = 0;
+    obj_global_error_code_t code;
+    for (i = 0; i < 10000; i++) {
+        len = sprintf(buffer, "key%d", i);
+        buffer[len] = '\0';
+        code = obj_hash_table_add(table, buffer, "value");
+        if (code != OBJ_CODE_OK) {
+            printf("error, code = %d\n", code);
+        }
+    }
+    obj_hash_table_stats(table);
+    obj_hash_table_destroy(table);
+    
     return 0;
 }
