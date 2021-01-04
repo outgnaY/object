@@ -2,7 +2,6 @@
 #define OBJ_BSON_H
 
 #include "obj_core.h"
-#include "util/obj_endian.h"
 
 #define OBJ_BSON_LITTLE_ENDIAN 0
 #define OBJ_BSON_BIG_ENDIAN 1
