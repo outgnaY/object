@@ -1,16 +1,8 @@
 #include "obj_core.h"
 
 
-static obj_size_t obj_sds_len(const obj_sds s);
-static obj_size_t obj_sds_avail(const obj_sds s);
-static void obj_sds_setlen(obj_sds s, obj_size_t newlen);
-static void obj_sds_inclen(obj_sds s, obj_size_t inc);
-static obj_size_t obj_sds_alloc(const obj_sds s);
-static void obj_sds_setalloc(obj_sds s, obj_size_t newlen);
-
-
 /* length */
-static obj_size_t obj_sds_len(const obj_sds s) {
+obj_size_t obj_sds_len(const obj_sds s) {
     unsigned char flags = s[-1];
     switch (flags & OBJ_SDS_TYPE_MASK) {
         case OBJ_SDS_TYPE_5:
@@ -28,7 +20,7 @@ static obj_size_t obj_sds_len(const obj_sds s) {
 }
 
 /* available */
-static obj_size_t obj_sds_avail(const obj_sds s) {
+obj_size_t obj_sds_avail(const obj_sds s) {
     unsigned char flags = s[-1];
     switch (flags & OBJ_SDS_TYPE_MASK) {
         case OBJ_SDS_TYPE_5: {
@@ -55,7 +47,7 @@ static obj_size_t obj_sds_avail(const obj_sds s) {
 }
 
 /* set length */
-static void obj_sds_setlen(obj_sds s, obj_size_t newlen) {
+void obj_sds_setlen(obj_sds s, obj_size_t newlen) {
     unsigned char flags = s[-1];
     switch (flags & OBJ_SDS_TYPE_MASK) {
         case OBJ_SDS_TYPE_5: {
@@ -79,7 +71,7 @@ static void obj_sds_setlen(obj_sds s, obj_size_t newlen) {
 }
 
 /* increase length */
-static void obj_sds_inclen(obj_sds s, obj_size_t inc) {
+void obj_sds_inclen(obj_sds s, obj_size_t inc) {
     unsigned char flags = s[-1];
     switch (flags & OBJ_SDS_TYPE_MASK) {
         case OBJ_SDS_TYPE_5: {
@@ -104,7 +96,7 @@ static void obj_sds_inclen(obj_sds s, obj_size_t inc) {
 }
 
 /* alloc size */
-static obj_size_t obj_sds_alloc(const obj_sds s) {
+obj_size_t obj_sds_alloc(const obj_sds s) {
     unsigned char flags = s[-1];
     switch (flags & OBJ_SDS_TYPE_MASK) {
         case OBJ_SDS_TYPE_5:
@@ -122,7 +114,7 @@ static obj_size_t obj_sds_alloc(const obj_sds s) {
 }
 
 /* set alloc size */
-static void obj_sds_setalloc(obj_sds s, obj_size_t newlen) {
+void obj_sds_setalloc(obj_sds s, obj_size_t newlen) {
     unsigned char flags = s[-1];
     switch (flags & OBJ_SDS_TYPE_MASK) {
         case OBJ_SDS_TYPE_5:
@@ -142,7 +134,7 @@ static void obj_sds_setalloc(obj_sds s, obj_size_t newlen) {
     }
 }
 
-static int obj_sds_header_size(char type) {
+int obj_sds_header_size(char type) {
     switch (type & OBJ_SDS_TYPE_MASK) {
         case OBJ_SDS_TYPE_5:
             return sizeof(struct obj_sds_header5);
@@ -158,7 +150,7 @@ static int obj_sds_header_size(char type) {
     return 0;
 }
 
-static char obj_sds_req_type(obj_size_t string_size) {
+char obj_sds_req_type(obj_size_t string_size) {
     if (string_size < 32) {
         return OBJ_SDS_TYPE_5;
     }
@@ -345,7 +337,7 @@ obj_size_t obj_sds_alloc_size(obj_sds s) {
 }
 
 /* alloc pointer */
-void obj_sds_alloc_ptr(obj_sds s) {
+void *obj_sds_alloc_ptr(obj_sds s) {
     return (void *)(s - obj_sds_header_size(s[-1]));
 }
 
@@ -499,7 +491,18 @@ obj_sds obj_sds_catvprintf(obj_sds s, const char *fmt, va_list ap) {
         va_copy(cpy, ap);
         vsnprintf(buf, buflen, fmt, cpy);
         va_end(cpy);
-
+        if (buf[buflen - 2] != '\0') {
+            if (buf != staticbuf) {
+                obj_free(buf);
+            }
+            buflen *= 2;
+            buf = obj_alloc(buflen);
+            if (buf == NULL) {
+                return NULL;
+            }
+            continue;
+        }
+        break;
     }
     t = obj_sds_cat(s, buf);
     if (buf != staticbuf) {
@@ -592,7 +595,7 @@ obj_sds obj_sds_catfmt(obj_sds s, const char *fmt, ...) {
                         }
                         {
                             char buf[OBJ_SDS_LLSTR_SIZE];
-                            l = obj_sds_ull2str(buf, num);
+                            l = obj_sds_ull2str(buf, unum);
                             if (obj_sds_avail(s) < l) {
                                 s = obj_sds_make_room_for(s, l);
                                 if (s == NULL) {
@@ -683,4 +686,39 @@ int obj_sds_cmp(const obj_sds s1, const obj_sds s2) {
         return l1 - l2;
     }
     return cmp;
+}
+
+/*
+obj_sds *obj_sds_splitlen(const char *s, int len, const char *sep, int seplen, int *count) {
+    int elements = 0, slots = 5, start = 0, j;
+
+}
+*/
+
+obj_sds obj_sds_join(const char **argv, int argc, const char *sep) {
+    obj_sds join = obj_sds_empty();
+    int i;
+    for (i = 0; i < argc; i++) {
+        join = obj_sds_cat(join, argv[i]);
+        if (i != argc - 1) {
+            join = obj_sds_cat(join, sep);
+        }
+    }
+    return join;
+}
+
+obj_sds obj_sds_joinsds(const obj_sds *argv, int argc, const char *sep, obj_size_t seplen) {
+    obj_sds join = obj_sds_empty();
+    int i;
+    for (i = 0; i < argc; i++) {
+        join = obj_sds_catsds(join, argv[i]);
+        if (i != argc - 1) {
+            join = obj_sds_catlen(join, sep, seplen);
+        }
+    }
+    return join;
+}
+
+void obj_sds_dump(const obj_sds s) {
+    printf("%s\n", s);
 }
