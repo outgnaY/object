@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <endian.h>
 #include <pthread.h>
+#include <ctype.h>
 
 
 #include "obj_config.h"
@@ -41,6 +42,7 @@
 #include "util/obj_hash.h"
 #include "util/obj_list.h"
 #include "util/obj_math.h"
+#include "util/obj_sds.h"
 #include "util/obj_string.h"
 
 

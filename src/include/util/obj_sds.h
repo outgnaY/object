@@ -40,5 +40,24 @@ struct __attribute__ ((__packed__)) obj_sds_header64 {
 };
 
 #define OBJ_SDS_TYPE_5 0
+#define OBJ_SDS_TYPE_8 1
+#define OBJ_SDS_TYPE_16 2
+#define OBJ_SDS_TYPE_32 3
+#define OBJ_SDS_TYPE_64 4
+#define OBJ_SDS_TYPE_MASK 7
+#define OBJ_SDS_TYPE_BITS 3
+
+#define OBJ_SDS_MAX_PREALLOC (1024 * 1024)
+#define OBJ_SDS_LLSTR_SIZE 21
+
+#define OBJ_SDS_HEADER_VAR(T, s) struct obj_sds_header##T *sh = (struct obj_sds_header##T *)((s) - (sizeof(struct obj_sds_header##T)));
+#define OBJ_SDS_HEADER(T, s) ((struct obj_sds_header##T *)((s) - (sizeof(struct obj_sds_header##T))))
+#define OBJ_SDS_TYPE_5_LEN(f) ((f)>>OBJ_SDS_TYPE_BITS)
+
+
+obj_sds obj_sds_newlen(const void *init, obj_size_t initlen);
+obj_sds obj_sds_new(const char *init);
+
+
 
 #endif  /* OBJ_SDS_H */

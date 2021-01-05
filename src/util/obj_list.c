@@ -1,6 +1,4 @@
-#include "util/obj_list.h"
-#include "mem/obj_mem.h"
-#include "mem/obj_mem_simple.h"
+#include "obj_core.h"
 
 /* create list */
 obj_list_t *obj_list_create() {

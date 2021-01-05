@@ -1,5 +1,4 @@
-#include "util/obj_hash.h"
-#include "mem/obj_mem.h"
+#include "obj_core.h"
 
 static unsigned long obj_hash_table_next_power(unsigned long size);
 /* static void obj_hash_table_reset(obj_hash_table_t *table); */
