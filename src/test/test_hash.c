@@ -29,7 +29,7 @@ void *test_func(void *arg) {
 int main() {
     obj_global_mem_context_init();
     obj_hash_table_t *table;
-    obj_hash_table_methods_t methods = {
+    obj_hash_table_methods_t methods1 = {
         obj_hash_table_default_hash_func,
         obj_hash_table_default_key_dup,
         obj_hash_table_default_value_dup,
@@ -37,8 +37,13 @@ int main() {
         obj_hash_table_default_key_free,
         obj_hash_table_default_value_free
     };
+    /*
+    obj_hash_table_methods_t methods2 = {
+        obj_hash_table
+    }
+    */
     /* test hash table with lock */
-    table = obj_hash_table_create(&methods, 32, true);
+    table = obj_hash_table_create(&methods1, 32, true);
     obj_assert(table != NULL);
     /* test_func(table); */
     pthread_t id[16];

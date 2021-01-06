@@ -115,8 +115,6 @@ void obj_hash_table_destroy(obj_hash_table_t *table) {
     obj_free(table);
 }
 
-
-
 /* add */
 obj_global_error_code_t obj_hash_table_add(obj_hash_table_t *table, void *key, void *value) {
     obj_hash_table_entry_t *entry = NULL;
