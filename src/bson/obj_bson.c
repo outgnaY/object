@@ -351,14 +351,14 @@ obj_bool_t obj_bson_append_value(obj_bson_t *bson, const char *key, int key_len,
         ret = obj_bson_append_utf8(bson, key, key_len, value->value.v_utf8.str, value->value.v_utf8.len);
         break;
     case OBJ_BSON_TYPE_OBJECT:
-        bson_heap_temp = obj_bson_init_data(value->value.v_doc.data, value->value.v_doc.len);
+        bson_heap_temp = obj_bson_init_data(value->value.v_object.data, value->value.v_object.len);
         if (bson_heap_temp != NULL) {
             ret = obj_bson_append_object(bson, key, key_len, bson_heap_temp);
             obj_free(bson_heap_temp);
         }
         break;
     case OBJ_BSON_TYPE_ARRAY:
-        bson_heap_temp = obj_bson_init_data(value->value.v_doc.data, value->value.v_doc.len);
+        bson_heap_temp = obj_bson_init_data(value->value.v_array.data, value->value.v_array.len);
         if (bson_heap_temp != NULL) {
             ret = obj_bson_append_array(bson, key, key_len, bson_heap_temp);
             obj_free(bson_heap_temp);

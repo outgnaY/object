@@ -3,7 +3,7 @@
 /* sds tests */
 int main() {
     obj_global_mem_context_init();
-    obj_sds x = obj_sds_new("foo"), y;
+    obj_sds_t x = obj_sds_new("foo"), y;
     obj_assert(obj_sds_len(x) == 3 && obj_memcmp(x, "foo\0", 4) == 0);
     obj_sds_free(x);
     x = obj_sds_newlen("foo", 2);
@@ -20,6 +20,11 @@ int main() {
     x = obj_sds_catfmt(x, "%u,%U--", __UINT32_MAX__, __UINT64_MAX__);
     /* obj_sds_dump(x); */
     obj_assert(obj_sds_len(x) == 35 && obj_memcmp(x, "--4294967295,18446744073709551615--\0", 36) == 0);
+    obj_sds_free(x);
+
+    x = obj_sds_new("printf");
+    x = obj_sds_catprintf(x, "%lf", 123.456);
+    obj_sds_dump(x);
     obj_sds_free(x);
     /* range */
     x = obj_sds_new("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");

@@ -63,7 +63,7 @@ int main() {
     obj_hash_table_destroy(table);
     table  = NULL;
     /* test hash table without lock */
-    table = obj_hash_table_create(&methods, 32, false);
+    table = obj_hash_table_create(&methods1, 32, false);
     obj_assert(table != NULL);
     char buffer[16];
     int len = 0;

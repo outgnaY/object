@@ -20,6 +20,7 @@
 /* bson */
 #include "bson/obj_bson_iter.h"
 #include "bson/obj_bson_validate.h"
+#include "bson/obj_bson_visit.h"
 #include "bson/obj_bson.h"
 /* mem */
 #include "mem/obj_mem.h"
