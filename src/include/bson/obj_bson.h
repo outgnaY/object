@@ -75,15 +75,19 @@ struct obj_bson_value_s {
         double v_double;
         struct {
             char *str;
-            int len;
+            obj_int32_t len;
         } v_utf8;
         struct {
             obj_uint8_t *data;
-            int len;
-        } v_doc;
+            obj_int32_t len;
+        } v_object;
         struct {
             obj_uint8_t *data;
-            int len;
+            obj_int32_t len;
+        } v_array;
+        struct {
+            obj_uint8_t *data;
+            obj_int32_t len;
         } v_binary;
         obj_bool_t v_bool;
         obj_int32_t v_int32;

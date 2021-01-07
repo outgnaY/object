@@ -10,13 +10,14 @@ typedef struct obj_bson_visitor_s obj_bson_visitor_t;
 /* bson iterator */
 struct obj_bson_iter_s {
     obj_uint8_t *buf;               /* buffer being iterated */
-    obj_int32_t len;                        /* length of buffer */
+    obj_int32_t len;                /* length of buffer */
     int off_type;                   /* offset of the type byte */
     int off_key;                    /* offset of the key */
     int off_d1;                     /* offset of data1 */
     int off_d2;                     /* offset of data2 */
-    int off;                     /* current offset of the buffer */
-    int next_off;                /* offset of next element */
+    int off_err;                    /* offset of error position */
+    int off;                        /* current offset of the buffer */
+    int off_next;                   /* offset of next element */
     obj_bson_value_t value;         /* current value */
 };
 
