@@ -185,7 +185,7 @@ obj_bool_t obj_bson_iter_visit_all(obj_bson_iter_t *iter, const obj_bson_visitor
                 if (!obj_bson_init_static(&bson, buf, len)) {
                     return false;
                 }
-                if (visitor->visit_object && !visitor->visit_object(iter, key, &bson, buf)) {
+                if (visitor->visit_object && !visitor->visit_object(iter, key, &bson, data)) {
                     return false;
                 }
                 break;
@@ -198,7 +198,7 @@ obj_bool_t obj_bson_iter_visit_all(obj_bson_iter_t *iter, const obj_bson_visitor
                 if (!obj_bson_init_static(&bson, buf, len)) {
                     return false;
                 }
-                if (visitor->visit_array && !visitor->visit_array(iter, key, &bson, buf)) {
+                if (visitor->visit_array && !visitor->visit_array(iter, key, &bson, data)) {
                     return false;
                 }
                 break;

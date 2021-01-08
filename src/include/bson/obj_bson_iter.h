@@ -19,7 +19,7 @@ struct obj_bson_iter_s {
     obj_bson_value_t value;         /* current value */
 };
 
-obj_bool_t obj_bson_iter_init(obj_bson_iter_t *iter, obj_bson_t *bson);
+obj_bool_t obj_bson_iter_init(obj_bson_iter_t *iter, const obj_bson_t *bson);
 obj_bool_t obj_bson_iter_next_internal(obj_bson_iter_t *iter, const char **key, obj_bson_type_t *bson_type);
 double obj_bson_iter_double(const obj_bson_iter_t *iter);
 const char *obj_bson_iter_utf8(const obj_bson_iter_t *iter, obj_int32_t *len);

@@ -2,6 +2,7 @@
 
 int main() {
     obj_global_mem_context_init();
+    int i;
     /*
     obj_bson_t *bson = obj_bson_init_heap();
     obj_bson_append_utf8(bson, "hello", 5, "world", 5);
@@ -53,9 +54,24 @@ int main() {
     code = obj_bson_validate(simple_3, 49);
     printf("result: %d\n", code);
     */
-    obj_bson_t *bson = obj_bson_init();
-    obj_bson_append_utf8(bson, "hello", 5, "world", 5);
-    obj_bson_print(bson);
-    printf("\n");
+
+    /* simple case */
+    obj_bson_t *bson1 = obj_bson_init();
+    for (i = 0; i < 10; i++) {
+        obj_bson_append_utf8(bson1, "hello", 5, "world", 5);
+        obj_bson_print(bson1);
+        printf("\n");
+    }
+    obj_bson_destroy(bson1);
+    /* nesting case */
+    obj_bson_t *bson2 = obj_bson_init();
+    obj_bson_t *array = obj_bson_init();
+    obj_bson_append_utf8(array, "0", 1, "awesome", 7);
+    obj_bson_append_double(array, "1", 1, 5.05);
+    obj_bson_append_int32(array, "2", 1, 1986);
+    obj_bson_append_array(bson2, "BSON", 4, array);
+    obj_bson_print(bson2);
+    obj_bson_destroy(bson2);
+    obj_bson_destroy(array);
     return 0;
 }

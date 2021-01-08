@@ -31,6 +31,9 @@ void obj_bson_print(obj_bson_t *bson) {
         printf("%02x ", bson->data[i]);
     }
     printf("\n");
+    printf("cap: %d\n", bson->cap);
+    printf("depth: %d\n", bson->depth);
+    printf("len: %d\n", bson->len);
 }
 
 /* init a bson */
@@ -45,7 +48,7 @@ obj_bson_t *obj_bson_init() {
     bson->flag = 0;
     bson->len = 5;
     bson->depth = 0;
-    bson->cap = 
+    bson->cap = OBJ_BSON_INIT_SIZE;
     bson->data[0] = 5;
     bson->data[1] = 0;
     bson->data[2] = 0;
@@ -70,7 +73,7 @@ obj_bool_t obj_bson_init_static(obj_bson_t *bson, const obj_uint8_t *data, obj_i
     bson->flag = OBJ_BSON_FLAG_STATIC | OBJ_BSON_FLAG_RDONLY;
     bson->len = bson->cap = len;
     bson->depth = 0;
-    bson->data = data;
+    bson->data = (obj_uint8_t *)data;
     return true;
 }
 
@@ -110,8 +113,8 @@ obj_uint8_t *obj_bson_data(const obj_bson_t *bson) {
 /* check available space */
 static obj_bool_t obj_bson_grow(obj_bson_t *bson, obj_size_t size) {
     obj_size_t req;
-    req = bson->len;
-    if (req <= bson->len) {
+    req = bson->len + size;
+    if (req <= bson->cap) {
         return true;
     }
     req = obj_next_power_of_two(req);
@@ -120,7 +123,7 @@ static obj_bool_t obj_bson_grow(obj_bson_t *bson, obj_size_t size) {
         if (bson->data == NULL) {
             return false;
         }
-        bson->len = req;
+        bson->cap = req;
         return true;
     }
     return false;

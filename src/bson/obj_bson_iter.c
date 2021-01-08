@@ -219,7 +219,7 @@ mark_invalid:
 
 
 /* must validate bson before iter!!! */
-obj_bool_t obj_bson_iter_init(obj_bson_iter_t *iter, obj_bson_t *bson) {
+obj_bool_t obj_bson_iter_init(obj_bson_iter_t *iter, const obj_bson_t *bson) {
     obj_assert(iter);
     obj_assert(bson);
     if (bson->len < 5) {
