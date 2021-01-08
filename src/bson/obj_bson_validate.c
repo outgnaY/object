@@ -1,10 +1,4 @@
-#include "bson/obj_bson.h"
-#include "bson/obj_bson_validate.h"
-#include "util/obj_list.h"
-#include "util/obj_endian.h"
-#include "util/obj_string.h"
-#include "mem/obj_mem.h"
-#include "mem/obj_mem_simple.h"
+#include "obj_core.h"
 
 
 /* for macro */

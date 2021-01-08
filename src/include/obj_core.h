@@ -17,14 +17,22 @@
 #include "obj_config.h"
 #include "obj_common.h"
 
-/* bson */
-#include "bson/obj_bson_iter.h"
-#include "bson/obj_bson_validate.h"
-#include "bson/obj_bson_visit.h"
-#include "bson/obj_bson.h"
 /* mem */
 #include "mem/obj_mem.h"
 #include "mem/obj_mem_simple.h"
+/* util */
+#include "util/obj_atomic.h"
+#include "util/obj_endian.h"
+#include "util/obj_hash.h"
+#include "util/obj_list.h"
+#include "util/obj_math.h"
+#include "util/obj_sds.h"
+#include "util/obj_string.h"
+/* bson */
+#include "bson/obj_bson.h"
+#include "bson/obj_bson_iter.h"
+#include "bson/obj_bson_validate.h"
+#include "bson/obj_bson_visit.h"
 /* network */
 /*
 #include "network/obj_conn.h"
@@ -38,14 +46,7 @@
 #include "storage/obj_logical.h"
 #include "storage/obj_physical.h"
 */
-/* util */
-#include "util/obj_atomic.h"
-#include "util/obj_endian.h"
-#include "util/obj_hash.h"
-#include "util/obj_list.h"
-#include "util/obj_math.h"
-#include "util/obj_sds.h"
-#include "util/obj_string.h"
+
 
 
 #endif  /* OBJ_CORE_H */

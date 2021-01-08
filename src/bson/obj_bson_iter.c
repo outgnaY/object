@@ -3,6 +3,16 @@
 /* get current type */
 #define OBJ_BSON_ITER_TYPE(iter) (obj_bson_type_t)(*((obj_uint8_t *)((iter)->buf + (iter)->off_type)))
 
+static const char *obj_bson_iter_key_unsafe(const obj_bson_iter_t *iter);
+static double obj_bson_iter_double_unsafe(const obj_bson_iter_t *iter);
+static obj_int32_t obj_bson_iter_utf8_len_unsafe(const obj_bson_iter_t *iter);
+static obj_int32_t obj_bson_iter_binary_len_unsafe(const obj_bson_iter_t *iter);
+static obj_int32_t obj_bson_iter_object_len_unsafe(const obj_bson_iter_t *iter);
+static obj_int32_t obj_bson_iter_array_len_unsafe(const obj_bson_iter_t *iter);
+static obj_bool_t obj_bson_iter_bool_unsafe(const obj_bson_iter_t *iter);
+static obj_int32_t obj_bson_iter_int32_unsafe(const obj_bson_iter_t *iter);
+static obj_int64_t obj_bson_iter_int64_unsafe(const obj_bson_iter_t *iter);
+
 /* key */
 static const char *obj_bson_iter_key_unsafe(const obj_bson_iter_t *iter) {
     return (const char *)(iter->buf + iter->off_key);
@@ -62,7 +72,7 @@ static obj_int64_t obj_bson_iter_int64_unsafe(const obj_bson_iter_t *iter) {
 }
 
 /* called by obj_bson_iter_next */
-static obj_bool_t obj_bson_iter_next_internal(obj_bson_iter_t *iter, const char **key, obj_bson_type_t *bson_type) {
+obj_bool_t obj_bson_iter_next_internal(obj_bson_iter_t *iter, const char **key, obj_bson_type_t *bson_type) {
     const obj_uint8_t *buf;
     obj_int32_t len;
     int off;
@@ -215,7 +225,16 @@ obj_bool_t obj_bson_iter_init(obj_bson_iter_t *iter, obj_bson_t *bson) {
     if (bson->len < 5) {
         return false;
     }
-    
+    iter->buf = bson->data;
+    iter->len = bson->len;
+    iter->off = 0;
+    iter->off_d1 = 0;
+    iter->off_d2 = 0;
+    iter->off_err = 0;
+    iter->off_key = 0;
+    /* start of bson object */
+    iter->off_next = 4;
+    iter->off_type = 0;
     return true;
 }
 

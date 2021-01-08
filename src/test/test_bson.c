@@ -53,5 +53,9 @@ int main() {
     code = obj_bson_validate(simple_3, 49);
     printf("result: %d\n", code);
     */
+    obj_bson_t *bson = obj_bson_init();
+    obj_bson_append_utf8(bson, "hello", 5, "world", 5);
+    obj_bson_print(bson);
+    printf("\n");
     return 0;
 }

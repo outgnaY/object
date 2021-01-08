@@ -10,24 +10,19 @@
 
 #define OBJ_BSON_MAX_SIZE 0x7fffffff
 
-#define OBJ_BSON_STACK_DATA_SIZE 128
-
-#define OBJ_BSON_HEAP_DATA_INIT 128
+#define OBJ_BSON_INIT_SIZE 128
 
 typedef enum obj_bson_flag obj_bson_flag_t;
 typedef enum obj_bson_type obj_bson_type_t;
 typedef struct obj_bson_s obj_bson_t;
-typedef struct obj_bson_stack_s obj_bson_stack_t;
-typedef struct obj_bson_heap_s obj_bson_heap_t;
 typedef struct obj_bson_kv_s obj_bson_kv_t;
 typedef struct obj_bson_value_s obj_bson_value_t;
 
 /* bson flags */
 enum obj_bson_flag {
-    OBJ_BSON_FLAG_STACK = 1,
-    OBJ_BSON_FLAG_HEAP = 2,
-    OBJ_BSON_FLAG_RDONLY = 4,
-    OBJ_BSON_FLAG_DATA_EXTERNAL = 8
+    OBJ_BSON_FLAG_STATIC = 1,               /* init from a static context */
+    OBJ_BSON_FLAG_RDONLY = 2,               /* read only */
+    OBJ_BSON_FLAG_NOFREE = 4                /* don't free data */
 };
 
 /* bson types */
@@ -45,21 +40,13 @@ enum obj_bson_type {
 };
 
 
+
 struct obj_bson_s {
-    obj_bson_flag_t flag;
-    int len;
-};
-
-/* alloc on stack by default */
-struct obj_bson_stack_s {
-    obj_bson_t base;
-    obj_uint8_t data[OBJ_BSON_STACK_DATA_SIZE];
-};
-
-/* alloc on heap */
-struct obj_bson_heap_s {
-    obj_bson_t base;
-    obj_uint8_t *data;
+    obj_bson_flag_t flag;                   /* flag */
+    obj_int32_t len;                        /* length of bson */
+    obj_uint8_t *data;                      /* data pointer */
+    int depth;                              /* current depth */
+    obj_int32_t cap;                        /* capacity */
 };
 
 /* a k-v pair of bson object */
@@ -97,9 +84,9 @@ struct obj_bson_value_s {
 
 void obj_bson_print(obj_bson_t *bson);
 
-obj_bson_t *obj_bson_init_heap();
+obj_bson_t *obj_bson_init();
 
-obj_bson_t *obj_bson_init_data(obj_uint8_t *data, int len);
+obj_bool_t obj_bson_init_static(obj_bson_t *bson, const obj_uint8_t *data, obj_int32_t len);
 
 void obj_bson_destroy(obj_bson_t *bson);
 
