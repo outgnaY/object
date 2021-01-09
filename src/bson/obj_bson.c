@@ -39,7 +39,6 @@ void obj_bson_print(obj_bson_t *bson) {
 /* init a empty bson */
 obj_bson_t *obj_bson_init() {
     obj_bson_t *bson;
-    /* allocate continuous space */
     bson = (obj_bson_t *)obj_alloc(sizeof(obj_bson_t));
     if (bson == NULL) {
         return NULL;
@@ -57,25 +56,34 @@ obj_bson_t *obj_bson_init() {
     return bson;
 }
 
-obj_bool_t obj_bson_init_static(obj_bson_t *bson, const obj_uint8_t *data) {
+/* init bson with given data */
+obj_bson_t *obj_bson_init_with_data(const obj_uint8_t *data, obj_int32_t len) {
+    obj_bson_t *bson;
+    bson = (obj_bson_t *)obj_alloc(sizeof(obj_bson_t));
+    if (bson == NULL) {
+        return NULL;
+    }
     obj_int32_t len_le;
-    obj_int32_t len;
-    obj_memcpy(&len_le, data, sizeof(len_le));
-    len = obj_int32_from_le(len_le);
     if (len < 5 || len > OBJ_BSON_MAX_SIZE) {
         return false;
     }
+    obj_memcpy(&len_le, data, sizeof(len_le));
+    if (obj_int32_from_le(len_le) != len) {
+        return false;
+    }
+    /* must end with '\0' */
     if (data[len - 1]) {
         return false;
     }
-    bson->flag = OBJ_BSON_FLAG_STATIC | OBJ_BSON_FLAG_RDONLY;
+    bson->flag = OBJ_BSON_FLAG_RDONLY;
     bson->len = bson->cap = len;
-    bson->depth = 0;
     bson->data = (obj_uint8_t *)data;
-    return true;
+    bson->depth = 0;
+    return bson;
 }
 
-/* init bson from a static context */
+
+/* init bson from a static context, with given length */
 obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *data, obj_int32_t len) {
     obj_int32_t len_le;
     if (len < 5 || len > OBJ_BSON_MAX_SIZE) {
@@ -85,6 +93,7 @@ obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *da
     if (obj_int32_from_le(len_le) != len) {
         return false;
     }
+    /* must end with '\0' */
     if (data[len - 1]) {
         return false;
     }

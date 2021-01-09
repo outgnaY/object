@@ -127,12 +127,11 @@ int main() {
     obj_bson_append_array(bson6, "BSON", 4, array3);
     res = obj_bson_visit_validate_visit(bson6, OBJ_BSON_VALIDATE_FLAG_NONE);
     printf("validate bson6 res: %d\n", res);
-    obj_bson_t bson7;
     bson6->data[0]++;
-    if (obj_bson_init_static(&bson7, bson6->data)) {
-        res = obj_bson_visit_validate_visit(&bson7, OBJ_BSON_VALIDATE_FLAG_NONE);
-        printf("validate bson7 res: %d\n", res);
-    }
+    bson6->len++;
+    res = obj_bson_visit_validate_visit(bson6, OBJ_BSON_VALIDATE_FLAG_NONE);
+    printf("validate bson6 res: %d\n", res);
+
     obj_bson_destroy(bson6);
     obj_bson_destroy(array3);
     return 0;

@@ -86,7 +86,7 @@ void obj_bson_print(obj_bson_t *bson);
 
 obj_bson_t *obj_bson_init();
 
-obj_bool_t obj_bson_init_static(obj_bson_t *bson, const obj_uint8_t *data);
+obj_bson_t *obj_bson_init_with_data(const obj_uint8_t *data, obj_int32_t len);
 
 obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *data, obj_int32_t len);
 
