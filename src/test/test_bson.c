@@ -65,13 +65,35 @@ int main() {
     obj_bson_destroy(bson1);
     /* nesting case */
     obj_bson_t *bson2 = obj_bson_init();
-    obj_bson_t *array = obj_bson_init();
-    obj_bson_append_utf8(array, "0", 1, "awesome", 7);
-    obj_bson_append_double(array, "1", 1, 5.05);
-    obj_bson_append_int32(array, "2", 1, 1986);
-    obj_bson_append_array(bson2, "BSON", 4, array);
+    obj_bson_t *array1 = obj_bson_init();
+    obj_bson_append_utf8(array1, "0", 1, "awesome", 7);
+    obj_bson_append_double(array1, "1", 1, 5.05);
+    obj_bson_append_int32(array1, "2", 1, 1986);
+    obj_bson_append_array(bson2, "BSON", 4, array1);
     obj_bson_print(bson2);
     obj_bson_destroy(bson2);
-    obj_bson_destroy(array);
+    obj_bson_destroy(array1);
+    /* test visitor */
+    obj_bson_t *bson3 = obj_bson_init();
+    for (i = 0; i < 6; i++) {
+        obj_bson_append_utf8(bson3, "hello", 5, "world", 5);
+        printf("\n");
+    }
+    obj_bool_t res = obj_bson_print_visit(bson3);
+    printf("\n");
+    printf("res = %d\n", res);
+    obj_bson_destroy(bson3);
+    /* test visitor, nesting case */
+    obj_bson_t *bson4 = obj_bson_init();
+    obj_bson_t *array2 = obj_bson_init();
+    obj_bson_append_utf8(array2, "0", 1, "awesome", 7);
+    obj_bson_append_double(array2, "1", 1, 5.05);
+    obj_bson_append_int32(array2, "2", 1, 1986);
+    obj_bson_append_array(bson4, "BSON", 4, array2);
+    res = obj_bson_print_visit(bson4);
+    printf("\n");
+    printf("res = %d\n", res);
+    obj_bson_destroy(bson4);
+    obj_bson_destroy(array2);
     return 0;
 }

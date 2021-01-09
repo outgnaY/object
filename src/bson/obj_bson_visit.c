@@ -11,10 +11,10 @@ static obj_bool_t obj_bson_print_visit_bool(const obj_bson_iter_t *iter, const c
 static obj_bool_t obj_bson_print_visit_null(const obj_bson_iter_t *iter, const char *key, void *data);
 static obj_bool_t obj_bson_print_visit_int32(const obj_bson_iter_t *iter, const char *key, obj_int32_t v_int32, void *data);
 static obj_bool_t obj_bson_print_visit_int64(const obj_bson_iter_t *iter, const char *key, obj_int64_t v_int64, void *data);
+static obj_bool_t obj_bson_print_visit_all(const obj_bson_t *bson);
 
 
-
-static const obj_bson_visitor_t obj_bson_print_visitors = {
+const obj_bson_visitor_t obj_bson_print_visitors = {
     obj_bson_print_visit_before,
     NULL,
     obj_bson_print_visit_double,
@@ -144,6 +144,27 @@ static obj_bool_t obj_bson_print_visit_int64(const obj_bson_iter_t *iter, const 
     printf("[int64]");
     printf("%lld", v_int64);
     return true;
+}
+
+/* visit a bson */
+static obj_bool_t obj_bson_print_visit_all(const obj_bson_t *bson) {
+    obj_bson_print_state_t state;
+    obj_bson_iter_t iter;
+    state.depth = 0;
+    state.count = 0;
+    if (!obj_bson_iter_init(&iter, bson)) {
+        return false;
+    }
+    printf("{");
+    if (obj_bson_iter_visit_all(&iter, &obj_bson_print_visitors, &state)) {
+        printf("}");
+        return true;
+    }
+    return false;
+}
+
+obj_bool_t obj_bson_print_visit(const obj_bson_t *bson) {
+    return obj_bson_print_visit_all(bson);
 }
 
 

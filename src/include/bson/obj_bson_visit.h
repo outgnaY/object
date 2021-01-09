@@ -3,9 +3,10 @@
 
 #include "obj_core.h"
 
-
 typedef struct obj_bson_visitor_s obj_bson_visitor_t;
 typedef struct obj_bson_print_state_s obj_bson_print_state_t;
+
+extern const obj_bson_visitor_t obj_bson_print_visitors;
 
 /* bson visitor */
 struct obj_bson_visitor_s {
@@ -22,13 +23,13 @@ struct obj_bson_visitor_s {
     obj_bool_t (*visit_int64)(const obj_bson_iter_t *iter, const char *key, obj_int64_t v_int64, void *data);
 };
 
-
 /* for debug */
 struct obj_bson_print_state_s {
     int count;                          /* element count */
     int depth;                          /* current depth */
 };
 
+obj_bool_t obj_bson_print_visit(const obj_bson_t *bson);
 obj_bool_t obj_bson_iter_visit_all(obj_bson_iter_t *iter, const obj_bson_visitor_t *visitor, void *data);
 
 
