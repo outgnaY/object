@@ -41,7 +41,6 @@ obj_bool_t obj_validate_utf8_string(const char *utf8, obj_size_t utf8_len, obj_b
     unsigned j;
     for (i = 0; i < utf8_len; i += seq_length) {
         obj_utf8_get_sequence(&utf8[i], &seq_length, &first_mask);
-        printf("%d %d\n", seq_length, first_mask);
         if (!seq_length) {
             return false;
         }

@@ -36,7 +36,7 @@ void obj_bson_print(obj_bson_t *bson) {
     printf("len: %d\n", bson->len);
 }
 
-/* init a bson */
+/* init a empty bson */
 obj_bson_t *obj_bson_init() {
     obj_bson_t *bson;
     /* allocate continuous space */
@@ -57,8 +57,26 @@ obj_bson_t *obj_bson_init() {
     return bson;
 }
 
+obj_bool_t obj_bson_init_static(obj_bson_t *bson, const obj_uint8_t *data) {
+    obj_int32_t len_le;
+    obj_int32_t len;
+    obj_memcpy(&len_le, data, sizeof(len_le));
+    len = obj_int32_from_le(len_le);
+    if (len < 5 || len > OBJ_BSON_MAX_SIZE) {
+        return false;
+    }
+    if (data[len - 1]) {
+        return false;
+    }
+    bson->flag = OBJ_BSON_FLAG_STATIC | OBJ_BSON_FLAG_RDONLY;
+    bson->len = bson->cap = len;
+    bson->depth = 0;
+    bson->data = (obj_uint8_t *)data;
+    return true;
+}
+
 /* init bson from a static context */
-obj_bool_t obj_bson_init_static(obj_bson_t *bson, const obj_uint8_t *data, obj_int32_t len) {
+obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *data, obj_int32_t len) {
     obj_int32_t len_le;
     if (len < 5 || len > OBJ_BSON_MAX_SIZE) {
         return false;
@@ -313,13 +331,13 @@ obj_bool_t obj_bson_append_value(obj_bson_t *bson, const char *key, int key_len,
         ret = obj_bson_append_utf8(bson, key, key_len, value->value.v_utf8.str, value->value.v_utf8.len);
         break;
     case OBJ_BSON_TYPE_OBJECT:
-        if (obj_bson_init_static(&bson_temp, value->value.v_object.data, value->value.v_object.len)) {
+        if (obj_bson_init_static_with_len(&bson_temp, value->value.v_object.data, value->value.v_object.len)) {
             ret = obj_bson_append_object(bson, key, key_len, &bson_temp);
             obj_bson_destroy(&bson_temp);
         }
         break;
     case OBJ_BSON_TYPE_ARRAY:
-        if (obj_bson_init_static(&bson_temp, value->value.v_array.data, value->value.v_array.len)) {
+        if (obj_bson_init_static_with_len(&bson_temp, value->value.v_array.data, value->value.v_array.len)) {
             ret = obj_bson_append_object(bson, key, key_len, &bson_temp);
             obj_bson_destroy(&bson_temp);
         }

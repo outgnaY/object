@@ -3,6 +3,7 @@
 
 #include "obj_core.h"
 
+typedef struct obj_bson_visit_visitor_s obj_bson_visit_visitor_t;
 typedef struct obj_bson_iter_s obj_bson_iter_t;
 
 /* bson iterator */
@@ -31,6 +32,7 @@ obj_int32_t obj_bson_iter_int32(const obj_bson_iter_t *iter);
 obj_int64_t obj_bson_iter_int64(const obj_bson_iter_t *iter);
 obj_bool_t obj_bson_iter_next(obj_bson_iter_t *iter);
 const obj_bson_value_t *obj_bson_iter_value(obj_bson_iter_t *iter);
+obj_bool_t obj_bson_iter_visit_all(obj_bson_iter_t *iter, const obj_bson_visit_visitor_t *visitor, void *data);
 
 
 #endif  /* OBJ_BSON_ITER_H */

@@ -71,23 +71,25 @@ static obj_int64_t obj_bson_iter_int64_unsafe(const obj_bson_iter_t *iter) {
     return obj_int64_from_le(val);
 }
 
-/* called by obj_bson_iter_next */
+
 obj_bool_t obj_bson_iter_next_internal(obj_bson_iter_t *iter, const char **key, obj_bson_type_t *bson_type) {
+    obj_assert(iter->buf != NULL);
+    obj_assert(iter->off_next < iter->len);
     const obj_uint8_t *buf;
     obj_int32_t len;
     int off;
-    /* reach the end */
-    if (!iter->buf) {
-        *key = NULL;
-        *bson_type = OBJ_BSON_TYPE_EOO;
-        return false;
-    }
     buf = iter->buf;
     len = iter->len;
     iter->off = iter->off_next;
     iter->off_type = iter->off;
     iter->off_key = iter->off + 1;
     iter->off_d1 = iter->off_d2 = 0;
+    /* reach the end */
+    if (iter->buf[iter->off] == '\0') {
+        *key = NULL;
+        *bson_type = OBJ_BSON_TYPE_EOO;
+        return false;
+    }
     for (off = iter->off_key; off < len; off++) {
         if (!buf[off]) {
             /* end of key */
@@ -208,7 +210,6 @@ fill_data_fields:
         iter->off_err = off;
         goto mark_invalid;
     }
-    iter->off_err = 0;
     return true;
 mark_invalid:
     iter->buf = NULL;
@@ -218,11 +219,17 @@ mark_invalid:
 }
 
 
-/* must validate bson before iter!!! */
 obj_bool_t obj_bson_iter_init(obj_bson_iter_t *iter, const obj_bson_t *bson) {
     obj_assert(iter);
     obj_assert(bson);
     if (bson->len < 5) {
+        return false;
+    }
+    /* safe check */
+    obj_int32_t len_le;
+    obj_memcpy(&len_le, bson->data, sizeof(len_le));
+    if (obj_int32_from_le(len_le) != bson->len) {
+        /* malformed bson */
         return false;
     }
     iter->buf = bson->data;
@@ -230,7 +237,7 @@ obj_bool_t obj_bson_iter_init(obj_bson_iter_t *iter, const obj_bson_t *bson) {
     iter->off = 0;
     iter->off_d1 = 0;
     iter->off_d2 = 0;
-    iter->off_err = 0;
+    iter->off_err = -1;
     iter->off_key = 0;
     /* start of bson object */
     iter->off_next = 4;
@@ -367,6 +374,101 @@ const obj_bson_value_t *obj_bson_iter_value(obj_bson_iter_t *iter) {
             return NULL;
     }
     return value;
+}
+
+/* visit until an error occurs */
+obj_bool_t obj_bson_iter_visit_all(obj_bson_iter_t *iter, const obj_bson_visit_visitor_t *visitor, void *data) {
+    obj_bson_type_t bson_type;
+    const char *key;
+    /* loop until  */
+    while (obj_bson_iter_next_internal(iter, &key, &bson_type)) {
+        
+        if (!obj_validate_utf8_string(key, iter->off_d1 - iter->off_key - 1, false)) {
+            iter->off_err = iter->off;
+            return false;
+        }
+        if (visitor->visit_before && !visitor->visit_before(iter, key, data)) {
+            return false;
+        }
+        switch (bson_type) {
+            /* can't reach here */
+            case OBJ_BSON_TYPE_EOO:
+                return false;
+            case OBJ_BSON_TYPE_DOUBLE:
+                if (visitor->visit_double && !visitor->visit_double(iter, obj_bson_iter_double(iter), data)) {
+                    return false;
+                }
+                break;
+            case OBJ_BSON_TYPE_UTF8: {
+                const char *utf8;
+                obj_int32_t utf8_len;
+                utf8 = obj_bson_iter_utf8(iter, &utf8_len);
+                /* TODO validate utf8 string */
+                if (visitor->visit_utf8 && !visitor->visit_utf8(iter, utf8_len, utf8, data)) {
+                    return false;
+                }
+                break;
+            }
+            case OBJ_BSON_TYPE_OBJECT: {
+                obj_int32_t len;
+                const obj_uint8_t *buf;
+                buf = obj_bson_iter_object(iter, &len);
+                obj_bson_t bson;
+                if (!obj_bson_init_static_with_len(&bson, buf, len)) {
+                    return false;
+                }
+                if (visitor->visit_object && !visitor->visit_object(iter, &bson, data)) {
+                    return false;
+                }
+                break;
+            }
+            case OBJ_BSON_TYPE_ARRAY: {
+                obj_int32_t len;
+                const obj_uint8_t *buf;
+                buf = obj_bson_iter_array(iter, &len);
+                obj_bson_t bson;
+                if (!obj_bson_init_static_with_len(&bson, buf, len)) {
+                    return false;
+                }
+                if (visitor->visit_array && !visitor->visit_array(iter, &bson, data)) {
+                    return false;
+                }
+                break;
+            }
+            case OBJ_BSON_TYPE_BINARY: {
+                const obj_uint8_t *binary;
+                obj_int32_t binary_len;
+                binary = obj_bson_iter_binary(iter, &binary_len);
+                if (visitor->visit_binary && !visitor->visit_binary(iter, binary_len, binary, data)) {
+                    return false;
+                }
+                break;
+            }
+            case OBJ_BSON_TYPE_BOOL:
+                if (visitor->visit_bool && !visitor->visit_bool(iter, obj_bson_iter_bool(iter), data)) {
+                    return false;
+                }
+                break;
+            case OBJ_BSON_TYPE_NULL:
+                if (visitor->visit_null && !visitor->visit_null(iter, data)) {
+                    return false;
+                }
+                break;
+            case OBJ_BSON_TYPE_INT32:
+                if (visitor->visit_int32 && !visitor->visit_int32(iter, obj_bson_iter_int32(iter), data)) {
+                    return false;
+                }
+                break;
+            case OBJ_BSON_TYPE_INT64:
+                if (visitor->visit_int64 && !visitor->visit_int64(iter, obj_bson_iter_int64(iter), data)) {
+                    return false;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return iter->off == iter->len - 1;
 }
 
 
