@@ -28,7 +28,7 @@ const obj_bson_visitor_t obj_bson_print_visitors = {
     obj_bson_print_visit_int64
 };
 
-/* print message for debug */
+/* ---------- print message for debug ---------- */
 
 static obj_bool_t obj_bson_print_visit_before(const obj_bson_iter_t *iter, const char *key, void *data) {
     obj_bson_print_state_t *state = (obj_bson_print_state_t *)data;
@@ -167,6 +167,84 @@ obj_bool_t obj_bson_print_visit(const obj_bson_t *bson) {
     return obj_bson_print_visit_all(bson);
 }
 
+/* ----------validate bson ---------- */
+static obj_bool_t obj_bson_validate_visit_before(const obj_bson_iter_t *iter, const char *key, void *data) {
+    obj_bson_validate_state_t *state = (obj_bson_validate_state_t *)data;
+    if ((state->flag & OBJ_BSON_VALIDATE_FLAG_EMPTY_KEYS) == 0) {
+        if (key[0] == '\0') {
+            return false;
+        }
+    }
+    return true;
+}
+/*
+static obj_bool_t obj_bson_validate_visit_double(const obj_bson_iter_t *iter, const char *key, void *data) {
+
+}
+*/
+static obj_bool_t obj_bson_validate_visit_utf8(const obj_bson_iter_t *iter, const char *key, obj_int32_t len, const char *v_utf8, void *data) {
+    obj_bson_validate_state_t *state = (obj_bson_validate_state_t *)data;
+    obj_bool_t allow_null;
+    allow_null = ((state->flag & OBJ_BSON_VALIDATE_FLAG_UTF8_ALLOW_NULL) != 0);
+    return obj_validate_utf8_string(v_utf8, len, allow_null);
+}
+
+static obj_bool_t obj_bson_validate_visit_object(const obj_bson_iter_t *iter, const char *key, const obj_bson_t *v_object, void *data) {
+    obj_bson_validate_state_t *state = (obj_bson_validate_state_t *)data;
+    obj_bson_iter_t child;
+    if (obj_bson_iter_init(&child, v_object)) {
+
+        return true;
+    }
+    return false;
+}
+
+static obj_bool_t obj_bson_validate_visit_array(const obj_bson_iter_t *iter, const char *key, const obj_bson_t *v_array, void *data) {
+    obj_bson_validate_state_t *state = (obj_bson_validate_state_t *)data;
+    obj_bson_iter_t child;
+    if (obj_bson_iter_init(&child, v_array)) {
+
+
+        return true;
+    }
+    return false;
+}
+/*
+static obj_bool_t obj_bson_validate_visit_binary(const obj_bson_iter_t *iter, const char *key, obj_int32_t len, const obj_uint8_t *v_binary, void *data) {
+
+}
+
+static obj_bool_t obj_bson_validate_visit_bool(const obj_bson_iter_t *iter, const char *key, obj_bool_t v_bool, void *data) {
+
+}
+
+static obj_bool_t obj_bson_validate_visit_null(const obj_bson_iter_t *iter, const char *key, void *data) {
+
+}
+
+static obj_bool_t obj_bson_validate_visit_int32(const obj_bson_iter_t *iter, const char *key, obj_int32_t v_int32, void *data) {
+
+}
+
+static obj_bool_t obj_bson_validate_visit_int64(const obj_bson_iter_t *iter, const char *key, obj_int64_t v_int64, void *data) {
+
+}
+*/
+
+static obj_bool_t obj_bson_validate_visit_all(const obj_bson_t *bson) {
+    obj_bson_validate_state_t state;
+    obj_bson_iter_t iter;
+    
+    if (!obj_bson_iter_init(&iter, bson)) {
+        return false;
+    }
+
+
+}
+
+obj_bool_t obj_bson_validate_visit(const obj_bson_t *bson) {
+    return obj_bson_validate_visit_all(bson);
+}
 
 /* visit until an error occurs */
 obj_bool_t obj_bson_iter_visit_all(obj_bson_iter_t *iter, const obj_bson_visitor_t *visitor, void *data) {

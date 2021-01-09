@@ -76,7 +76,7 @@ obj_bool_t obj_bson_iter_next_internal(obj_bson_iter_t *iter, const char **key, 
     const obj_uint8_t *buf;
     obj_int32_t len;
     int off;
-    /* end */
+    /* reach the end */
     if (!iter->buf) {
         *key = NULL;
         *bson_type = OBJ_BSON_TYPE_EOO;

@@ -5,6 +5,8 @@
 
 typedef struct obj_bson_visitor_s obj_bson_visitor_t;
 typedef struct obj_bson_print_state_s obj_bson_print_state_t;
+typedef struct obj_bson_validate_state_s obj_bson_validate_state_t;
+typedef enum obj_bson_validate_flag obj_bson_validate_flag_t;
 
 extern const obj_bson_visitor_t obj_bson_print_visitors;
 
@@ -27,6 +29,17 @@ struct obj_bson_visitor_s {
 struct obj_bson_print_state_s {
     int count;                          /* element count */
     int depth;                          /* current depth */
+};
+
+struct obj_bson_validate_state_s {
+    obj_bson_validate_flag_t flag;
+    int off_err;
+};
+
+enum obj_bson_validate_flag {
+    OBJ_BSON_VALIDATE_FLAG_NONE = 0,
+    OBJ_BSON_VALIDATE_FLAG_UTF8_ALLOW_NULL = 1,
+    OBJ_BSON_VALIDATE_FLAG_EMPTY_KEYS = 2
 };
 
 obj_bool_t obj_bson_print_visit(const obj_bson_t *bson);

@@ -95,5 +95,7 @@ int main() {
     printf("res = %d\n", res);
     obj_bson_destroy(bson4);
     obj_bson_destroy(array2);
+    /* test validator */
+    
     return 0;
 }

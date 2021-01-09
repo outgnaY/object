@@ -18,4 +18,7 @@
 #define obj_tolower(c) tolower(c)
 #define obj_toupper(c) toupper(c)
 
+void obj_print_utf8_string(const char *utf8, obj_size_t len);
+obj_bool_t obj_validate_utf8_string(const char *utf8, obj_size_t utf8_len, obj_bool_t allow_null);
+
 #endif  /* OBJ_STRING_H */
