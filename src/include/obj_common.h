@@ -22,6 +22,7 @@ typedef int obj_bool_t;
 #define true 1
 #define false 0
 
+typedef unsigned int obj_rel_time_t;
 
 #define obj_inline inline
 #define obj_assert(expr) assert(expr)
@@ -38,6 +39,9 @@ typedef enum obj_global_error_code obj_global_error_code_t;
 
 /* determine number of elements of an array */
 #define NELEM(a) (sizeof(a) / sizeof(a[0]))
+
+/* error description */
+#define STRERROR(no) (strerror(no) != NULL ? strerror(no) : "unknown error")
 
 /* error code */
 enum obj_global_error_code {

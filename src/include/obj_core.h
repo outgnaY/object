@@ -8,11 +8,16 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 #include <assert.h>
 #include <endian.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <limits.h>
 
+
+#include <event.h>
 
 #include "obj_config.h"
 #include "obj_common.h"
@@ -33,20 +38,18 @@
 #include "bson/obj_bson_iter.h"
 #include "bson/obj_bson_validate.h"
 #include "bson/obj_bson_visit.h"
+
 /* network */
-/*
 #include "network/obj_conn.h"
-#include "network/obj_conn_queue.h"
-*/
-/*
-#include "network/obj_thread.h"
-*/
+#include "obj_thread.h"
+
 /* storage */
 /*
 #include "storage/obj_logical.h"
 #include "storage/obj_physical.h"
 */
 
+#include "obj.h"
 
 
 #endif  /* OBJ_CORE_H */

@@ -5,7 +5,7 @@
 #include "obj_core.h"
 
 // daemonize the server process 
-int daemonize(int nochdir) {
+int obj_daemonize(int nochdir) {
     pid_t pid;
     int fd;
     // create new process 
