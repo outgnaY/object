@@ -11,6 +11,15 @@ int obj_conn_max_fds;                       /* maximum fds */
 obj_conn_t **obj_conn_conns;                /* connection array */
 obj_conn_t *obj_conn_listen_conn = NULL;
 
+static void obj_conn_queue_push(obj_conn_queue_t *cq, obj_conn_queue_item_t *item);
+static obj_conn_queue_item_t *obj_conn_queue_new_item();
+static void obj_drive_machine(obj_conn_t *c);
+static void obj_conn_maxconns_handler(const evutil_socket_t fd, const short which, void *arg);
+static void obj_conn_cleanup(obj_conn_t *c);
+static void obj_conn_free(obj_conn_t *c);
+
+
+
 void obj_conn_queue_item_freelist_init() {
     obj_conn_queue_item_freelist = NULL;
     pthread_mutex_init(&obj_conn_queue_item_freelist_lock, NULL);
@@ -62,7 +71,7 @@ static obj_conn_queue_item_t *obj_conn_queue_new_item() {
     pthread_mutex_unlock(&obj_conn_queue_item_freelist_lock);
     if (item == NULL) {
         int i;
-        item = obj_alloc(sizeof(obj_conn_queue_item_t) * OBJ_CONN_QUEUE_ITEMS_PER_ALLOC);
+        item = (obj_conn_queue_item_t *)obj_alloc(sizeof(obj_conn_queue_item_t) * OBJ_CONN_QUEUE_ITEMS_PER_ALLOC);
         if (item == NULL) {
             return NULL;
         }
@@ -88,6 +97,63 @@ void obj_conn_queue_free_item(obj_conn_queue_item_t *item) {
 
 
 /* ---------- connection ---------- */
+
+/* drive the state machine */
+static void obj_drive_machine(obj_conn_t *c) {
+    obj_bool_t stop = false;
+    int sfd;
+    socklen_t addrlen;
+    struct sockaddr_in addr;
+    obj_bool_t reject = false;
+    while (!stop) {
+        switch (c->state) {
+            case OBJ_CONN_LISTENING:
+                addrlen = sizeof(addr);
+                bzero(&addr, addrlen);
+                sfd = accept(c->sfd, (struct sockaddr *)&addr, &addrlen);
+                if (sfd == -1) {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    stop = true;
+                    } else if (errno == EMFILE) {
+                        if (obj_settings.verbose > 0) {
+                            fprintf(stderr, "too many open connections\n");
+                        }
+                        obj_conn_accept_new_conns(false);
+                        stop = true;
+                    } else {
+                        perror("accept");
+                        stop = true;
+                    }
+                    break;
+                }
+                if (fcntl(sfd, F_SETFL, fcntl(sfd, F_GETFL) | O_NONBLOCK) < 0) {
+                    perror("setting O_NONBLOCK");
+                    close(sfd);
+                    break;
+                }
+                reject = false;
+                if (reject) {
+
+                } else {
+                    obj_conn_dispatch_conn_new(sfd, OBJ_CONN_NEW_CMD, EV_READ | EV_PERSIST);
+                }
+                stop = true;
+                break;
+            case OBJ_CONN_CLOSING:
+                obj_conn_close(c);
+                stop = true;
+                break;
+            case OBJ_CONN_CLOSED:
+                abort();
+                break;
+            default:
+                stop = true;
+                break;
+        }
+    }
+    return;
+}
+
 static void obj_conn_maxconns_handler(const evutil_socket_t fd, const short which, void *arg) {
     struct timeval t = {.tv_sec = 0, .tv_usec = 10000};
     if (fd == -42 || !obj_conn_allow_new_conns) {
@@ -114,11 +180,6 @@ static void obj_conn_free(obj_conn_t *c) {
     }
 }
 
-/* drive the state machine */
-static void obj_drive_machine(obj_conn_t *c) {
-
-}
-
 /* initialize the connection array */
 void obj_conn_conns_init() {
     int next_fd = dup(1);
@@ -126,7 +187,8 @@ void obj_conn_conns_init() {
         fprintf(stderr, "failed to duplicate file descriptor\n");
         exit(1);
     }
-    int headroom = 10;              /* extra room for unexpected open fds */
+    /* extra room for unexpected open fds */
+    int headroom = 10;              
     struct rlimit rl;
     obj_conn_max_fds = obj_settings.maxconns + headroom + next_fd;
     /* get the actual highest fd if possible */
@@ -136,7 +198,7 @@ void obj_conn_conns_init() {
         fprintf(stderr, "failed to query maximum file descriptor\n");
     }
     close(next_fd);
-    if ((obj_conn_conns = calloc(obj_conn_max_fds, sizeof(obj_conn_t *))) == NULL) {
+    if ((obj_conn_conns = obj_alloc(obj_conn_max_fds * sizeof(obj_conn_t *))) == NULL) {
         fprintf(stderr, "failed to allocate connection structures\n");
         exit(1);
     }
@@ -145,6 +207,26 @@ void obj_conn_conns_init() {
 obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short event_flags, struct event_base *base) {
     obj_conn_t *c;
     obj_assert(sfd >= 0 && sfd < obj_conn_max_fds);
+    c = obj_conn_conns[sfd];
+    if (c == NULL) {
+        if (!(c = (obj_conn_t *)obj_alloc(sizeof(obj_conn_t)))) {
+            fprintf(stderr, "failed to allocation memory for connection\n");
+            return NULL;
+        }
+        c->sfd = sfd;
+        obj_conn_conns[sfd] = c;
+    }
+    c->state = init_state;
+    /* set for idle kicker */
+    c->last_cmd_time = obj_rel_current_time;
+    event_set(&c->event, sfd, event_flags, obj_conn_event_handler, (void *)c);
+    event_base_set(base, &c->event);
+    c->event_flags = event_flags;
+    if (event_add(&c->event, 0) == -1) {
+        fprintf(stderr, "event add error\n");
+        return NULL;
+    }
+    return c;
 }
 
 
@@ -169,7 +251,7 @@ void obj_conn_dispatch_conn_new(int sfd, obj_conn_state_t init_state, int event_
     buf[0] = 'c';
     /* nofify worker thread */
     if (write(thread->notify_send_fd, buf, 1) != 1) {
-        fprintf(stderr, "writing to worker thread notify pipe error\n");
+        perror("writing to worker thread notify pipe error");
     }
 }
 
@@ -185,12 +267,12 @@ void obj_conn_do_accept_new_conns(const obj_bool_t do_accept) {
         if (do_accept) {
             obj_conn_update_event(next, EV_READ | EV_PERSIST);
             if (listen(next->sfd, obj_settings.backlog) != 0) {
-                fprintf(stderr, "listen error %d\n", next->sfd);
+                perror("listen");
             }
         } else {
             obj_conn_update_event(next, 0);
             if (listen(next->sfd, 0) != 0) {
-                fprintf(stderr, "listen error %d\n", next->sfd);
+                perror("listen");
             }
         }
     }
@@ -240,7 +322,7 @@ void obj_conn_event_handler(const evutil_socket_t fd, const short which, void *a
 void obj_conn_close_idle(obj_conn_t *c) {
     if (obj_settings.idle_timeout > 0 && (obj_rel_current_time - c->last_cmd_time) > obj_settings.idle_timeout) {
         /* a connection timeout */
-        if (c->state != ) {
+        if (c->state != OBJ_CONN_NEW_CMD && c->state != OBJ_CONN_READ) {
             if (obj_settings.verbose > 1) {
                 fprintf(stderr, "fd %d wants to timeout, but isn't in correct state\n", c->sfd);
             }
@@ -281,7 +363,6 @@ void obj_conn_close_all() {
     }
 }
 
-/* TODO set a connection state */
 void obj_conn_set_state(obj_conn_t *c, obj_conn_state_t state) {
     obj_assert(c != NULL);
     if (state != c->state) {

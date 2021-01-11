@@ -10,6 +10,17 @@ static obj_stop_reason_t obj_stop_mainloop = OBJ_NOT_STOP;  /* mainloop stop rea
 static volatile sig_atomic_t obj_sighup;                    /* a HUP signal received but not yet handled */
 static struct event obj_clockevent;
 
+static void obj_settings_init();
+static void obj_sig_handler(const int sig);
+static void obj_sighup_handler();
+static void obj_clock_handler(const evutil_socket_t fd, const short which, void *arg);
+static void obj_version();
+static void obj_usage();
+static int obj_new_socket(struct addrinfo *ai);
+static obj_bool_t obj_server_socket(int port);
+static obj_bool_t obj_server_sockets(int port);
+
+/* init settings */
 static void obj_settings_init() {
     obj_settings.num_threads = 4;
     obj_settings.maxconns = 1024;
@@ -63,7 +74,102 @@ static void obj_usage() {
            );
 }
 
-// static int 
+static int obj_new_socket(struct addrinfo *ai) {
+    int sfd;
+    int flags;
+    if ((sfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
+        return -1;
+    }
+    if ((flags = fcntl(sfd, F_GETFL, 0)) < 0 || fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+        perror("setting O_NONBLOCK");
+        close(sfd);
+        return -1;
+    }
+    return sfd;
+}
+
+/* listen on port */
+static obj_bool_t obj_server_socket(int port) {
+    int sfd;
+    struct linger ling = {0, 0};
+    struct addrinfo *ai;
+    struct addrinfo *next;
+    struct addrinfo hints = {.ai_flags = AI_PASSIVE, .ai_family = AF_UNSPEC};
+    char port_buf[NI_MAXSERV];
+    int error;
+    int success = 0;
+    int flags = 1;
+    hints.ai_socktype = SOCK_STREAM;
+    if (port == -1) {
+        port = 0;
+    }
+    snprintf(port_buf, sizeof(port_buf), "%d", port);
+    error = getaddrinfo(NULL, port_buf, &hints, &ai);
+    if (error != 0) {
+        if (error != EAI_SYSTEM) {
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
+        } else {
+            perror("getaddrinfo");
+        }
+        return false;
+    }
+    for (next = ai; next; next = next->ai_next) {
+        obj_conn_t *listen_conn_add;
+        if ((sfd = obj_new_socket(next)) == -1) {
+            if (errno == EMFILE) {
+                perror("server socket");
+                exit(EX_OSERR);
+            }
+            continue;
+        }
+        setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, (void *)&flags, sizeof(flags));
+        error = setsockopt(sfd, SOL_SOCKET, SO_KEEPALIVE, (void *)&flags, sizeof(flags));
+        if (error != 0) {
+            perror("setsockopt");
+        }
+        error = setsockopt(sfd, SOL_SOCKET, SO_LINGER, (void *)&ling, sizeof(ling));
+        if (error != 0) {
+            perror("setsockopt");
+        }
+        error = setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, (void *)&flags, sizeof(flags));
+        if (error != 0) {
+            perror("setsockopt");
+        }
+        /* bind */
+        if (bind(sfd, next->ai_addr, next->ai_addrlen) == -1) {
+            if (errno != EADDRINUSE) {
+                perror("bind");
+                close(sfd);
+                freeaddrinfo(ai);
+                return false;
+            }
+            close(sfd);
+            continue;
+        } else {
+            success++;
+            if (listen(sfd, obj_settings.backlog) == -1) {
+                perror("listen");
+                close(sfd);
+                freeaddrinfo(ai);
+                return false;
+            }
+        }
+        /* printf("main thread new connection, sfd = %d\n", sfd); */
+        if (!(listen_conn_add = obj_conn_new(sfd, OBJ_CONN_LISTENING, EV_READ | EV_PERSIST, obj_main_base))) {
+            fprintf(stderr, "failed to create listening connecton\n");
+            exit(EXIT_FAILURE);
+        }
+        listen_conn_add->next = obj_conn_listen_conn;
+        obj_conn_listen_conn = listen_conn_add;
+        break;       // for debug
+    }
+    freeaddrinfo(ai);
+    return success > 0;
+}
+
+static obj_bool_t obj_server_sockets(int port) {
+    return obj_server_socket(port);
+}
 
 
 int main(int argc, char **argv) {
@@ -164,7 +270,7 @@ int main(int argc, char **argv) {
     if (do_daemonize) {
         /* ignore SIGHUP if run as a daemon */
         if (signal(SIGHUP, SIG_IGN)) {
-            fprintf(stderr, "failed to ignore SIGHUP\n");
+            perror("failed to ignore SIGHUP");
         }
         if (!obj_daemonize(enable_core)) {
             fprintf(stderr, "failed to daemonize\n");
@@ -198,7 +304,10 @@ int main(int argc, char **argv) {
     /* init clock handler */
     obj_clock_handler(0, 0, 0);
     /* listen */
-
+    if (!obj_server_sockets(obj_settings.port)) {
+        fprintf(stderr, "failed to listen on TCP port %d\n", obj_settings.port);
+        exit(EX_OSERR);
+    }
     /* event loop */
     while (!obj_stop_mainloop) {
         if (event_base_loop(obj_main_base, EVLOOP_ONCE) != 0) {

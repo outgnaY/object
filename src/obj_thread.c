@@ -3,12 +3,10 @@
 #define OBJ_CONN_PER_SLICE 100
 #define OBJ_CONN_TIMEOUT_MSG_SIZE (1 + sizeof(int))
 
-static volatile obj_bool_t obj_thread_run_conn_timeout_thread;    /* timeout thread running flag */
-static pthread_t obj_thread_conn_timeout_tid;                          /* timeout thread id */
-
+static volatile obj_bool_t obj_thread_run_conn_timeout_thread;          /* timeout thread running flag */
+static pthread_t obj_thread_conn_timeout_tid;                           /* timeout thread id */
 /* lock to cause worker threads to hang up after being woken */
 static pthread_mutex_t obj_thread_worker_hang_lock;
-
 /* thread init */
 static int obj_thread_init_count = 0;
 static pthread_mutex_t obj_thread_init_lock;
@@ -17,6 +15,17 @@ static pthread_cond_t obj_thread_init_cond;
 int obj_thread_last_thread = -1;
 /* worker threads */
 obj_thread_libevent_thread_t *obj_thread_threads;
+
+static void obj_thread_wait_for_thread_registration(int nthreads);
+static void obj_thread_register_thread_initialized();
+static void obj_thread_setup_thread(obj_thread_libevent_thread_t *this);
+static void obj_thread_create_worker(void *(*func)(void *), void *arg);
+static void *obj_thread_worker_mainloop(void *arg);
+static void obj_thread_libevent_process(evutil_socket_t fd, short which, void *arg);
+static void *obj_thread_conn_timeout_thread(void *arg);
+
+
+
 
 /* wait for thread registration */
 static void obj_thread_wait_for_thread_registration(int nthreads) {
@@ -164,7 +173,7 @@ static void *obj_thread_conn_timeout_thread(void *arg) {
                 buf[0] = 't';
                 obj_memcpy(&buf[1], &i, sizeof(int));
                 if (write(c->thread->notify_send_fd, buf, OBJ_CONN_TIMEOUT_MSG_SIZE) != OBJ_CONN_TIMEOUT_MSG_SIZE) {
-                    fprintf(stderr, "failed to write timeout message to notify pipe\n");
+                    perror("failed to write timeout message to notify pipe");
                 }
             } else {
                 if (c->last_cmd_time < oldest_last_cmd) {
@@ -207,19 +216,31 @@ obj_bool_t obj_thread_stop_conn_timeout_thread() {
 void obj_thread_stop_threads() {
     char buf[1];
     int i;
+    if (obj_settings.verbose > 0) {
+        fprintf(stderr, "asking workers to stop\n");
+    }
     buf[0] = 's';
     pthread_mutex_lock(&obj_thread_worker_hang_lock);
     pthread_mutex_lock(&obj_thread_init_lock);
-    int count = 0;
+    obj_thread_init_count = 0;
     for (i = 0; i < obj_settings.num_threads; i++) {
         if (write(obj_thread_threads[i].notify_send_fd, buf, 1) != 1) {
-            fprintf(stderr, "failed writing to notify pipe\n");
+            perror("failed writing to notify pipe");
         }
     }
     obj_thread_wait_for_thread_registration(obj_settings.num_threads);
     pthread_mutex_unlock(&obj_thread_init_lock);
     /* stop connection timeout thread */
-    obj_conn_stop_timeout_thread();
+    obj_thread_stop_conn_timeout_thread();
+    /* close all connections */
+    obj_conn_close_all();
+    pthread_mutex_unlock(&obj_thread_worker_hang_lock);
+    for (i = 0; i < obj_settings.num_threads; i++) {
+        pthread_join(obj_thread_threads[i].thread_id, NULL);
+    }
+    if (obj_settings.verbose > 0) {
+        fprintf(stderr, "all background threads stopped\n");
+    }
 }
 
 /* initialize worker threads */
@@ -232,7 +253,7 @@ void obj_thread_init(int nthreads, void *arg) {
     /* init connection queue freelist lock */
     obj_conn_queue_item_freelist_init();
     /* setup worker threads */
-    obj_thread_threads = calloc(nthreads, sizeof(obj_thread_libevent_thread_t));
+    obj_thread_threads = (obj_thread_libevent_thread_t *)obj_alloc(nthreads * sizeof(obj_thread_libevent_thread_t));
     if (obj_thread_threads == NULL) {
         fprintf(stderr, "can't allocate thread descriptors\n");
         exit(EXIT_FAILURE);
@@ -240,7 +261,7 @@ void obj_thread_init(int nthreads, void *arg) {
     for (i = 0; i < nthreads; i++) {
         int fds[2];
         if (pipe(fds)) {
-            fprintf(stderr, "can't create notify pipe\n");
+            perror("can't create notify pipe");
             exit(EXIT_FAILURE);
         }
         obj_thread_threads[i].notify_receive_fd = fds[0];

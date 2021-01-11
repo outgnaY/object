@@ -17,7 +17,7 @@ static void obj_mem_simple_context_free_nolock(obj_mem_context_t *context, void 
 
 
 /* find freelist index of given size, caller must ensure that size <= OBJ_ALLOC_CHUNK_LIMIT */
-static obj_inline int obj_mem_free_index(obj_size_t size) {
+static inline int obj_mem_free_index(obj_size_t size) {
     int idx = 0;
     if (size > 0) {
         size = (size - 1) >> OBJ_ALLOC_MINBITS;

@@ -22,7 +22,6 @@ typedef int obj_bool_t;
 
 typedef unsigned int obj_rel_time_t;
 
-#define obj_inline inline
 #define obj_assert(expr) assert(expr)
 
 typedef enum obj_global_error_code obj_global_error_code_t;

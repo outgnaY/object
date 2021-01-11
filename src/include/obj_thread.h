@@ -18,4 +18,10 @@ struct obj_thread_libevent_thread_s {
 extern int obj_thread_last_thread;
 extern obj_thread_libevent_thread_t *obj_thread_threads;
 
+obj_bool_t obj_thread_start_conn_timeout_thread();
+obj_bool_t obj_thread_stop_conn_timeout_thread();
+void obj_thread_stop_threads();
+void obj_thread_init(int nthreads, void *arg);
+
+
 #endif  /* OBJ_THREAD_H */

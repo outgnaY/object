@@ -22,6 +22,12 @@
 #include <errno.h>
 #include <sysexits.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <grp.h>
+#include <netinet/tcp.h>
 
 
 #include <event.h>
