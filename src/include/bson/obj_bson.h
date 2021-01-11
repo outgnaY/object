@@ -3,10 +3,6 @@
 
 #include "obj_core.h"
 
-#define OBJ_BSON_LITTLE_ENDIAN 0
-#define OBJ_BSON_BIG_ENDIAN 1
-
-
 
 #define OBJ_BSON_MAX_SIZE 0x7fffffff
 

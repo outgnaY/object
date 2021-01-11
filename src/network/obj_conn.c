@@ -1,31 +1,30 @@
 #include "obj_core.h"
 
-#define OBJ_CONN_PER_SLICE 100
-#define OBJ_CONN_TIMEOUT_MSG_SIZE (1 + sizeof(int))
-
 static obj_conn_queue_item_t *obj_conn_queue_item_freelist;
 static pthread_mutex_t obj_conn_queue_item_freelist_lock;
-
-static int obj_conn_max_fds;                                    /* maximum fds */
-static volatile obj_bool_t obj_conn_run_conn_timeout_thread;    /* timeout thread running flag */
-static pthread_t obj_conn_timeout_tid;                          /* timeout thread id */
+static pthread_mutex_t obj_conn_lock = PTHREAD_MUTEX_INITIALIZER;
 static volatile obj_bool_t obj_conn_allow_new_conns = true;     /* allow new connection flag */
 static struct event obj_conn_maxconnsevent;
 
 /* globals */
-obj_conn_t **obj_conn_conns;             /* connection array */
-pthread_mutex_t obj_conn_lock = PTHREAD_MUTEX_INITIALIZER;
+int obj_conn_max_fds;                       /* maximum fds */
+obj_conn_t **obj_conn_conns;                /* connection array */
 obj_conn_t *obj_conn_listen_conn = NULL;
 
+void obj_conn_queue_item_freelist_init() {
+    obj_conn_queue_item_freelist = NULL;
+    pthread_mutex_init(&obj_conn_queue_item_freelist_lock, NULL);
+}
+
 /* initializes a connection queue */
-static void obj_conn_queue_init(obj_conn_queue_t *cq) {
+void obj_conn_queue_init(obj_conn_queue_t *cq) {
     pthread_mutex_init(&cq->lock, NULL);
     cq->head = NULL;
     cq->tail = NULL;
 }
 
 /* pop an item in a connection queue */
-static obj_conn_queue_item_t *obj_conn_queue_pop(obj_conn_queue_t *cq) {
+obj_conn_queue_item_t *obj_conn_queue_pop(obj_conn_queue_t *cq) {
     obj_conn_queue_item_t *item;
     pthread_mutex_lock(&cq->lock);
     item = cq->head;
@@ -80,7 +79,7 @@ static obj_conn_queue_item_t *obj_conn_queue_new_item() {
 }
 
 /* free a connection queue item */
-static void obj_conn_queue_free_item(obj_conn_queue_item_t *item) {
+void obj_conn_queue_free_item(obj_conn_queue_item_t *item) {
     pthread_mutex_lock(&obj_conn_queue_item_freelist_lock);
     item->next = obj_conn_queue_item_freelist;
     obj_conn_queue_item_freelist = item;
@@ -115,53 +114,9 @@ static void obj_conn_free(obj_conn_t *c) {
     }
 }
 
-/* kick out idle threads */
-static void *obj_conn_timeout_thread(void *arg) {
-    int i;
-    obj_conn_t *c;
-    char buf[OBJ_CONN_TIMEOUT_MSG_SIZE];
-    obj_rel_time_t oldest_last_cmd;
-    int sleep_time;
-    int sleep_slice = obj_conn_max_fds / OBJ_CONN_PER_SLICE;
-    if (sleep_slice == 0) {
-        sleep_slice = OBJ_CONN_PER_SLICE;
-    }
-    useconds_t timeslice = 1000000 / sleep_slice;
-    while (obj_conn_run_conn_timeout_thread) {
-        oldest_last_cmd = obj_rel_current_time;
-        for (i = 0; i < obj_conn_max_fds; i++) {
-            /* sleep */
-            if ((i % OBJ_CONN_PER_SLICE) == 0) {
-                usleep(timeslice);
-            }
-            if (!obj_conn_conns[i]) {
-                continue;
-            }
-            c = obj_conn_conns[i];
-            /* check connection state */
-            if (c->state !=) {
-                continue;
-            }
-            if ((obj_rel_current_time - c->last_cmd_time) > obj_settings.idle_timeout) {
-                buf[0] = 't';
-                obj_memcpy(&buf[1], &i, sizeof(int));
-                if (write(c->thread->notify_send_fd, buf, OBJ_CONN_TIMEOUT_MSG_SIZE) != OBJ_CONN_TIMEOUT_MSG_SIZE) {
-                    fprintf(stderr, "failed to write timeout message to notify pipe\n");
-                }
-            } else {
-                if (c->last_cmd_time < oldest_last_cmd) {
-                    oldest_last_cmd = c->last_cmd_time;
-                }
-            }
-        }
-        /* soonest we could have another connection timeout */
-        sleep_time = obj_settings.idle_timeout - (obj_rel_current_time - oldest_last_cmd) + 1;
-        if (sleep_time <= 0) {
-            sleep_time = 1;
-        }
-        usleep((useconds_t) sleep_time * 1000000);
-    }
-    return NULL;
+/* drive the state machine */
+static void obj_drive_machine(obj_conn_t *c) {
+
 }
 
 /* initialize the connection array */
@@ -190,6 +145,32 @@ void obj_conn_conns_init() {
 obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short event_flags, struct event_base *base) {
     obj_conn_t *c;
     obj_assert(sfd >= 0 && sfd < obj_conn_max_fds);
+}
+
+
+void obj_conn_dispatch_conn_new(int sfd, obj_conn_state_t init_state, int event_flags) {
+    obj_conn_queue_item_t *item = obj_conn_queue_new_item();
+    char buf[1];
+    if (item == NULL) {
+        close(sfd);
+        fprintf(stderr, "failed to allocate memory for connection object\n");
+        return;
+    }
+    /* round robin */
+    int tid = (obj_thread_last_thread + 1) % obj_settings.num_threads;
+    obj_thread_libevent_thread_t *thread = obj_thread_threads + tid;
+    obj_thread_last_thread = tid;
+    /* init item */
+    item->sfd = sfd;
+    item->init_state = init_state;
+    item->event_flags = event_flags;
+
+    obj_conn_queue_push(thread->new_conn_queue, item);
+    buf[0] = 'c';
+    /* nofify worker thread */
+    if (write(thread->notify_send_fd, buf, 1) != 1) {
+        fprintf(stderr, "writing to worker thread notify pipe error\n");
+    }
 }
 
 void obj_conn_accept_new_conns(const obj_bool_t do_accept) {
@@ -245,8 +226,14 @@ void obj_conn_event_handler(const evutil_socket_t fd, const short which, void *a
     obj_assert(c != NULL);
     c->which = which;
     if (fd != c->sfd) {
-        /* obj_conn */
+        if (obj_settings.verbose > 0) {
+            fprintf(stderr, "event fd doesn't match conn fd\n");
+        }
+        obj_conn_close(c);
+        return;
     }
+    obj_drive_machine(c);
+    return;
 }
 
 /* close idle connection */
@@ -264,14 +251,19 @@ void obj_conn_close_idle(obj_conn_t *c) {
         }
         obj_conn_set_state(c, OBJ_CONN_CLOSING);
         /* drive the state machine */
-        drive_machine(c);
+        obj_drive_machine(c);
     }
     
 }
 
 void obj_conn_close(obj_conn_t *c) {
     obj_assert(c != NULL);
+    /* delete the event, the socket and the conn */
     event_del(&c->event);
+    if (obj_settings.verbose > 1) {
+        fprintf(stderr, "<%d connection closed\n", c->sfd);
+    }
+    /* TODO force release of read buffer */
     obj_conn_cleanup(c);
     obj_conn_set_state(c, OBJ_CONN_CLOSED);
     close(c->sfd);
@@ -297,24 +289,4 @@ void obj_conn_set_state(obj_conn_t *c, obj_conn_state_t state) {
     }
 }
 
-obj_bool_t obj_conn_start_timeout_thread() {
-    int ret;
-    if (obj_settings.idle_timeout == 0) {
-        return false;
-    }
-    obj_conn_run_conn_timeout_thread = true;
-    if ((ret = pthread_create(&obj_conn_timeout_tid, NULL, obj_conn_timeout_thread, NULL)) != 0) {
-        fprintf(stderr, "can't create idle connection timeout thread: %s\n", STRERROR(ret));
-        return false;
-    }
-    return true;
-}
 
-obj_bool_t obj_conn_stop_timeout_thread() {
-    if (!obj_conn_run_conn_timeout_thread) {
-        return false;
-    }
-    obj_conn_run_conn_timeout_thread = false;
-    pthread_join(obj_conn_timeout_tid, NULL);
-    return 0;
-}

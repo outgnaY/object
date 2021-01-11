@@ -15,6 +15,13 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <limits.h>
+#include <signal.h>
+#include <getopt.h>
+#include <pwd.h>
+#include <grp.h>
+#include <errno.h>
+#include <sysexits.h>
+#include <fcntl.h>
 
 
 #include <event.h>

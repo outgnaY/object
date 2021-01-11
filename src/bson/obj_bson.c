@@ -118,7 +118,7 @@ void obj_bson_destroy(obj_bson_t *bson) {
 
 static void obj_bson_encode_length(obj_bson_t *bson) {
     obj_int32_t len = (obj_int32_t)bson->len;
-#if OBJ_BYTE_ORDER == OBJ_LITTLE_ENDIAN
+#ifdef ENDIAN_LITTLE
     obj_memcpy(obj_bson_data(bson), &len, sizeof(obj_int32_t));
 #else
     obj_int32_t len_le = obj_int32_to_le(len);
@@ -128,7 +128,7 @@ static void obj_bson_encode_length(obj_bson_t *bson) {
 
 /* show corresponding bson type name */
 const char *obj_bson_type_to_name(obj_bson_type_t type) {
-    obj_assert(type >= 0 && type < NELEM(obj_bson_type_name));
+    obj_assert(type >= 0 && type < OBJ_NELEM(obj_bson_type_name));
     return obj_bson_type_name[type];
 }
 

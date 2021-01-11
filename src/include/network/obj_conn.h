@@ -18,6 +18,8 @@ typedef struct obj_conn_s obj_conn_t;
 
 enum obj_conn_state {
     OBJ_CONN_LISTENING,
+    OBJ_CONN_NEW_CMD,
+    OBJ_CONN_READ,
     OBJ_CONN_CLOSING,
     OBJ_CONN_CLOSED
 };
@@ -48,5 +50,10 @@ struct obj_conn_s {
     short which;                            /* which events were just triggered */
     obj_conn_t *next;                       /* used to generate a list of conn structures */
 };
+
+extern obj_conn_t **obj_conn_conns;         /* connection array */
+extern int obj_conn_max_fds;
+
+void obj_conn_queue_init(obj_conn_queue_t *cq);
 
 #endif  /* OBJ_CONN_H */

@@ -5,7 +5,7 @@ AC_PREREQ([2.69])
 AC_INIT([obj], [1.0])
 AC_CONFIG_SRCDIR([obj.c])
 AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_HEADERS([include/config.h])
+AC_CONFIG_HEADERS([include/obj_config.h])
 
 # Checks for programs.
 AC_PROG_CC
@@ -33,6 +33,7 @@ AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([dup2 gettimeofday])
+AC_CHECK_FUNCS([getopt_long], [AC_DEFINE(HAVE_GETOPT_LONG, 1, [Define to 1 if support getopt_long])])
 
 dnl Check if we're a little-endian or a big-endian system
 AC_C_BIGENDIAN(
