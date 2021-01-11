@@ -298,7 +298,7 @@ int main(int argc, char **argv) {
     /* init libevent threads */
     obj_thread_init(obj_settings.num_threads, NULL);
     /* init timeout checking thread */
-    if (obj_settings.idle_timeout > 0 && !obj_conn_start_timeout_thread()) {
+    if (obj_settings.idle_timeout > 0 && !obj_thread_start_conn_timeout_thread()) {
         exit(EXIT_FAILURE);
     }
     /* init clock handler */

@@ -5,6 +5,8 @@
 
 #define OBJ_CONN_QUEUE_ITEMS_PER_ALLOC 64
 
+typedef struct obj_thread_libevent_thread_s obj_thread_libevent_thread_t;
+
 typedef enum obj_conn_state obj_conn_state_t;
 /* connection queue */
 typedef struct obj_conn_queue_item_s obj_conn_queue_item_t;
@@ -53,7 +55,7 @@ struct obj_conn_s {
 
 extern int obj_conn_max_fds;
 extern obj_conn_t **obj_conn_conns;             /* connection array */
-extern obj_conn_t *obj_conn_listen_conn = NULL;
+extern obj_conn_t *obj_conn_listen_conn;
 
 void obj_conn_queue_item_freelist_init();
 void obj_conn_queue_init(obj_conn_queue_t *cq);
