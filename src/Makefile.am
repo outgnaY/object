@@ -20,7 +20,7 @@ all:
 	mv -f test_hash ../bin/test_hash
 	mv -f test_sds ../bin/test_sds
 	mv -f test_string ../bin/test_string
-	mv -f bson/*.o mem/*.o network/*.o test/*.o util/*.o ../obj
+	mv -f obj_daemon.o obj_thread.o obj.o bson/*.o mem/*.o network/*.o test/*.o util/*.o ../obj
 clean:
 	rm -f ../bin/object
 	rm -f ../bin/test_bson
