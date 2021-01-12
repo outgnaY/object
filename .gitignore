@@ -22,6 +22,7 @@ autom4te.cache
 /src/compile
 /src/autom4te.cache
 /src/depcomp
+/src/.deps
 /src/include/config.h.in
 /src/include/config.h.in~
 /src/include/config.h
