@@ -147,6 +147,9 @@ static void obj_drive_machine(obj_conn_t *c) {
                 abort();
                 break;
             default:
+                /* unexpected */
+                fprintf(stderr, "unexpected\n");
+                obj_conn_close(c);
                 stop = true;
                 break;
         }

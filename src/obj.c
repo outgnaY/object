@@ -24,7 +24,8 @@ static obj_bool_t obj_server_sockets(int port);
 static void obj_settings_init() {
     obj_settings.num_threads = 4;
     obj_settings.maxconns = 1024;
-    obj_settings.idle_timeout = 60;
+    /* disabled by default */
+    obj_settings.idle_timeout = 0;
     obj_settings.backlog = 1024;
     obj_settings.maxconns_fast = true;
     obj_settings.port = 6666;
@@ -62,7 +63,7 @@ static void obj_clock_handler(const evutil_socket_t fd, const short which, void 
 }
 
 static void obj_version() {
-    printf("in-memory cache service. version %f\n", OBJ_VERSION);
+    printf("in-memory cache service. version %.1f\n", OBJ_VERSION);
 }
 
 static void obj_usage() {
@@ -286,6 +287,8 @@ int main(int argc, char **argv) {
 #else
     obj_main_base = event_init();
 #endif
+    /* init memory allocator */
+    obj_global_mem_context_init();
     /* init connections structure */
     obj_conn_conns_init();
     /* set process start time */

@@ -32,6 +32,7 @@ static void obj_thread_wait_for_thread_registration(int nthreads) {
     while (obj_thread_init_count < nthreads) {
         pthread_cond_wait(&obj_thread_init_cond, &obj_thread_init_lock);
     }
+    fprintf(stderr, "wait ok\n");
 }
 
 static void obj_thread_register_thread_initialized() {
@@ -186,6 +187,8 @@ static void *obj_thread_conn_timeout_thread(void *arg) {
         if (sleep_time <= 0) {
             sleep_time = 1;
         }
+        /* TODO might could cause long time sleep!!! */
+        /* fprintf(stderr, "sleep time = %d us\n", sleep_time * 1000000); */
         usleep((useconds_t) sleep_time * 1000000);
     }
     return NULL;
@@ -228,10 +231,19 @@ void obj_thread_stop_threads() {
             perror("failed writing to notify pipe");
         }
     }
+    if (obj_settings.verbose > 0) {
+        fprintf(stderr, "waiting workers to stop...\n");
+    }
     obj_thread_wait_for_thread_registration(obj_settings.num_threads);
     pthread_mutex_unlock(&obj_thread_init_lock);
     /* stop connection timeout thread */
     obj_thread_stop_conn_timeout_thread();
+    if (obj_settings.verbose > 0) {
+        fprintf(stderr, "stopped idle timeout thread\n");
+    }
+    if (obj_settings.verbose > 0) {
+        fprintf(stderr, "closing connections\n");
+    }
     /* close all connections */
     obj_conn_close_all();
     pthread_mutex_unlock(&obj_thread_worker_hang_lock);
