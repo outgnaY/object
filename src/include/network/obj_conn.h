@@ -4,10 +4,11 @@
 #include "obj_core.h"
 
 #define OBJ_CONN_QUEUE_ITEMS_PER_ALLOC 64
-
+/* forward declaration */
 typedef struct obj_thread_libevent_thread_s obj_thread_libevent_thread_t;
 
 typedef enum obj_conn_state obj_conn_state_t;
+typedef enum obj_conn_read_result obj_conn_read_result_t;
 /* connection queue */
 typedef struct obj_conn_queue_item_s obj_conn_queue_item_t;
 typedef struct obj_conn_queue_s obj_conn_queue_t;
@@ -15,15 +16,23 @@ typedef struct obj_conn_queue_s obj_conn_queue_t;
 typedef struct obj_conn_s obj_conn_t;
 
 
-/* export globals */
-
 
 enum obj_conn_state {
-    OBJ_CONN_LISTENING,
-    OBJ_CONN_NEW_CMD,
-    OBJ_CONN_READ,
-    OBJ_CONN_CLOSING,
-    OBJ_CONN_CLOSED
+    OBJ_CONN_LISTENING,                 /* listen for connections */
+    OBJ_CONN_WAITING,                   /* waiting for a readable socket */
+    OBJ_CONN_NEW_CMD,                   /* prepare connection for next command */
+    OBJ_CONN_PARSE_CMD,                 /* parse and process command */
+    OBJ_CONN_READ,                      /* read */
+    OBJ_CONN_WRITE,                     /* write */
+    OBJ_CONN_CLOSING,                   /* closing the connection */
+    OBJ_CONN_CLOSED                     /* connection is closed */
+};
+
+enum obj_conn_read_result {
+    OBJ_CONN_READ_DATA_RECEIVED,
+    OBJ_CONN_READ_NO_DATA_RECEIVED,
+    OBJ_CONN_READ_ERROR,                /* an error occurred, or connection closed by client */
+    OBJ_CONN_READ_MEMORY_ERROR          /* failed to allocate more memory */
 };
 
 /* an item in the connection queue */
@@ -50,9 +59,13 @@ struct obj_conn_s {
     obj_thread_libevent_thread_t *thread;       /* thread */
     obj_rel_time_t last_cmd_time;               /* time for the last command of this connection */
     short which;                                /* which events were just triggered */
+    obj_buffer_t *buf;                          /* buffer to read command */
+    obj_bool_t close_after_write;               /* close the connection after write */
+    obj_list_t *reply_list;                     /* reply send to client */
     obj_conn_t *next;                           /* used to generate a list of conn structures */
 };
 
+/* export globals */
 extern int obj_conn_max_fds;
 extern obj_conn_t **obj_conn_conns;             /* connection array */
 extern obj_conn_t *obj_conn_listen_conn;

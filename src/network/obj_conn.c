@@ -96,7 +96,54 @@ void obj_conn_queue_free_item(obj_conn_queue_item_t *item) {
 }
 
 
-/* ---------- connection ---------- */
+/* ---------- connection related ---------- */
+
+/* reset */
+static void obj_conn_reset_cmd_handler(obj_conn_t *c) {
+    if (obj_buffer_readable_bytes(c->buf) > 0) {
+        obj_conn_set_state(c, OBJ_CONN_PARSE_CMD);
+    } else if (!obj_list_is_empty(c->reply_list)) {
+        /* if reply list is not empty, try to send */
+        obj_conn_set_state(c, OBJ_CONN_WRITE);
+    } else {
+        /* nothing to do now, just waiting */
+        obj_conn_set_state(c, OBJ_CONN_WAITING);
+    }
+}
+
+
+/* read from network */
+static obj_conn_read_result_t obj_conn_read(obj_conn_t *c) {
+    obj_conn_read_result_t ret = OBJ_CONN_READ_NO_DATA_RECEIVED;
+    int n;
+    int saved_errno;
+    obj_bool_t res;
+    /* read */
+    while (true) {
+        /* try to read into input buffer */
+        res = obj_buffer_read(c->buf, c->sfd, &saved_errno, &n);
+        if (!res) {
+            /* memory error */
+            if (obj_settings.verbose > 0) {
+                fprintf(stderr, "can't allocate input buffer\n");
+            }
+            /* TODO send out of memory error to client */
+            return OBJ_CONN_READ_MEMORY_ERROR;
+        }
+        /* an error occurred, or connection closed by client */
+        if (n == 0) {
+            return OBJ_CONN_READ_ERROR;
+        }
+        if (n < 0) {
+            if (saved_errno == EAGAIN || saved_errno == EWOULDBLOCK) {
+                /* exit */
+                break;
+            }
+            return OBJ_CONN_READ_ERROR;
+        }
+    }
+    return ret;
+}
 
 /* drive the state machine */
 static void obj_drive_machine(obj_conn_t *c) {
@@ -105,6 +152,8 @@ static void obj_drive_machine(obj_conn_t *c) {
     socklen_t addrlen;
     struct sockaddr_in addr;
     obj_bool_t reject = false;
+    int nreqs = obj_settings.max_reqs_per_event;
+    obj_conn_read_result_t res;
     while (!stop) {
         switch (c->state) {
             case OBJ_CONN_LISTENING:
@@ -138,6 +187,70 @@ static void obj_drive_machine(obj_conn_t *c) {
                     obj_conn_dispatch_conn_new(sfd, OBJ_CONN_NEW_CMD, EV_READ | EV_PERSIST);
                 }
                 stop = true;
+                break;
+            case OBJ_CONN_WAITING:
+                if (!obj_conn_update_event(c, EV_READ | EV_PERSIST)) {
+                    if (obj_settings.verbose > 0) {
+                        fprintf(stderr, "can't update event\n");
+                    }
+                    /* close the connection */
+                    obj_conn_set_state(c, OBJ_CONN_CLOSING);
+                    break;
+                }
+                obj_conn_set_state(c, OBJ_CONN_READ);
+                stop = true;
+                break;
+            case OBJ_CONN_NEW_CMD:
+                --nreqs;
+                if (nreqs >= 0) {
+                    obj_conn_reset_cmd_handler(c);
+                } else if (!obj_list_is_empty(c->reply_list)) {
+                    /* can not process any new requests, try to send some data */
+                    obj_conn_set_state(c, OBJ_CONN_WRITE);
+                } else {
+                    /* do nothing */
+                    if (obj_buffer_readable_bytes(c->buf) > 0) {
+                        if (!obj_conn_update_event(c, EV_WRITE | EV_PERSIST)) {
+                            if (obj_settings.verbose > 0) {
+                                fprintf(stderr, "can't update event\n");
+                            }
+                            obj_conn_set_state(c, OBJ_CONN_CLOSING);
+                            break;
+                        }
+                    }
+                    stop = true;
+                }
+                break;
+            case OBJ_CONN_PARSE_CMD:
+                /* try to read command */
+                if () {
+                    /* need more data */
+                    if (!obj_list_is_empty(c->reply_list)) {
+                        obj_conn_set_state(c, OBJ_CONN_WRITE);
+                    } else {
+                        obj_conn_set_state(c, OBJ_CONN_WAITING);
+                    }
+                } 
+                break;
+            case OBJ_CONN_READ:
+                res = obj_conn_read(c);
+                switch (res) {
+                    case OBJ_CONN_READ_NO_DATA_RECEIVED:
+                        obj_conn_set_state(c, OBJ_CONN_WAITING);
+                        break;
+                    case OBJ_CONN_READ_DATA_RECEIVED:
+                        obj_conn_set_state(c, OBJ_CONN_PARSE_CMD);
+                        break;
+                    case OBJ_CONN_READ_ERROR:
+                        obj_conn_set_state(c, OBJ_CONN_CLOSING);
+                        break;
+                    case OBJ_CONN_READ_MEMORY_ERROR:
+                        /* already set close_after_write */
+                        break;
+                }
+                break;
+            case OBJ_CONN_WRITE:
+
                 break;
             case OBJ_CONN_CLOSING:
                 obj_conn_close(c);
@@ -222,6 +335,13 @@ obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short
     c->state = init_state;
     /* set for idle kicker */
     c->last_cmd_time = obj_rel_current_time;
+    c->buf = obj_buffer_init();
+    c->close_after_write = false;
+    if (c->buf == NULL) {
+        fprintf(stderr, "failed to allocate memory for buffer\n");
+        obj_free(c);
+        return NULL;
+    }
     event_set(&c->event, sfd, event_flags, obj_conn_event_handler, (void *)c);
     event_base_set(base, &c->event);
     c->event_flags = event_flags;

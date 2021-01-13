@@ -17,6 +17,7 @@ struct obj_settings_s {
     int idle_timeout;               /* number of seconds to let connections idle */
     int backlog;
     obj_bool_t maxconns_fast;       /* whether or not to close connections early */
+    int max_reqs_per_event;         /* maximum number of requests to process on each event */
     int port;
     int verbose;
 };

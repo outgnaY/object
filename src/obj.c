@@ -28,6 +28,7 @@ static void obj_settings_init() {
     obj_settings.idle_timeout = 0;
     obj_settings.backlog = 1024;
     obj_settings.maxconns_fast = true;
+    obj_settings.reqs_per_event = 20;
     obj_settings.port = 6666;
     obj_settings.verbose = 2;
 }
@@ -68,10 +69,12 @@ static void obj_version() {
 
 static void obj_usage() {
     obj_version();
-    printf("-d, --daemon        run as a daemon\n"
-           "-h, --help          print help message and exit\n"
-           "-u, --user=<user>   assume identity of <username> (only when run as root)\n"
-           "-v  --version       print version message and exit\n"
+    printf("-d, --daemon                run as a daemon\n"
+           "-h, --help                  print help message and exit\n"
+           "-r, --enable-coredumps      enable coredump\n");
+    printf("-R, --max-reqs-per-event    maximum number of requests per event, default: %d\n", obj_settings.max_reqs_per_event);
+    printf("-u, --user=<user>           assume identity of <username> (only when run as root)\n"
+           "-v  --version               print version message and exit\n"
            );
 }
 
@@ -192,6 +195,7 @@ int main(int argc, char **argv) {
         "d"     /* daemon mode */
         "h"     /* help */
         "r"     /* enable core dump */
+        "R:"    /* max requests per event */
         "u:"    /* user identity to run as */
         "v"     /* version */
         ;
@@ -200,6 +204,7 @@ int main(int argc, char **argv) {
         {"daemon", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
         {"enable-coredumps", no_argument, 0, 'r'},
+        {"max-reqs_per_event", required_argument, 0, 'R'},
         {"user", required_argument, 0, 'u'},
         {"version", no_argument, 0, 'v'},
         {0, 0, 0, 0}
@@ -218,6 +223,13 @@ int main(int argc, char **argv) {
                 exit(EXIT_SUCCESS);
             case 'r':
                 enable_core = true;
+                break;
+            case 'R':
+                obj_settings.max_reqs_per_event = atoi(optarg);
+                if (obj_settings.max_reqs_per_event == 0) {
+                    fprintf(stderr, "max number of requests per event must be greater than 0\n");
+                    return 1;
+                }
                 break;
             case 'u':
                 username = optarg;

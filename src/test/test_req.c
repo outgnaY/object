@@ -13,8 +13,10 @@ int main() {
         fprintf(stderr, "connection failed\n");
     }
     /* send message */
+    /* 
     const char *str = "hello\n";
     write(sockfd, str, strlen(str));
+    */
     close(sockfd);
 
     return 0;
