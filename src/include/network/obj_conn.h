@@ -3,17 +3,18 @@
 
 #include "obj_core.h"
 
-#define OBJ_CONN_QUEUE_ITEMS_PER_ALLOC 64
 /* forward declaration */
 typedef struct obj_thread_libevent_thread_s obj_thread_libevent_thread_t;
 
 typedef enum obj_conn_state obj_conn_state_t;
 typedef enum obj_conn_read_result obj_conn_read_result_t;
+typedef enum obj_conn_write_result obj_conn_write_result_t;
 /* connection queue */
 typedef struct obj_conn_queue_item_s obj_conn_queue_item_t;
 typedef struct obj_conn_queue_s obj_conn_queue_t;
 /* connection */
 typedef struct obj_conn_s obj_conn_t;
+typedef struct obj_conn_reply_s obj_conn_reply_t;
 
 
 
@@ -33,6 +34,13 @@ enum obj_conn_read_result {
     OBJ_CONN_READ_NO_DATA_RECEIVED,
     OBJ_CONN_READ_ERROR,                /* an error occurred, or connection closed by client */
     OBJ_CONN_READ_MEMORY_ERROR          /* failed to allocate more memory */
+};
+
+enum obj_conn_write_result {
+    OBJ_CONN_WRITE_COMPLETE,            /* all done writing */
+    OBJ_CONN_WRITE_INCOMPLETE,          /* more data remaining to write */
+    OBJ_CONN_WRITE_SOFT_ERROR,          /* can't write any more right now */
+    OBJ_CONN_WRITE_HARD_ERROR           /* can't write any more right now, close the connection */
 };
 
 /* an item in the connection queue */
@@ -59,11 +67,20 @@ struct obj_conn_s {
     obj_thread_libevent_thread_t *thread;       /* thread */
     obj_rel_time_t last_cmd_time;               /* time for the last command of this connection */
     short which;                                /* which events were just triggered */
-    obj_buffer_t *buf;                          /* buffer to read command */
+    obj_buffer_t *inbuf;                        /* input buffer */
+    obj_buffer_t *outbuf;                       /* output buffer */
     obj_bool_t close_after_write;               /* close the connection after write */
     obj_list_t *reply_list;                     /* reply send to client */
     obj_conn_t *next;                           /* used to generate a list of conn structures */
 };
+
+/* content of reply list */
+struct obj_conn_reply_s {
+
+};
+
+#define OBJ_CONN_QUEUE_ITEMS_PER_ALLOC 64
+#define OBJ_CONN_WRITE_MAX_BYTES_PER_EVENT (1024 * 64)  /* 64KB */
 
 /* export globals */
 extern int obj_conn_max_fds;

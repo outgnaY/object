@@ -100,7 +100,7 @@ void obj_conn_queue_free_item(obj_conn_queue_item_t *item) {
 
 /* reset */
 static void obj_conn_reset_cmd_handler(obj_conn_t *c) {
-    if (obj_buffer_readable_bytes(c->buf) > 0) {
+    if (obj_buffer_readable_bytes(c->inbuf) > 0) {
         obj_conn_set_state(c, OBJ_CONN_PARSE_CMD);
     } else if (!obj_list_is_empty(c->reply_list)) {
         /* if reply list is not empty, try to send */
@@ -121,7 +121,7 @@ static obj_conn_read_result_t obj_conn_read(obj_conn_t *c) {
     /* read */
     while (true) {
         /* try to read into input buffer */
-        res = obj_buffer_read(c->buf, c->sfd, &saved_errno, &n);
+        res = obj_buffer_read_fd(c->inbuf, c->sfd, &saved_errno, &n);
         if (!res) {
             /* memory error */
             if (obj_settings.verbose > 0) {
@@ -143,6 +143,32 @@ static obj_conn_read_result_t obj_conn_read(obj_conn_t *c) {
         }
     }
     return ret;
+}
+
+static obj_bool_t obj_conn_has_pending_reply(obj_conn_t *c) {
+    return obj_buffer_readable_bytes(c->outbuf) > 0 || obj_list_length(c->reply_list) > 0;
+}
+
+/* send data */
+static obj_conn_write_result_t obj_conn_write(obj_conn_t *c) {
+    obj_conn_write_result_t ret = OBJ_CONN_WRITE_INCOMPLETE;
+    int nwrite = 0;
+    int total_write = 0;
+    while (obj_conn_has_pending_reply(c)) {
+        /* check output buffer and reply list */
+        if (obj_buffer_readable_bytes(c->outbuf) > 0) {
+
+        } else {
+
+        }
+        /* avoid starving other connections */
+        if (total_write > OBJ_CONN_WRITE_MAX_BYTES_PER_EVENT) {
+            break;
+        }
+    }
+    if (nwrite < 0 && ()) {
+
+    }
 }
 
 /* drive the state machine */
@@ -209,7 +235,7 @@ static void obj_drive_machine(obj_conn_t *c) {
                     obj_conn_set_state(c, OBJ_CONN_WRITE);
                 } else {
                     /* do nothing */
-                    if (obj_buffer_readable_bytes(c->buf) > 0) {
+                    if (obj_buffer_readable_bytes(c->inbuf) > 0) {
                         if (!obj_conn_update_event(c, EV_WRITE | EV_PERSIST)) {
                             if (obj_settings.verbose > 0) {
                                 fprintf(stderr, "can't update event\n");
@@ -223,7 +249,7 @@ static void obj_drive_machine(obj_conn_t *c) {
                 break;
             case OBJ_CONN_PARSE_CMD:
                 /* try to read command */
-                if () {
+                if (!obj_proto_read_command(c)) {
                     /* need more data */
                     if (!obj_list_is_empty(c->reply_list)) {
                         obj_conn_set_state(c, OBJ_CONN_WRITE);
@@ -321,7 +347,10 @@ void obj_conn_conns_init() {
 }
 
 obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short event_flags, struct event_base *base) {
-    obj_conn_t *c;
+    obj_conn_t *c = NULL;
+    obj_buffer_t *inbuf = NULL;
+    obj_buffer_t *outbuf = NULL;
+    obj_list_t *reply_list = NULL;
     obj_assert(sfd >= 0 && sfd < obj_conn_max_fds);
     c = obj_conn_conns[sfd];
     if (c == NULL) {
@@ -335,21 +364,47 @@ obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short
     c->state = init_state;
     /* set for idle kicker */
     c->last_cmd_time = obj_rel_current_time;
-    c->buf = obj_buffer_init();
     c->close_after_write = false;
-    if (c->buf == NULL) {
-        fprintf(stderr, "failed to allocate memory for buffer\n");
-        obj_free(c);
-        return NULL;
+    inbuf = obj_buffer_init();
+    if (inbuf == NULL) {
+        fprintf(stderr, "failed to allocate memory for input buffer\n");
+        goto clean;
     }
+    c->inbuf = inbuf;
+    outbuf = obj_buffer_init();
+    if (outbuf == NULL) {
+        fprintf(stderr, "failed to allocate memory for output buffer\n");
+        goto clean;
+    }
+    c->outbuf = outbuf;
+    reply_list = obj_list_create();
+    if (reply_list == NULL) {
+        fprintf(stderr, "failed to create reply list\n");
+        goto clean;
+    }
+    c->reply_list = reply_list;
     event_set(&c->event, sfd, event_flags, obj_conn_event_handler, (void *)c);
     event_base_set(base, &c->event);
     c->event_flags = event_flags;
     if (event_add(&c->event, 0) == -1) {
-        fprintf(stderr, "event add error\n");
-        return NULL;
+        goto clean;
     }
+success:
     return c;
+clean:
+    if (c != NULL) {
+        obj_free(c);
+    }
+    if (inbuf != NULL) {
+        obj_buffer_destroy(inbuf);
+    }
+    if (outbuf != NULL) {
+        obj_buffer_destroy(outbuf);
+    }
+    if (reply_list != NULL) {
+        obj_list_destroy(reply_list);
+    }
+    return NULL;
 }
 
 

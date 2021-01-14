@@ -1,11 +1,17 @@
 #include "obj_core.h"
 
-static obj_bool_t (*obj_msg_constructor[5])(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) = {
+static obj_bool_t obj_msg_construct_update(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+static obj_bool_t obj_msg_construct_insert(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+static obj_bool_t obj_msg_construct_query(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+static obj_bool_t obj_msg_construct_delete(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+
+static obj_bool_t (*obj_msg_constructor[6])(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) = {
     NULL,
     obj_msg_construct_update,
     obj_msg_construct_insert,
     obj_msg_construct_query,
-    obj_msg_construct_delete
+    obj_msg_construct_delete,
+    NULL
 };
 
 /* construct update message */
@@ -23,7 +29,7 @@ static obj_bool_t obj_msg_construct_update(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         return false;
     }
-    obj_buffer_v_retrieve(c->buf, sizeof(obj_msg_header_t));
+    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
     update_msg = obj_alloc(sizeof(obj_msg_update_t));
     if (update_msg == NULL) {
         return false;
@@ -32,7 +38,7 @@ static obj_bool_t obj_msg_construct_update(obj_conn_t *c, obj_int32_t len, obj_m
     update_msg->header.len = len;
     update_msg->header.opCode = OBJ_MSG_OP_UPDATE;
     /* collection name */
-    collection_name = obj_buffer_v_read_string_unsafe(c->buf, &name_len);
+    collection_name = obj_buffer_v_read_string_unsafe(c->inbuf, &name_len);
     if (collection_name == NULL) {
         goto clean;
     }
@@ -47,18 +53,18 @@ static obj_bool_t obj_msg_construct_update(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         goto clean;
     }
-    flags = obj_buffer_v_read_int32_unsafe(c->buf);
+    flags = obj_buffer_v_read_int32_unsafe(c->inbuf);
     update_msg->flags = flags;
     /* selector */
     if (curr_len + sizeof(obj_int32_t) > len) {
         goto clean;
     }
-    selector_len = obj_buffer_v_peek_int32_unsafe(c->buf);
+    selector_len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
     curr_len += selector_len;
     if (curr_len > len) {
         goto clean;
     }
-    selector = obj_buffer_v_read_bson_unsafe(c->buf, selector_len);
+    selector = obj_buffer_v_read_bson_unsafe(c->inbuf, selector_len);
     if (selector == NULL) {
         goto clean;
     }
@@ -67,12 +73,12 @@ static obj_bool_t obj_msg_construct_update(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len + sizeof(obj_int32_t) > len) {
         goto clean;
     }
-    update_len = obj_buffer_v_peek_int32_unsafe(c->buf);
+    update_len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
     curr_len += update_len;
     if (curr_len > len) {
         goto clean;
     }
-    update = obj_buffer_v_read_bson_unsafe(c->buf, update_len);
+    update = obj_buffer_v_read_bson_unsafe(c->inbuf, update_len);
     if (update == NULL) {
         goto clean;
     }
@@ -116,7 +122,7 @@ static obj_bool_t obj_msg_construct_insert(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         return false;
     }
-    obj_buffer_v_retrieve(c->buf, sizeof(obj_msg_header_t));
+    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
     insert_msg = obj_alloc(sizeof(obj_msg_insert_t));
     if (insert_msg == NULL) {
         return false;
@@ -125,7 +131,7 @@ static obj_bool_t obj_msg_construct_insert(obj_conn_t *c, obj_int32_t len, obj_m
     insert_msg->header.len = len;
     insert_msg->header.opCode = OBJ_MSG_OP_INSERT;
     /* collection name */
-    collection_name = obj_buffer_v_read_string_unsafe(c->buf, &name_len);
+    collection_name = obj_buffer_v_read_string_unsafe(c->inbuf, &name_len);
     if (collection_name == NULL) {
         goto clean;
     }
@@ -140,14 +146,14 @@ static obj_bool_t obj_msg_construct_insert(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         goto clean;
     }
-    flags = obj_buffer_v_read_int32_unsafe(c->buf);
+    flags = obj_buffer_v_read_int32_unsafe(c->inbuf);
     insert_msg->flags = flags;
     /* num */
     curr_len += sizeof(obj_int32_t);
     if (curr_len > len) {
         goto clean;
     }
-    num = obj_buffer_v_read_int32_unsafe(c->buf);
+    num = obj_buffer_v_read_int32_unsafe(c->inbuf);
     insert_msg->num = num;
     objects = obj_alloc(num * sizeof(obj_bson_t *));
     if (objects == NULL) {
@@ -161,12 +167,12 @@ static obj_bool_t obj_msg_construct_insert(obj_conn_t *c, obj_int32_t len, obj_m
         if (curr_len + sizeof(obj_int32_t) > len) {
             goto clean;
         }
-        object_len = obj_buffer_v_peek_int32_unsafe(c->buf);
+        object_len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
         curr_len += object_len;
         if (curr_len > len) {
             goto clean;
         }
-        object = obj_buffer_v_read_bson_unsafe(c->buf, object_len);
+        object = obj_buffer_v_read_bson_unsafe(c->inbuf, object_len);
         if (object == NULL) {
             goto clean;
         }
@@ -214,7 +220,7 @@ static obj_bool_t obj_msg_construct_query(obj_conn_t *c, obj_int32_t len, obj_ms
     if (curr_len > len) {
         return false;
     }
-    obj_buffer_v_retrieve(c->buf, sizeof(obj_msg_header_t));
+    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
     query_msg = obj_alloc(sizeof(obj_msg_query_t));
     if (query_msg == NULL) {
         return false;
@@ -223,7 +229,7 @@ static obj_bool_t obj_msg_construct_query(obj_conn_t *c, obj_int32_t len, obj_ms
     query_msg->header.len = len;
     query_msg->header.opCode = OBJ_MSG_OP_QUERY;
     /* collection name */
-    collection_name = obj_buffer_v_read_string_unsafe(c->buf, &name_len);
+    collection_name = obj_buffer_v_read_string_unsafe(c->inbuf, &name_len);
     if (collection_name == NULL) {
         goto clean;
     }
@@ -238,25 +244,25 @@ static obj_bool_t obj_msg_construct_query(obj_conn_t *c, obj_int32_t len, obj_ms
     if (curr_len > len) {
         goto clean;
     }
-    flags = obj_buffer_v_read_int32_unsafe(c->buf);
+    flags = obj_buffer_v_read_int32_unsafe(c->inbuf);
     query_msg->flags = flags;
     /* num_return */
     curr_len += sizeof(obj_int32_t);
     if (curr_len > len) {
         goto clean;
     }
-    num_return = obj_buffer_v_read_int32_unsafe(c->buf);
+    num_return = obj_buffer_v_read_int32_unsafe(c->inbuf);
     query_msg->num_return = num_return;
     /* query */
     if (curr_len + sizeof(obj_int32_t) > len) {
         goto clean;
     }
-    query_len = obj_buffer_v_peek_int32_unsafe(c->buf);
+    query_len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
     curr_len += query_len;
     if (curr_len > len) {
         goto clean;
     }
-    query = obj_buffer_v_read_bson_unsafe(c->buf, query_len);
+    query = obj_buffer_v_read_bson_unsafe(c->inbuf, query_len);
     if (query == NULL) {
         goto clean;
     }
@@ -265,12 +271,12 @@ static obj_bool_t obj_msg_construct_query(obj_conn_t *c, obj_int32_t len, obj_ms
     if (curr_len + sizeof(obj_int32_t) > len) {
         goto clean;
     }
-    return_fields_len = obj_buffer_v_peek_int32_unsafe(c->buf);
+    return_fields_len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
     curr_len += return_fields_len;
     if (curr_len > len) {
         goto clean;
     }
-    return_fields = obj_buffer_v_read_bson_unsafe(c->buf, return_fields_len);
+    return_fields = obj_buffer_v_read_bson_unsafe(c->inbuf, return_fields_len);
     if (return_fields == NULL) {
         goto clean;
     }
@@ -310,7 +316,7 @@ static obj_bool_t obj_msg_construct_delete(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         return false;
     }
-    obj_buffer_v_retrieve(c->buf, sizeof(obj_msg_header_t));
+    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
     delete_msg = obj_alloc(sizeof(obj_msg_delete_t));
     if (delete_msg == NULL) {
         return false;
@@ -319,7 +325,7 @@ static obj_bool_t obj_msg_construct_delete(obj_conn_t *c, obj_int32_t len, obj_m
     delete_msg->header.len = len;
     delete_msg->header.opCode = OBJ_MSG_OP_DELETE;
     /* collection name */
-    collection_name = obj_buffer_v_read_string_unsafe(c->buf, &name_len);
+    collection_name = obj_buffer_v_read_string_unsafe(c->inbuf, &name_len);
     if (collection_name == NULL) {
         goto clean;
     }
@@ -334,18 +340,18 @@ static obj_bool_t obj_msg_construct_delete(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         goto clean;
     }
-    flags = obj_buffer_v_read_int32_unsafe(c->buf);
+    flags = obj_buffer_v_read_int32_unsafe(c->inbuf);
     delete_msg->flags = flags;
     /* selector */
     if (curr_len + sizeof(obj_int32_t) > len) {
         goto clean;
     }
-    selector_len = obj_buffer_v_peek_int32_unsafe(c->buf);
+    selector_len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
     curr_len += selector_len;
     if (curr_len > len) {
         goto clean;
     }
-    selector = obj_buffer_v_read_bson_unsafe(c->buf, selector_len);
+    selector = obj_buffer_v_read_bson_unsafe(c->inbuf, selector_len);
     if (selector == NULL) {
         goto clean;
     }
@@ -370,20 +376,26 @@ clean:
 }
 
 /* get operation type of current command */
-/*
 static obj_msg_operation_t obj_proto_get_operation(obj_conn_t *c) {
     obj_int32_t op;
-    op = obj_buffer_read_int32_unsafe(c->buf);
+    op = obj_buffer_v_read_int32_unsafe(c->inbuf);
     return op;
 }
-*/
+
+/* test */
+static void obj_process_command(obj_conn_t *c) {
+
+}
 
 /* try to read command */
 obj_bool_t obj_proto_read_command(obj_conn_t *c) {
     obj_int32_t len;
     obj_int32_t op;
-    if (obj_buffer_can_read_int32(c->buf)) {
-        len = obj_buffer_v_read_int32_unsafe(c->buf);
+    obj_msg_operation_t op;
+    obj_msg_header_t *header;
+    obj_bool_t construct_res;
+    if (obj_buffer_can_read_int32(c->inbuf)) {
+        len = obj_buffer_v_read_int32_unsafe(c->inbuf);
         /* check length */
         if (len > OBJ_MSG_MAX_LEN) {
             /* close the connection */
@@ -392,11 +404,22 @@ obj_bool_t obj_proto_read_command(obj_conn_t *c) {
             return true;
         }
         /* haven't read enough data yet */
-        if (obj_buffer_readable_bytes(c->buf) < len) {
+        if (obj_buffer_readable_bytes(c->inbuf) < len) {
             return false;
         }
         /* have read enough data */
-        
+        op = obj_proto_get_operation(c);
+        if (op <= OBJ_MSG_OP_REPLY || op >= OBJ_MSG_OP_MAX) {
+            obj_conn_set_state(c, OBJ_CONN_CLOSING);
+            return true;
+        }
+        construct_res = obj_msg_constructor[op](c, len, &header);
+        if (!construct_res) {
+            obj_conn_set_state(c, OBJ_CONN_CLOSING);
+            return true;
+        }
+        /* process command */
+
     } else {
         return false;
     }

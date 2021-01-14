@@ -21,7 +21,8 @@ enum obj_msg_operation {
     OBJ_MSG_OP_UPDATE = 1,                  /* update */
     OBJ_MSG_OP_INSERT = 2,                  /* insert */
     OBJ_MSG_OP_QUERY = 3,                   /* query */
-    OBJ_MSG_OP_DELETE = 4                   /* delete */
+    OBJ_MSG_OP_DELETE = 4,                  /* delete */
+    OBJ_MSG_OP_MAX = 5
 };
 
 
@@ -82,6 +83,6 @@ struct obj_msg_delete_s {
 /* max length of message, 4MB */
 #define OBJ_MSG_MAX_LEN (1 << 22)
 
-
+obj_bool_t obj_proto_read_command(obj_conn_t *c);
 
 #endif  /* OBJ_PROTO_H */

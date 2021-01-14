@@ -19,6 +19,7 @@ struct obj_buffer_s {
 #define OBJ_BUFFER_MAX_SIZE (1 << 30)     /* 1GB */
 
 obj_buffer_t *obj_buffer_init();
+void obj_buffer_destroy(obj_buffer_t *buf);
 int obj_buffer_readable_bytes(obj_buffer_t *buf);
 int obj_buffer_v_readable_bytes(obj_buffer_t *buf);
 int obj_buffer_writable_bytes(obj_buffer_t *buf);
@@ -33,6 +34,6 @@ obj_bson_t *obj_buffer_v_read_bson_unsafe(obj_buffer_t *buf, obj_int32_t len);
 void obj_buffer_retrieve(obj_buffer_t *buf, int len);
 void obj_buffer_v_retrieve(obj_buffer_t *buf, int len);
 obj_bool_t obj_buffer_append(obj_buffer_t *buf, const void *data, int len);
-obj_bool_t obj_buffer_read(obj_buffer_t *buf, int fd, int *saved_errno, int *num);
+obj_bool_t obj_buffer_read_fd(obj_buffer_t *buf, int fd, int *saved_errno, int *num);
 
 #endif  /* OBJ_BUFFER_H */

@@ -47,6 +47,14 @@ obj_buffer_t *obj_buffer_init() {
     return buffer;
 }
 
+/* free a buffer */
+void obj_buffer_destroy(obj_buffer_t *buf) {
+    obj_assert(buf != NULL);
+    if (buf->buf != NULL) {
+        obj_free(buf->buf);
+    }
+    obj_free(buf);
+}
 
 /* readable bytes of buffer */
 int obj_buffer_readable_bytes(obj_buffer_t *buf) {
@@ -161,7 +169,7 @@ obj_bool_t obj_buffer_append(obj_buffer_t *buf, const void *data, int len) {
 }
 
 /* false: out of memory */
-obj_bool_t obj_buffer_read(obj_buffer_t *buf, int fd, int *saved_errno, int *num) {
+obj_bool_t obj_buffer_read_fd(obj_buffer_t *buf, int fd, int *saved_errno, int *num) {
     char extrabuf[65536];
     struct iovec vec[2];
     int writable = obj_buffer_writable_bytes(buf);
