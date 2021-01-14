@@ -1,5 +1,7 @@
 #include "obj_core.h"
 
+/* little endian */
+
 static obj_bool_t obj_buffer_make_room(obj_buffer_t *buf, int len);
 
 /* ensure we have at least len bytes space to write */
@@ -39,6 +41,7 @@ obj_buffer_t *obj_buffer_init() {
         return NULL;
     }
     buffer->buf_size = OBJ_BUFFER_INIT_SIZE;
+    buffer->v_read_index = 0;
     buffer->read_index = 0;
     buffer->write_index = 0;
     return buffer;
@@ -48,6 +51,10 @@ obj_buffer_t *obj_buffer_init() {
 /* readable bytes of buffer */
 int obj_buffer_readable_bytes(obj_buffer_t *buf) {
     return buf->write_index - buf->read_index;
+}
+
+int obj_buffer_v_readable_bytes(obj_buffer_t *buf) {
+    return buf->write_index - buf->v_read_index;
 }
 
 /* writable bytes of buffer */
@@ -64,21 +71,81 @@ obj_bool_t obj_buffer_ensure_writable_bytes(obj_buffer_t *buf, int len) {
 }
 
 /* test if we can read message length */
-obj_bool_t obj_buffer_can_read_len(obj_buffer_t *buf) {
+obj_bool_t obj_buffer_can_read_int32(obj_buffer_t *buf) {
     return obj_buffer_readable_bytes(buf) >= sizeof(obj_int32_t);
 }
 
-/* get message length */
-obj_int32_t obj_buffer_read_len_unsafe(obj_buffer_t *buf) {
-    obj_assert(obj_buffer_can_read_len(buf));
+obj_bool_t obj_buffer_v_can_read_int32(obj_buffer_t *buf) {
+    return obj_buffer_v_readable_bytes(buf) >= sizeof(obj_int32_t);
+}
+
+obj_int32_t obj_buffer_read_int32_unsafe(obj_buffer_t *buf) {
     obj_int32_t len_le;
     len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->read_index)));
+    obj_buffer_retrieve(buf, sizeof(obj_int32_t));
     return obj_int32_from_le(len_le);
 }
 
-/* test if we can read message header */
-obj_bool_t obj_buffer_can_read_header(obj_buffer_t *buf) {
-    return obj_buffer_readable_bytes(buf) >= sizeof(obj_msg_header_t);
+obj_int32_t obj_buffer_v_read_int32_unsafe(obj_buffer_t *buf) {
+    obj_int32_t len_le;
+    len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->v_read_index)));
+    obj_buffer_v_retrieve(buf, sizeof(obj_int32_t));
+    return obj_int32_from_le(len_le);
+}
+
+obj_int32_t obj_buffer_v_peek_int32_unsafe(obj_buffer_t *buf) {
+    obj_int32_t len_le;
+    len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->v_read_index)));
+    return obj_int32_from_le(len_le);
+}
+
+
+/* read cstring */
+char *obj_buffer_v_read_string_unsafe(obj_buffer_t *buf, int *len) {
+    int len;
+    int old_index = buf->read_index;
+    /* probably unsafe? */
+    len = (int)obj_strlen(buf->buf + buf->v_read_index);
+    /* do not allow length == 0 */
+    if (len == 0) {
+        return NULL;
+    }
+    obj_buffer_v_retrieve(buf, len + 1);
+    return buf->buf + old_index;
+}
+
+/* read bson and validate */
+obj_bson_t *obj_buffer_v_read_bson_unsafe(obj_buffer_t *buf, obj_int32_t len) {
+    obj_bson_t *bson;
+    obj_bool_t validate;
+    bson = obj_bson_init_with_data(buf->buf + buf->v_read_index, len);
+    if (bson == NULL) {
+        return NULL;
+    }
+    obj_buffer_v_retrieve(buf, len);
+    validate = obj_bson_visit_validate_visit(bson, OBJ_BSON_VALIDATE_FLAG_NONE);
+    if (!validate) {
+        /* invalid bson */
+        obj_bson_destroy(bson);
+        return NULL;
+    }
+    return bson;
+}
+
+void obj_buffer_retrieve(obj_buffer_t *buf, int len) {
+    int readable = obj_buffer_readable_bytes(buf);
+    obj_assert(len <= readable);
+    if (len < readable) {
+        buf->read_index += len;
+    } else {
+        buf->read_index = buf->write_index = 0;
+    }
+}
+
+/* move virtual read index */
+void obj_buffer_v_retrieve(obj_buffer_t *buf, int len) {
+    obj_assert(len <= obj_buffer_v_readable_bytes(buf));
+    buf->v_read_index += len;
 }
 
 /* append */

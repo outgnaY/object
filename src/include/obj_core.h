@@ -53,7 +53,7 @@
 #include "bson/obj_bson_visit.h"
 
 /* network */
-#include "network/obj_message.h"
+#include "network/obj_proto.h"
 #include "network/obj_buffer.h"
 #include "network/obj_conn.h"
 #include "obj_thread.h"
