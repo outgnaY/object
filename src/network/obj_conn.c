@@ -137,6 +137,10 @@ static obj_conn_read_result_t obj_conn_read(obj_conn_t *c) {
             /* TODO send out of memory error to client */
             return OBJ_CONN_READ_MEMORY_ERROR;
         }
+        if (n > 0) {
+            ret = OBJ_CONN_READ_DATA_RECEIVED;
+            break;
+        }
         /* an error occurred, or connection closed by client */
         if (n == 0) {
             return OBJ_CONN_READ_ERROR;
@@ -158,6 +162,7 @@ static obj_bool_t obj_conn_has_pending_reply(obj_conn_t *c) {
 
 /* add reply to buffer */
 static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *reply) {
+    printf("add reply to buffer, len: %d\n", reply->header.len);
     int available = 0;
     obj_int32_t len;
     int i;
@@ -186,11 +191,13 @@ static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *r
     for (i = 0; i < reply->num_return; i++) {
         obj_buffer_append_bson(c->outbuf, reply->objects[i]);
     }
+    
     return true;
 }
 
 /* add reply to list */
 static obj_bool_t obj_conn_add_reply_to_list(obj_conn_t *c, obj_msg_reply_t *reply) {
+    printf("add reply to list, len:%d\n", reply->header.len);
     obj_list_node_t *tail_node = obj_list_get_tail(c->reply_list);
     obj_conn_reply_block_t *tail = tail_node ? (obj_conn_reply_block_t *)obj_list_node_value(tail_node) : NULL;
     obj_buffer_t *buf;
@@ -293,9 +300,9 @@ static obj_conn_write_result_t obj_conn_write(obj_conn_t *c) {
     }
     if (nwrite >= 0) {
         if (!obj_conn_has_pending_reply(c)) {
-            return OBJ_CONN_WRITE_INCOMPLETE;
-        } else {
             return OBJ_CONN_WRITE_COMPLETE;
+        } else {
+            return OBJ_CONN_WRITE_INCOMPLETE;
         }
     }
     if (nwrite < 0 && (saved_errno == EAGAIN || saved_errno == EWOULDBLOCK)) {
@@ -406,6 +413,7 @@ static void obj_drive_machine(obj_conn_t *c) {
                 break;
             case OBJ_CONN_READ:
                 read_res = obj_conn_read(c);
+                printf("read res = %d\n", read_res);
                 switch (read_res) {
                     case OBJ_CONN_READ_NO_DATA_RECEIVED:
                         obj_conn_set_state(c, OBJ_CONN_WAITING);
@@ -429,8 +437,13 @@ static void obj_drive_machine(obj_conn_t *c) {
                 break;
             case OBJ_CONN_WRITE:
                 write_res = obj_conn_write(c);
+                printf("write res = %d\n", write_res);
                 switch (write_res) {
                     case OBJ_CONN_WRITE_COMPLETE:
+                        obj_conn_set_state(c, OBJ_CONN_NEW_CMD);
+                        if (c->close_after_write) {
+                            obj_conn_set_state(c, OBJ_CONN_CLOSING);
+                        }
                         break;
                     case OBJ_CONN_WRITE_INCOMPLETE:
                         break;

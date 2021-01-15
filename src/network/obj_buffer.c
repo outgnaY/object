@@ -4,6 +4,16 @@
 
 static obj_bool_t obj_buffer_make_room(obj_buffer_t *buf, int len);
 
+void obj_buffer_dump(obj_buffer_t *buf) {
+    int i;
+    printf("read_index: %d\n", buf->read_index);
+    printf("write_inex: %d\n", buf->write_index);
+    for (i = buf->read_index; i < buf->write_index; i++) {
+        printf("%02x ", buf->buf[i]);
+    }
+    printf("\n");
+}
+
 /* ensure we have at least len bytes space to write */
 static obj_bool_t obj_buffer_make_room(obj_buffer_t *buf, int len) {
     if (obj_buffer_writable_bytes(buf) + buf->read_index < len) {
@@ -98,6 +108,7 @@ obj_bool_t obj_buffer_ensure_writable_bytes(obj_buffer_t *buf, int len) {
         /* make space */
         return obj_buffer_make_room(buf, len);
     }
+    return true;
 }
 
 /* test if we can read message length */
@@ -171,6 +182,10 @@ void obj_buffer_retrieve(obj_buffer_t *buf, int len) {
     }
 }
 
+void obj_buffer_v_init(obj_buffer_t *buf) {
+    buf->v_read_index = buf->read_index;
+}
+
 /* move virtual read index */
 void obj_buffer_v_retrieve(obj_buffer_t *buf, int len) {
     obj_assert(len <= obj_buffer_v_readable_bytes(buf));
@@ -187,19 +202,20 @@ obj_bool_t obj_buffer_append(obj_buffer_t *buf, const void *data, int len) {
     /* copy data */
     obj_memcpy(buf->buf + buf->write_index, data, len);
     buf->write_index += len;
+    printf("append. write index = %d\n", buf->write_index);
     return true;
 }
 
 /* append int32 */
 obj_bool_t obj_buffer_append_int32(obj_buffer_t *buf, obj_int32_t data) {
     obj_int32_t data_le = obj_int32_to_le(data);
-    return obj_buffer_append(buf, &data_le, sizeof(data_le));
+    return obj_buffer_append(buf, &data_le, sizeof(obj_int32_t));
 }
 
 /* append int64 */
 obj_bool_t obj_buffer_append_int64(obj_buffer_t *buf, obj_int64_t data) {
     obj_int64_t data_le = obj_int64_to_le(data);
-    return obj_buffer_append(buf, &data_le, sizeof(data_le));
+    return obj_buffer_append(buf, &data_le, sizeof(obj_int64_t));
 }
 
 /* append bson */

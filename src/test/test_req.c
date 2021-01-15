@@ -45,6 +45,10 @@ int main() {
     while (true) {
         printf("read\n");
         nread = read(sockfd, recv_buf + total_read, avail);
+        if (nread > 0) {
+            total_read += nread;
+            break;
+        }
         if (nread < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 continue;
@@ -56,14 +60,10 @@ int main() {
             fprintf(stderr, "connection closed\n");
             exit(1);
         }
-        total_read += nread;
-        avail -= nread;
-        if (avail <= 0) {
-            break;
-        }
     }
+    printf("total read: %d\n", total_read);
     for (i = 0; i < total_read; i++) {
-        printf("%02x", recv_buf[i]);
+        printf("%02x ", recv_buf[i]);
     }
     printf("\n");
     close(sockfd);
