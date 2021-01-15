@@ -20,7 +20,7 @@ static obj_bool_t (*obj_msg_parser[6])(obj_conn_t *c, obj_int32_t len, obj_msg_h
 
 /* parse update message */
 static obj_bool_t obj_msg_parse_update(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
-    printf("parse update\n");
+    /* printf("parse update\n"); */
     obj_msg_update_t *update_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -34,7 +34,7 @@ static obj_bool_t obj_msg_parse_update(obj_conn_t *c, obj_int32_t len, obj_msg_h
     if (curr_len > len) {
         return false;
     }
-    /* obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t)); */
+    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
     update_msg = obj_alloc(sizeof(obj_msg_update_t));
     if (update_msg == NULL) {
         return false;
@@ -112,7 +112,7 @@ clean:
 
 /* parse insert message */
 static obj_bool_t obj_msg_parse_insert(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
-    printf("parse insert\n");
+    /* printf("parse insert\n"); */
     obj_msg_insert_t *insert_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -128,7 +128,7 @@ static obj_bool_t obj_msg_parse_insert(obj_conn_t *c, obj_int32_t len, obj_msg_h
     if (curr_len > len) {
         return false;
     }
-    /* obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t)); */
+    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
     insert_msg = obj_alloc(sizeof(obj_msg_insert_t));
     if (insert_msg == NULL) {
         return false;
@@ -212,7 +212,7 @@ clean:
 
 /* parse query message */
 static obj_bool_t obj_msg_parse_query(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
-    printf("parse query\n");
+    /* printf("parse query\n"); */
     obj_msg_query_t *query_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -227,7 +227,7 @@ static obj_bool_t obj_msg_parse_query(obj_conn_t *c, obj_int32_t len, obj_msg_he
     if (curr_len > len) {
         return false;
     }
-    /* obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t)); */
+    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
     query_msg = obj_alloc(sizeof(obj_msg_query_t));
     if (query_msg == NULL) {
         return false;
@@ -311,7 +311,7 @@ clean:
 
 /* parse delete message */
 static obj_bool_t obj_msg_parse_delete(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
-    printf("parse delete\n");
+    /* printf("parse delete\n"); */
     obj_msg_delete_t *delete_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -324,7 +324,7 @@ static obj_bool_t obj_msg_parse_delete(obj_conn_t *c, obj_int32_t len, obj_msg_h
     if (curr_len > len) {
         return false;
     }
-    /* obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t)); */
+    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
     delete_msg = obj_alloc(sizeof(obj_msg_delete_t));
     if (delete_msg == NULL) {
         return false;
@@ -393,7 +393,7 @@ static obj_msg_operation_t obj_proto_get_operation(obj_conn_t *c) {
 
 /* for test */
 static obj_bool_t obj_process_command(obj_conn_t *c, obj_msg_header_t *header) {
-    printf("process command\n");
+    /* printf("process command\n"); */
     obj_msg_reply_t *reply_msg;
     obj_bool_t res = false;
     obj_int32_t len = sizeof(obj_msg_header_t) + sizeof(obj_int32_t) + sizeof(obj_int64_t) + sizeof(obj_int32_t) + sizeof(obj_int32_t);
@@ -446,7 +446,7 @@ static obj_bool_t obj_process_command(obj_conn_t *c, obj_msg_header_t *header) {
     }
     objects[0] = object;
     len += object->len;
-    printf("reply msg len: %d\n", len);
+    /* printf("reply msg len: %d\n", len); */
     len = obj_int32_to_le(len);
     reply_msg->header.len = len;
     reply_msg->header.opCode = header->opCode;
@@ -460,7 +460,7 @@ static obj_bool_t obj_process_command(obj_conn_t *c, obj_msg_header_t *header) {
         res = false;
         goto clean;
     }
-    obj_buffer_dump(c->outbuf);
+    /* obj_buffer_dump(c->outbuf); */
     obj_conn_set_state(c, OBJ_CONN_WRITE);
 clean:
     /* release resources */
@@ -480,16 +480,19 @@ clean:
 
 /* try to read command */
 obj_bool_t obj_proto_read_command(obj_conn_t *c) {
-    printf("read command\n");
+    /* printf("read command\n"); */
     obj_int32_t len;
-    obj_msg_operation_t op;
+    /* obj_msg_operation_t op; */
+    obj_msg_header_t peek_header;
     obj_msg_header_t *header;
     obj_bool_t parse_res;
     if (obj_buffer_can_read_int32(c->inbuf)) {
+        /* printf("read_index %d, write_index %d, v_read_index %d\n", c->inbuf->read_index, c->inbuf->write_index, c->inbuf->v_read_index); */
         /* length */
-        len = obj_buffer_v_read_int32_unsafe(c->inbuf);
+        /* len = obj_buffer_v_read_int32_unsafe(c->inbuf); */
+        len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
         /* check length */
-        if (len > OBJ_MSG_MAX_LEN) {
+        if (len > OBJ_MSG_MAX_LEN || len < sizeof(obj_msg_header_t)) {
             /* close the connection */
             obj_conn_set_state(c, OBJ_CONN_CLOSING);
             /* force close */
@@ -500,14 +503,14 @@ obj_bool_t obj_proto_read_command(obj_conn_t *c) {
             return false;
         }
         /* have read enough data */
-        op = obj_proto_get_operation(c);
+        peek_header = obj_buffer_v_peek_msg_header_unsafe(c->inbuf);
         /* sanity check */
-        if (op <= OBJ_MSG_OP_REPLY || op >= OBJ_MSG_OP_MAX) {
+        if (peek_header.opCode <= OBJ_MSG_OP_REPLY || peek_header.opCode >= OBJ_MSG_OP_MAX) {
             obj_conn_set_state(c, OBJ_CONN_CLOSING);
             return true;
         }
-        printf("message len: %d, op: %d\n", len, op);
-        parse_res = obj_msg_parser[op](c, len, &header);
+        /* printf("message len: %d, op: %d\n", len, peek_header.opCode); */
+        parse_res = obj_msg_parser[peek_header.opCode](c, len, &header);
         /* move read index */
         if (!parse_res) {
             obj_conn_set_state(c, OBJ_CONN_CLOSING);
@@ -515,7 +518,7 @@ obj_bool_t obj_proto_read_command(obj_conn_t *c) {
         }
         obj_buffer_retrieve(c->inbuf, len);
         obj_buffer_v_init(c->inbuf);
-        printf("read_index: %d, v_read_index: %d\n", c->inbuf->read_index, c->inbuf->v_read_index);
+        /* printf("read_index: %d, v_read_index: %d\n", c->inbuf->read_index, c->inbuf->v_read_index); */
         /* test process command */
         obj_process_command(c, header);
         /* set last command time of the connection */

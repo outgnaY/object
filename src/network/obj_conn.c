@@ -107,12 +107,15 @@ void obj_conn_queue_free_item(obj_conn_queue_item_t *item) {
 /* reset */
 static void obj_conn_reset_cmd_handler(obj_conn_t *c) {
     if (obj_buffer_readable_bytes(c->inbuf) > 0) {
+        /* printf("reset_cmd_handler: parse_cmd\n"); */
         obj_conn_set_state(c, OBJ_CONN_PARSE_CMD);
-    } else if (!obj_list_is_empty(c->reply_list)) {
+    } else if (obj_conn_has_pending_reply(c)) {
         /* if reply list is not empty, try to send */
+        /* printf("reset_cmd_handler: conn_write\n"); */
         obj_conn_set_state(c, OBJ_CONN_WRITE);
     } else {
         /* nothing to do now, just waiting */
+        /* printf("reset_cmd_handler: conn_waiting\n"); */
         obj_conn_set_state(c, OBJ_CONN_WAITING);
     }
 }
@@ -162,7 +165,7 @@ static obj_bool_t obj_conn_has_pending_reply(obj_conn_t *c) {
 
 /* add reply to buffer */
 static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *reply) {
-    printf("add reply to buffer, len: %d\n", reply->header.len);
+    /* printf("add reply to buffer, len: %d\n", reply->header.len); */
     int available = 0;
     obj_int32_t len;
     int i;
@@ -197,7 +200,7 @@ static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *r
 
 /* add reply to list */
 static obj_bool_t obj_conn_add_reply_to_list(obj_conn_t *c, obj_msg_reply_t *reply) {
-    printf("add reply to list, len:%d\n", reply->header.len);
+    /* printf("add reply to list, len:%d\n", reply->header.len); */
     obj_list_node_t *tail_node = obj_list_get_tail(c->reply_list);
     obj_conn_reply_block_t *tail = tail_node ? (obj_conn_reply_block_t *)obj_list_node_value(tail_node) : NULL;
     obj_buffer_t *buf;
@@ -383,7 +386,7 @@ static void obj_drive_machine(obj_conn_t *c) {
                 --nreqs;
                 if (nreqs >= 0) {
                     obj_conn_reset_cmd_handler(c);
-                } else if (!obj_conn_has_pending_reply(c)) {
+                } else if (obj_conn_has_pending_reply(c)) {
                     /* can not process any new requests, try to send some data */
                     obj_conn_set_state(c, OBJ_CONN_WRITE);
                 } else {
@@ -403,17 +406,18 @@ static void obj_drive_machine(obj_conn_t *c) {
             case OBJ_CONN_PARSE_CMD:
                 /* try to read command */
                 if (!obj_proto_read_command(c)) {
+                    /* printf("we need more data\n"); */
                     /* need more data */
-                    if (!obj_conn_has_pending_reply(c)) {
+                    if (obj_conn_has_pending_reply(c)) {
                         obj_conn_set_state(c, OBJ_CONN_WRITE);
                     } else {
                         obj_conn_set_state(c, OBJ_CONN_WAITING);
                     }
-                } 
+                }
                 break;
             case OBJ_CONN_READ:
                 read_res = obj_conn_read(c);
-                printf("read res = %d\n", read_res);
+                /* printf("read res = %d\n", read_res); */
                 switch (read_res) {
                     case OBJ_CONN_READ_NO_DATA_RECEIVED:
                         obj_conn_set_state(c, OBJ_CONN_WAITING);
@@ -426,7 +430,7 @@ static void obj_drive_machine(obj_conn_t *c) {
                         break;
                     case OBJ_CONN_READ_MEMORY_ERROR:
                         /* already set close_after_write */
-                        if (!obj_conn_has_pending_reply(c)) {
+                        if (obj_conn_has_pending_reply(c)) {
                             /* try to send something, otherwise close the connection */
                             obj_conn_set_state(c, OBJ_CONN_WRITE);
                         } else {
@@ -437,7 +441,7 @@ static void obj_drive_machine(obj_conn_t *c) {
                 break;
             case OBJ_CONN_WRITE:
                 write_res = obj_conn_write(c);
-                printf("write res = %d\n", write_res);
+                /* printf("write res = %d\n", write_res); */
                 switch (write_res) {
                     case OBJ_CONN_WRITE_COMPLETE:
                         obj_conn_set_state(c, OBJ_CONN_NEW_CMD);

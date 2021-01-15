@@ -28,44 +28,76 @@ int main() {
     len += sizeof(obj_int32_t);
     len += selector->len;
     len = obj_int32_to_le(len);
-    /* header */
-    write(sockfd, &len, sizeof(obj_int32_t));
-    write(sockfd, &op, sizeof(obj_int32_t));
-    /* collection name */
-    write(sockfd, collection_name, obj_strlen(collection_name) + 1);
-    /* flags */
-    write(sockfd, &flags, sizeof(obj_int32_t));
-    /* selector */
-    write(sockfd, selector->data, selector->len);
-    /* receive data */
+    int i;
     int nread = 0;
+    int curr_read = 0;
+    obj_int32_t expect = 0;
     int total_read = 0;
     int avail = 1024;
-    int i;
-    while (true) {
-        printf("read\n");
-        nread = read(sockfd, recv_buf + total_read, avail);
-        if (nread > 0) {
-            total_read += nread;
-            break;
-        }
-        if (nread < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                continue;
+    obj_bool_t flag = false;
+    for (i = 0; i < 1000; i++) {
+        /* printf("%d\n", i); */
+        /* send */
+        /* header */
+        write(sockfd, &len, sizeof(obj_int32_t));
+        write(sockfd, &op, sizeof(obj_int32_t));
+        /* collection name */
+        write(sockfd, collection_name, obj_strlen(collection_name) + 1);
+        /* flags */
+        write(sockfd, &flags, sizeof(obj_int32_t));
+        /* selector */
+        write(sockfd, selector->data, selector->len);
+        nread = 0;
+        curr_read = 0;
+        expect = 0;
+        flag = false;
+        /* receive */
+        /* printf("read\n"); */
+        while (true) {
+            curr_read = read(sockfd, recv_buf, avail);
+            if (curr_read > 0) {
+                nread += curr_read;
+                if (!flag) {
+                    if (nread < sizeof(obj_int32_t)) {
+                        continue;
+                    } else {
+                        flag = true;
+                        expect = (obj_int32_t)(*((obj_int32_t *)(recv_buf)));
+                        expect = obj_int32_from_le(expect);
+                        if (nread == expect) {
+                            break;
+                        } else {
+                            continue;
+                        }
+                    }
+                } else {
+                    if (nread == expect) {
+                        break;
+                    } else {
+                        continue;
+                    }
+                }
+            } else if (curr_read < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    continue;
+                }
+                fprintf(stderr, "read error\n");
+                exit(1);
+            } else { /* curr_read == 0 */
+                fprintf(stderr, "connection closed\n");
+                exit(1);
             }
-            fprintf(stderr, "read error\n");
-            exit(1);
         }
-        if (nread == 0) {
-            fprintf(stderr, "connection closed\n");
-            exit(1);
-        }
+        /* printf("after read\n"); */
+        total_read += nread;
     }
     printf("total read: %d\n", total_read);
+    /*
     for (i = 0; i < total_read; i++) {
         printf("%02x ", recv_buf[i]);
     }
     printf("\n");
+    */
     close(sockfd);
     return 0;
 }

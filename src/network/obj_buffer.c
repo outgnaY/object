@@ -4,6 +4,7 @@
 
 static obj_bool_t obj_buffer_make_room(obj_buffer_t *buf, int len);
 
+/* debug */
 void obj_buffer_dump(obj_buffer_t *buf) {
     int i;
     printf("read_index: %d\n", buf->read_index);
@@ -140,6 +141,17 @@ obj_int32_t obj_buffer_v_peek_int32_unsafe(obj_buffer_t *buf) {
     return obj_int32_from_le(len_le);
 }
 
+obj_msg_header_t obj_buffer_v_peek_msg_header_unsafe(obj_buffer_t *buf) {
+    obj_int32_t len_le;
+    obj_int32_t op_le;
+    len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->v_read_index)));
+    op_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->v_read_index + sizeof(obj_int32_t))));
+    obj_msg_header_t header;
+    header.len = obj_int32_to_le(len_le);
+    header.opCode = obj_int32_to_le(op_le);
+    return header;
+}
+
 
 /* read cstring */
 char *obj_buffer_v_read_string_unsafe(obj_buffer_t *buf, int *len) {
@@ -202,7 +214,7 @@ obj_bool_t obj_buffer_append(obj_buffer_t *buf, const void *data, int len) {
     /* copy data */
     obj_memcpy(buf->buf + buf->write_index, data, len);
     buf->write_index += len;
-    printf("append. write index = %d\n", buf->write_index);
+    /* printf("append. write index = %d\n", buf->write_index); */
     return true;
 }
 
