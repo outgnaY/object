@@ -34,6 +34,7 @@ static obj_bool_t obj_buffer_make_room(obj_buffer_t *buf, int len) {
         int readable = obj_buffer_readable_bytes(buf);
         obj_memmove(buf->buf, buf->buf + buf->read_index, readable);
         buf->read_index = 0;
+        buf->v_read_index = 0; 
         buf->write_index = readable;
         return true;
     }

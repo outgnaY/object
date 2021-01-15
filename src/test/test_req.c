@@ -52,7 +52,7 @@ int main() {
         expect = 0;
         flag = false;
         /* receive */
-        /* printf("read\n"); */
+        /*
         while (true) {
             curr_read = read(sockfd, recv_buf, avail);
             if (curr_read > 0) {
@@ -83,15 +83,15 @@ int main() {
                 }
                 fprintf(stderr, "read error\n");
                 exit(1);
-            } else { /* curr_read == 0 */
+            } else { 
                 fprintf(stderr, "connection closed\n");
                 exit(1);
             }
         }
-        /* printf("after read\n"); */
         total_read += nread;
+        */
     }
-    printf("total read: %d\n", total_read);
+    /* printf("total read: %d\n", total_read); */
     /*
     for (i = 0; i < total_read; i++) {
         printf("%02x ", recv_buf[i]);

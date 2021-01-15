@@ -312,6 +312,7 @@ clean:
 /* parse delete message */
 static obj_bool_t obj_msg_parse_delete(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
     /* printf("parse delete\n"); */
+    printf("read_index %d, write_index %d, v_read_index %d\n", c->inbuf->read_index, c->inbuf->write_index, c->inbuf->v_read_index); 
     obj_msg_delete_t *delete_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -487,7 +488,6 @@ obj_bool_t obj_proto_read_command(obj_conn_t *c) {
     obj_msg_header_t *header;
     obj_bool_t parse_res;
     if (obj_buffer_can_read_int32(c->inbuf)) {
-        /* printf("read_index %d, write_index %d, v_read_index %d\n", c->inbuf->read_index, c->inbuf->write_index, c->inbuf->v_read_index); */
         /* length */
         /* len = obj_buffer_v_read_int32_unsafe(c->inbuf); */
         len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
