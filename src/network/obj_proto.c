@@ -1,21 +1,25 @@
 #include "obj_core.h"
 
-static obj_bool_t obj_msg_construct_update(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
-static obj_bool_t obj_msg_construct_insert(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
-static obj_bool_t obj_msg_construct_query(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
-static obj_bool_t obj_msg_construct_delete(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+static obj_bool_t obj_msg_parse_update(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+static obj_bool_t obj_msg_parse_insert(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+static obj_bool_t obj_msg_parse_query(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+static obj_bool_t obj_msg_parse_delete(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header);
+static obj_msg_operation_t obj_proto_get_operation(obj_conn_t *c);
+static obj_bool_t obj_process_command(obj_conn_t *c, obj_msg_header_t *header);
 
-static obj_bool_t (*obj_msg_constructor[6])(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) = {
+
+
+static obj_bool_t (*obj_msg_parser[6])(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) = {
     NULL,
-    obj_msg_construct_update,
-    obj_msg_construct_insert,
-    obj_msg_construct_query,
-    obj_msg_construct_delete,
+    obj_msg_parse_update,
+    obj_msg_parse_insert,
+    obj_msg_parse_query,
+    obj_msg_parse_delete,
     NULL
 };
 
-/* construct update message */
-static obj_bool_t obj_msg_construct_update(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
+/* parse update message */
+static obj_bool_t obj_msg_parse_update(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
     obj_msg_update_t *update_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -29,7 +33,7 @@ static obj_bool_t obj_msg_construct_update(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         return false;
     }
-    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
+    /* obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t)); */
     update_msg = obj_alloc(sizeof(obj_msg_update_t));
     if (update_msg == NULL) {
         return false;
@@ -105,8 +109,8 @@ clean:
     return false;
 }
 
-/* construct insert message */
-static obj_bool_t obj_msg_construct_insert(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
+/* parse insert message */
+static obj_bool_t obj_msg_parse_insert(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
     obj_msg_insert_t *insert_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -122,7 +126,7 @@ static obj_bool_t obj_msg_construct_insert(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         return false;
     }
-    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
+    /* obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t)); */
     insert_msg = obj_alloc(sizeof(obj_msg_insert_t));
     if (insert_msg == NULL) {
         return false;
@@ -204,8 +208,8 @@ clean:
     return false;
 } 
 
-/* construct query message */
-static obj_bool_t obj_msg_construct_query(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
+/* parse query message */
+static obj_bool_t obj_msg_parse_query(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
     obj_msg_query_t *query_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -220,7 +224,7 @@ static obj_bool_t obj_msg_construct_query(obj_conn_t *c, obj_int32_t len, obj_ms
     if (curr_len > len) {
         return false;
     }
-    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
+    /* obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t)); */
     query_msg = obj_alloc(sizeof(obj_msg_query_t));
     if (query_msg == NULL) {
         return false;
@@ -302,8 +306,8 @@ clean:
     return false;
 }
 
-/* construct delete message */
-static obj_bool_t obj_msg_construct_delete(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
+/* parse delete message */
+static obj_bool_t obj_msg_parse_delete(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
     obj_msg_delete_t *delete_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -316,7 +320,7 @@ static obj_bool_t obj_msg_construct_delete(obj_conn_t *c, obj_int32_t len, obj_m
     if (curr_len > len) {
         return false;
     }
-    obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t));
+    /* obj_buffer_v_retrieve(c->inbuf, sizeof(obj_msg_header_t)); */
     delete_msg = obj_alloc(sizeof(obj_msg_delete_t));
     if (delete_msg == NULL) {
         return false;
@@ -382,19 +386,86 @@ static obj_msg_operation_t obj_proto_get_operation(obj_conn_t *c) {
     return op;
 }
 
-/* test */
-static void obj_process_command(obj_conn_t *c) {
 
+/* for test */
+static obj_bool_t obj_process_command(obj_conn_t *c, obj_msg_header_t *header) {
+    obj_msg_reply_t *reply_msg;
+    obj_bool_t res = false;
+    reply_msg = obj_alloc(sizeof(obj_msg_reply_t));
+    obj_bson_t **objects;
+    obj_bson_t *object;
+    if (reply_msg == NULL) {
+        goto clean;
+    }
+    objects = obj_alloc(sizeof(obj_bson_t *));
+    if (objects == NULL) {
+        goto clean;
+    }
+    /* send message back */
+    switch (header->opCode) {
+        case OBJ_MSG_OP_UPDATE:
+            object = obj_bson_init();
+            if (object == NULL) {
+                goto clean;
+            }
+            res = obj_bson_append_utf8(object, "type", 4, "update", 6);
+            break;
+        case OBJ_MSG_OP_INSERT:
+            object = obj_bson_init();
+            if (object == NULL) {
+                goto clean;
+            }
+            res = obj_bson_append_utf8(object, "type", 4, "insert", 6);
+            break;
+        case OBJ_MSG_OP_QUERY:
+            object = obj_bson_init();
+            if (object == NULL) {
+                goto clean;
+            }
+            res = obj_bson_append_utf8(object, "type", 4, "query", 5);
+            break;
+        case OBJ_MSG_OP_DELETE:
+            object = obj_bson_init();
+            if (object == NULL) {
+                goto clean;
+            }
+            res = obj_bson_append_utf8(object, "type", 4, "delete", 6);
+            break;
+        default:
+            obj_assert(false);
+            break;
+    }
+    if (!res) {
+        goto clean;
+    }
+    objects[0] = object;
+    /* add reply */
+    obj_conn_add_reply(c, reply_msg);
+    obj_conn_set_state(c, OBJ_CONN_WRITE);
+clean:
+    /* release resources */
+    if (reply_msg != NULL) {
+        obj_free(reply_msg);
+    }
+    if (objects != NULL) {
+        if (objects[0] != NULL) {
+            obj_bson_destroy(objects[0]);
+        }
+        obj_free(objects);
+    }
+    return res;
 }
+
+
 
 /* try to read command */
 obj_bool_t obj_proto_read_command(obj_conn_t *c) {
     obj_int32_t len;
-    obj_int32_t op;
     obj_msg_operation_t op;
     obj_msg_header_t *header;
-    obj_bool_t construct_res;
+    obj_bool_t parse_res;
     if (obj_buffer_can_read_int32(c->inbuf)) {
+        /* length */
         len = obj_buffer_v_read_int32_unsafe(c->inbuf);
         /* check length */
         if (len > OBJ_MSG_MAX_LEN) {
@@ -409,26 +480,22 @@ obj_bool_t obj_proto_read_command(obj_conn_t *c) {
         }
         /* have read enough data */
         op = obj_proto_get_operation(c);
+        /* sanity check */
         if (op <= OBJ_MSG_OP_REPLY || op >= OBJ_MSG_OP_MAX) {
             obj_conn_set_state(c, OBJ_CONN_CLOSING);
             return true;
         }
-        construct_res = obj_msg_constructor[op](c, len, &header);
-        if (!construct_res) {
+        parse_res = obj_msg_parser[op](c, len, &header);
+        if (!parse_res) {
             obj_conn_set_state(c, OBJ_CONN_CLOSING);
             return true;
         }
-        /* process command */
-
+        /* test process command */
+        obj_process_command(c, header);
+        /* set last command time of the connection */
+        c->last_cmd_time = obj_rel_current_time;
+        return true;
     } else {
         return false;
     }
 }
-
-/* construct message struct */
-
-
-
-
-
-

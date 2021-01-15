@@ -47,6 +47,28 @@ obj_buffer_t *obj_buffer_init() {
     return buffer;
 }
 
+/* init with size */
+obj_buffer_t *obj_buffer_init_with_size(int size) {
+    if (size > OBJ_BUFFER_MAX_SIZE) {
+        return NULL;
+    }
+    obj_buffer_t *buffer;
+    buffer = obj_alloc(sizeof(obj_buffer_t));
+    if (buffer == NULL) {
+        return NULL;
+    }
+    buffer->buf = obj_alloc(size);
+    if (buffer->buf == NULL) {
+        obj_free(buffer);
+        return NULL;
+    }
+    buffer->buf_size = size;
+    buffer->v_read_index = 0;
+    buffer->read_index = 0;
+    buffer->write_index = 0;
+    return buffer;
+}
+
 /* free a buffer */
 void obj_buffer_destroy(obj_buffer_t *buf) {
     obj_assert(buf != NULL);
@@ -72,7 +94,7 @@ int obj_buffer_writable_bytes(obj_buffer_t *buf) {
 
 /* ensure we have at least len bytes space to write */
 obj_bool_t obj_buffer_ensure_writable_bytes(obj_buffer_t *buf, int len) {
-    if (obj_buffer_writable_bytes(buf < len)) {
+    if (obj_buffer_writable_bytes(buf) < len) {
         /* make space */
         return obj_buffer_make_room(buf, len);
     }
@@ -110,15 +132,14 @@ obj_int32_t obj_buffer_v_peek_int32_unsafe(obj_buffer_t *buf) {
 
 /* read cstring */
 char *obj_buffer_v_read_string_unsafe(obj_buffer_t *buf, int *len) {
-    int len;
     int old_index = buf->read_index;
     /* probably unsafe? */
-    len = (int)obj_strlen(buf->buf + buf->v_read_index);
+    *len = (int)obj_strlen(buf->buf + buf->v_read_index);
     /* do not allow length == 0 */
-    if (len == 0) {
+    if (*len == 0) {
         return NULL;
     }
-    obj_buffer_v_retrieve(buf, len + 1);
+    obj_buffer_v_retrieve(buf, *len + 1);
     return buf->buf + old_index;
 }
 
@@ -165,7 +186,25 @@ obj_bool_t obj_buffer_append(obj_buffer_t *buf, const void *data, int len) {
     }
     /* copy data */
     obj_memcpy(buf->buf + buf->write_index, data, len);
+    buf->write_index += len;
     return true;
+}
+
+/* append int32 */
+obj_bool_t obj_buffer_append_int32(obj_buffer_t *buf, obj_int32_t data) {
+    obj_int32_t data_le = obj_int32_to_le(data);
+    return obj_buffer_append(buf, &data_le, sizeof(data_le));
+}
+
+/* append int64 */
+obj_bool_t obj_buffer_append_int64(obj_buffer_t *buf, obj_int64_t data) {
+    obj_int64_t data_le = obj_int64_to_le(data);
+    return obj_buffer_append(buf, &data_le, sizeof(data_le));
+}
+
+/* append bson */
+obj_bool_t obj_buffer_append_bson(obj_buffer_t *buf, obj_bson_t *bson) {
+    return obj_buffer_append(buf, bson->data, bson->len);
 }
 
 /* false: out of memory */
@@ -197,4 +236,17 @@ obj_bool_t obj_buffer_read_fd(obj_buffer_t *buf, int fd, int *saved_errno, int *
     return true;
 }
 
-
+/* write to fd */
+int obj_buffer_write_fd(obj_buffer_t *buf, int fd, int *saved_errno) {
+    int n;
+    int readable = obj_buffer_readable_bytes(buf);
+    n = (int)write(fd, buf->buf + buf->read_index, readable);
+    if (n < 0) {
+        *saved_errno = errno;
+    } else if (n < readable) {
+        buf->read_index += n;
+    } else {
+        buf->read_index = buf->write_index = 0;
+    }
+    return n;
+}

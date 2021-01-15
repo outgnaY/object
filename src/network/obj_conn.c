@@ -13,6 +13,12 @@ obj_conn_t *obj_conn_listen_conn = NULL;
 
 static void obj_conn_queue_push(obj_conn_queue_t *cq, obj_conn_queue_item_t *item);
 static obj_conn_queue_item_t *obj_conn_queue_new_item();
+static void obj_conn_reset_cmd_handler(obj_conn_t *c);
+static obj_conn_read_result_t obj_conn_read(obj_conn_t *c);
+static obj_bool_t obj_conn_has_pending_reply(obj_conn_t *c);
+static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *reply);
+static obj_bool_t obj_conn_add_reply_to_list(obj_conn_t *c, obj_msg_reply_t *reply);
+static obj_conn_write_result_t obj_conn_write(obj_conn_t *c);
 static void obj_drive_machine(obj_conn_t *c);
 static void obj_conn_maxconns_handler(const evutil_socket_t fd, const short which, void *arg);
 static void obj_conn_cleanup(obj_conn_t *c);
@@ -123,10 +129,11 @@ static obj_conn_read_result_t obj_conn_read(obj_conn_t *c) {
         /* try to read into input buffer */
         res = obj_buffer_read_fd(c->inbuf, c->sfd, &saved_errno, &n);
         if (!res) {
-            /* memory error */
+            /* memory error occurred */
             if (obj_settings.verbose > 0) {
                 fprintf(stderr, "can't allocate input buffer\n");
             }
+            c->close_after_write = true;
             /* TODO send out of memory error to client */
             return OBJ_CONN_READ_MEMORY_ERROR;
         }
@@ -149,26 +156,164 @@ static obj_bool_t obj_conn_has_pending_reply(obj_conn_t *c) {
     return obj_buffer_readable_bytes(c->outbuf) > 0 || obj_list_length(c->reply_list) > 0;
 }
 
+/* add reply to buffer */
+static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *reply) {
+    int available = 0;
+    obj_int32_t len;
+    int i;
+    /* if reply list is not empty, we can't add anything more to buffer */
+    if (!obj_list_is_empty(c->reply_list)) {
+        return false;
+    }
+    available = obj_buffer_writable_bytes(c->outbuf);
+    len = reply->header.len;
+    if (len > available) {
+        return false;
+    }
+    /* append reply */
+    /* header */
+    obj_buffer_append_int32(c->outbuf, reply->header.len);
+    obj_buffer_append_int32(c->outbuf, reply->header.opCode);
+    /* response_flags */
+    obj_buffer_append_int32(c->outbuf, reply->response_flags);
+    /* cursor_id */
+    obj_buffer_append_int64(c->outbuf, reply->cursor_id);
+    /* start_from */
+    obj_buffer_append_int32(c->outbuf, reply->start_from);
+    /* num_return */
+    obj_buffer_append_int32(c->outbuf, reply->num_return);
+    /* objects */
+    for (i = 0; i < reply->num_return; i++) {
+        obj_buffer_append_bson(c->outbuf, reply->objects[i]);
+    }
+    return true;
+}
+
+/* add reply to list */
+static obj_bool_t obj_conn_add_reply_to_list(obj_conn_t *c, obj_msg_reply_t *reply) {
+    obj_list_node_t *tail_node = obj_list_get_tail(c->reply_list);
+    obj_conn_reply_block_t *tail = tail_node ? (obj_conn_reply_block_t *)obj_list_node_value(tail_node) : NULL;
+    obj_buffer_t *buf;
+    obj_bool_t res = false;
+    int i;
+    int size = reply->header.len;
+    if (tail) {
+        if (obj_buffer_writable_bytes(tail->buf) < size) {
+            goto new_block;
+        }
+        goto add;
+    } 
+new_block:
+    tail = obj_alloc(sizeof(obj_conn_reply_block_t));
+    if (tail == NULL) {
+        goto clean;
+    }
+    if (size < OBJ_BUFFER_INIT_SIZE) {
+        size = OBJ_BUFFER_INIT_SIZE;
+    }
+    buf = obj_buffer_init_with_size(size);
+    if (buf == NULL) {
+        goto clean;
+    }
+    tail->buf = buf;
+    /* link to last */
+    res = obj_list_add_node_tail(c->reply_list, tail);
+add:
+    /* have enough space, add reply */
+    /* header */
+    obj_buffer_append_int32(tail->buf, reply->header.len);
+    obj_buffer_append_int32(tail->buf, reply->header.opCode);
+    /* response_flags */
+    obj_buffer_append_int32(tail->buf, reply->response_flags);
+    /* cursor_id */
+    obj_buffer_append_int64(tail->buf, reply->cursor_id);
+    /* start_from */
+    obj_buffer_append_int32(tail->buf, reply->start_from);
+    /* num_return */
+    obj_buffer_append_int32(tail->buf, reply->num_return);
+    /* objects */
+    for (i = 0; i < reply->num_return; i++) {
+        obj_buffer_append_bson(tail->buf, reply->objects[i]);
+    }
+    return true;
+clean:
+    if (tail != NULL) {
+        obj_free(tail);
+    }
+    if (buf != NULL) {
+        obj_buffer_destroy(buf);
+    }
+    return false;
+}
+
+/* add reply */
+obj_bool_t obj_conn_add_reply(obj_conn_t *c, obj_msg_reply_t *reply) {
+    if (!obj_conn_add_reply_to_buffer(c, reply)) {
+        return obj_conn_add_reply_to_list(c, reply);
+    }
+    return true;
+}
+
 /* send data */
 static obj_conn_write_result_t obj_conn_write(obj_conn_t *c) {
     obj_conn_write_result_t ret = OBJ_CONN_WRITE_INCOMPLETE;
     int nwrite = 0;
+    int saved_errno;
     int total_write = 0;
+    obj_conn_reply_block_t *block;
     while (obj_conn_has_pending_reply(c)) {
         /* check output buffer and reply list */
         if (obj_buffer_readable_bytes(c->outbuf) > 0) {
-
+            nwrite = obj_buffer_write_fd(c->outbuf, c->sfd, &saved_errno);
+            if (nwrite <= 0) {
+                break;
+            }
+            total_write += nwrite;
         } else {
-
+            block = (obj_conn_reply_block_t *)obj_list_node_value(obj_list_get_head(c->reply_list));
+            /* safe check */
+            if (obj_buffer_readable_bytes(block->buf) == 0) {
+                obj_list_del_node(c->reply_list, obj_list_get_head(c->reply_list));
+                continue;
+            }
+            nwrite = obj_buffer_write_fd(block->buf, c->sfd, &saved_errno);
+            if (nwrite <= 0) {
+                break;
+            }
+            total_write += nwrite;
+            /* check if we sent all data in the buf */
+            if (obj_buffer_readable_bytes(block->buf) == 0) {
+                obj_list_del_node(c->reply_list, obj_list_get_head(c->reply_list));
+            }
         }
         /* avoid starving other connections */
         if (total_write > OBJ_CONN_WRITE_MAX_BYTES_PER_EVENT) {
             break;
         }
     }
-    if (nwrite < 0 && ()) {
-
+    if (nwrite >= 0) {
+        if (!obj_conn_has_pending_reply(c)) {
+            return OBJ_CONN_WRITE_INCOMPLETE;
+        } else {
+            return OBJ_CONN_WRITE_COMPLETE;
+        }
     }
+    if (nwrite < 0 && (saved_errno == EAGAIN || saved_errno == EWOULDBLOCK)) {
+        if (!obj_conn_update_event(c, EV_WRITE | EV_PERSIST)) {
+            if (obj_settings.verbose > 0) {
+                fprintf(stderr, "can't update event\n");
+            }
+            /* obj_conn_set_state(c, OBJ_CONN_CLOSING); */
+            return OBJ_CONN_WRITE_HARD_ERROR;
+        }
+        return OBJ_CONN_WRITE_SOFT_ERROR;
+    }
+    /* other errors */
+    if (obj_settings.verbose > 0) {
+        perror("failed to write, and not due to blocking");
+    }
+    /* obj_conn_set_state(c, OBJ_CONN_CLOSING); */
+    return OBJ_CONN_WRITE_HARD_ERROR;
 }
 
 /* drive the state machine */
@@ -179,7 +324,8 @@ static void obj_drive_machine(obj_conn_t *c) {
     struct sockaddr_in addr;
     obj_bool_t reject = false;
     int nreqs = obj_settings.max_reqs_per_event;
-    obj_conn_read_result_t res;
+    obj_conn_read_result_t read_res;
+    obj_conn_write_result_t write_res;
     while (!stop) {
         switch (c->state) {
             case OBJ_CONN_LISTENING:
@@ -230,7 +376,7 @@ static void obj_drive_machine(obj_conn_t *c) {
                 --nreqs;
                 if (nreqs >= 0) {
                     obj_conn_reset_cmd_handler(c);
-                } else if (!obj_list_is_empty(c->reply_list)) {
+                } else if (!obj_conn_has_pending_reply(c)) {
                     /* can not process any new requests, try to send some data */
                     obj_conn_set_state(c, OBJ_CONN_WRITE);
                 } else {
@@ -251,7 +397,7 @@ static void obj_drive_machine(obj_conn_t *c) {
                 /* try to read command */
                 if (!obj_proto_read_command(c)) {
                     /* need more data */
-                    if (!obj_list_is_empty(c->reply_list)) {
+                    if (!obj_conn_has_pending_reply(c)) {
                         obj_conn_set_state(c, OBJ_CONN_WRITE);
                     } else {
                         obj_conn_set_state(c, OBJ_CONN_WAITING);
@@ -259,8 +405,8 @@ static void obj_drive_machine(obj_conn_t *c) {
                 } 
                 break;
             case OBJ_CONN_READ:
-                res = obj_conn_read(c);
-                switch (res) {
+                read_res = obj_conn_read(c);
+                switch (read_res) {
                     case OBJ_CONN_READ_NO_DATA_RECEIVED:
                         obj_conn_set_state(c, OBJ_CONN_WAITING);
                         break;
@@ -272,11 +418,29 @@ static void obj_drive_machine(obj_conn_t *c) {
                         break;
                     case OBJ_CONN_READ_MEMORY_ERROR:
                         /* already set close_after_write */
+                        if (!obj_conn_has_pending_reply(c)) {
+                            /* try to send something, otherwise close the connection */
+                            obj_conn_set_state(c, OBJ_CONN_WRITE);
+                        } else {
+                            obj_conn_set_state(c, OBJ_CONN_CLOSING);
+                        }
                         break;
                 }
                 break;
             case OBJ_CONN_WRITE:
-
+                write_res = obj_conn_write(c);
+                switch (write_res) {
+                    case OBJ_CONN_WRITE_COMPLETE:
+                        break;
+                    case OBJ_CONN_WRITE_INCOMPLETE:
+                        break;
+                    case OBJ_CONN_WRITE_SOFT_ERROR:
+                        stop = true;
+                        break;
+                    case OBJ_CONN_WRITE_HARD_ERROR:
+                        obj_conn_set_state(c, OBJ_CONN_CLOSING);
+                        break;
+                }
                 break;
             case OBJ_CONN_CLOSING:
                 obj_conn_close(c);
@@ -309,9 +473,29 @@ static void obj_conn_maxconns_handler(const evutil_socket_t fd, const short whic
     }
 }
 
-/* do some cleanup jobs */
+/* release resources hold by the connection */
 static void obj_conn_cleanup(obj_conn_t *c) {
     obj_assert(c != NULL);
+    obj_list_node_t *node;
+    /* free input buffer */
+    if (c->inbuf != NULL) {
+        obj_buffer_destroy(c->inbuf);
+    }
+    /* free output buffer */
+    if (c->outbuf != NULL) {
+        obj_buffer_destroy(c->outbuf);
+    }
+    /* free reply list */
+    if (c->reply_list != NULL) {
+        while (!obj_list_is_empty(c->reply_list)) {
+            node = obj_list_get_head(c->reply_list);
+            if (node->value != NULL) {
+                obj_buffer_destroy((obj_buffer_t *)node->value);
+            }
+            obj_list_del_node(c->reply_list, node);
+        }
+    }
+    obj_list_destroy(c->reply_list);
 }
 
 /* free a connection */
@@ -547,5 +731,3 @@ void obj_conn_set_state(obj_conn_t *c, obj_conn_state_t state) {
         c->state = state;
     }
 }
-
-

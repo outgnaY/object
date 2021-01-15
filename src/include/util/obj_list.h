@@ -12,6 +12,7 @@ typedef struct obj_list_s obj_list_t;
 #define obj_list_get_tail(l) ((l)->tail)
 #define obj_list_prev_node(n) ((n)->prev)
 #define obj_list_next_node(n) ((n)->next)
+#define obj_list_node_value(n) ((n)->value)
 
 struct obj_list_node_s {
     obj_list_node_t *prev;

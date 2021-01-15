@@ -14,7 +14,7 @@ typedef struct obj_conn_queue_item_s obj_conn_queue_item_t;
 typedef struct obj_conn_queue_s obj_conn_queue_t;
 /* connection */
 typedef struct obj_conn_s obj_conn_t;
-typedef struct obj_conn_reply_s obj_conn_reply_t;
+typedef struct obj_conn_reply_block_s obj_conn_reply_block_t;
 
 
 
@@ -75,8 +75,8 @@ struct obj_conn_s {
 };
 
 /* content of reply list */
-struct obj_conn_reply_s {
-
+struct obj_conn_reply_block_s {
+    obj_buffer_t *buf;
 };
 
 #define OBJ_CONN_QUEUE_ITEMS_PER_ALLOC 64
@@ -91,6 +91,7 @@ void obj_conn_queue_item_freelist_init();
 void obj_conn_queue_init(obj_conn_queue_t *cq);
 obj_conn_queue_item_t *obj_conn_queue_pop(obj_conn_queue_t *cq);
 void obj_conn_queue_free_item(obj_conn_queue_item_t *item);
+obj_bool_t obj_conn_add_reply(obj_conn_t *c, obj_msg_reply_t *reply);
 void obj_conn_conns_init();
 obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short event_flags, struct event_base *base);
 void obj_conn_dispatch_conn_new(int sfd, obj_conn_state_t init_state, int event_flags);

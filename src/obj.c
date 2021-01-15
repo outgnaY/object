@@ -28,7 +28,7 @@ static void obj_settings_init() {
     obj_settings.idle_timeout = 0;
     obj_settings.backlog = 1024;
     obj_settings.maxconns_fast = true;
-    obj_settings.reqs_per_event = 20;
+    obj_settings.max_reqs_per_event = 20;
     obj_settings.port = 6666;
     obj_settings.verbose = 2;
 }

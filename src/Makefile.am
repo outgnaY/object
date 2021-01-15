@@ -6,11 +6,11 @@ AM_CPPFLAGS = -I$(srcdir)/include
 
 object_SOURCES = bson/obj_bson_iter.c bson/obj_bson_validate.c bson/obj_bson_visit.c bson/obj_bson.c \
 				 mem/obj_mem_simple.c mem/obj_mem.c \
-				 network/obj_conn.c network/obj_message.c \
+				 network/obj_buffer.c network/obj_conn.c network/obj_proto.c \
 				 util/obj_hash.c util/obj_list.c util/obj_math.c util/obj_sds.c util/obj_siphash.c util/obj_string.c \
 				 obj_daemon.c obj_thread.c obj.c
 test_bson_SOURCES = test/test_bson.c bson/obj_bson_iter.c bson/obj_bson_validate.c bson/obj_bson_visit.c bson/obj_bson.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_list.c util/obj_math.c util/obj_string.c
-test_req_SOURCES = test/test_req.c
+test_req_SOURCES = test/test_req.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson.c util/obj_math.c
 test_hash_SOURCES = test/test_hash.c util/obj_hash.c util/obj_siphash.c mem/obj_mem_simple.c mem/obj_mem.c
 test_sds_SOURCES = test/test_sds.c util/obj_sds.c mem/obj_mem_simple.c mem/obj_mem.c
 test_string_SOURCES = test/test_string.c util/obj_string.c

@@ -36,7 +36,13 @@ struct obj_msg_header_s {
 /* reply */
 struct obj_msg_reply_s {
     obj_msg_header_t header;
+    obj_int32_t response_flags;         
+    obj_int64_t cursor_id;              /* cursor id */
+    obj_int32_t start_from;             /* starting position of the cursor */
+    obj_int32_t num_return;             /* number of objects in the reply */
+    obj_bson_t **objects;
 };
+
 
 /* update */
 struct obj_msg_update_s {
