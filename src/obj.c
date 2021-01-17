@@ -69,6 +69,7 @@ static void obj_version() {
 
 static void obj_usage() {
     obj_version();
+    printf("usage:\n");
     printf("-d, --daemon                run as a daemon\n"
            "-h, --help                  print help message and exit\n"
            "-r, --enable-coredumps      enable coredump\n");
@@ -228,7 +229,7 @@ int main(int argc, char **argv) {
                 obj_settings.max_reqs_per_event = atoi(optarg);
                 if (obj_settings.max_reqs_per_event == 0) {
                     fprintf(stderr, "max number of requests per event must be greater than 0\n");
-                    return 1;
+                    exit(1);
                 }
                 break;
             case 'u':
@@ -238,7 +239,9 @@ int main(int argc, char **argv) {
                 obj_version();
                 exit(EXIT_SUCCESS);
             default:
-                break;
+                fprintf(stderr, "invalid argument\n");
+                obj_usage();
+                exit(1);
         }
     }
     if (enable_core) {

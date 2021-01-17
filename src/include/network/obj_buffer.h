@@ -35,7 +35,7 @@ obj_msg_header_t obj_buffer_v_peek_msg_header_unsafe(obj_buffer_t *buf);
 char *obj_buffer_v_read_string_unsafe(obj_buffer_t *buf, int *len);
 obj_bson_t *obj_buffer_v_read_bson_unsafe(obj_buffer_t *buf, obj_int32_t len);
 void obj_buffer_retrieve(obj_buffer_t *buf, int len);
-void obj_buffer_v_init(obj_buffer_t *buf);
+void obj_buffer_v_reset(obj_buffer_t *buf);
 void obj_buffer_v_retrieve(obj_buffer_t *buf, int len);
 obj_bool_t obj_buffer_append(obj_buffer_t *buf, const void *data, int len);
 obj_bool_t obj_buffer_append_int32(obj_buffer_t *buf, obj_int32_t data);

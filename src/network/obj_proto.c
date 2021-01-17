@@ -8,7 +8,7 @@ static obj_msg_operation_t obj_proto_get_operation(obj_conn_t *c);
 static obj_bool_t obj_process_command(obj_conn_t *c, obj_msg_header_t *header);
 
 
-
+/* command table */
 static obj_bool_t (*obj_msg_parser[6])(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) = {
     NULL,
     obj_msg_parse_update,
@@ -312,7 +312,7 @@ clean:
 /* parse delete message */
 static obj_bool_t obj_msg_parse_delete(obj_conn_t *c, obj_int32_t len, obj_msg_header_t **header) {
     /* printf("parse delete\n"); */
-    printf("read_index %d, write_index %d, v_read_index %d\n", c->inbuf->read_index, c->inbuf->write_index, c->inbuf->v_read_index); 
+    /* printf("read_index %d, write_index %d, v_read_index %d\n", c->inbuf->read_index, c->inbuf->write_index, c->inbuf->v_read_index); */
     obj_msg_delete_t *delete_msg = NULL;
     /* safe check */
     int curr_len = sizeof(obj_msg_header_t);
@@ -517,7 +517,7 @@ obj_bool_t obj_proto_read_command(obj_conn_t *c) {
             return true;
         }
         obj_buffer_retrieve(c->inbuf, len);
-        obj_buffer_v_init(c->inbuf);
+        obj_buffer_v_reset(c->inbuf);
         /* printf("read_index: %d, v_read_index: %d\n", c->inbuf->read_index, c->inbuf->v_read_index); */
         /* test process command */
         obj_process_command(c, header);

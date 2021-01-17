@@ -64,6 +64,9 @@
 #include "storage/obj_physical.h"
 */
 
+/* client library */
+#include "client/obj_client.h"
+
 #include "obj.h"
 
 

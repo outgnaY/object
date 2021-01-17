@@ -157,10 +157,10 @@ obj_msg_header_t obj_buffer_v_peek_msg_header_unsafe(obj_buffer_t *buf) {
 /* read cstring */
 char *obj_buffer_v_read_string_unsafe(obj_buffer_t *buf, int *len) {
     int old_index = buf->read_index;
-    /* probably unsafe? */
+    /* TODO probably unsafe? */
     *len = (int)obj_strlen(buf->buf + buf->v_read_index);
     /* do not allow length == 0 */
-    if (*len == 0) {
+    if (*len == 0 || *len > obj_buffer_v_readable_bytes(buf)) {
         return NULL;
     }
     obj_buffer_v_retrieve(buf, *len + 1);
@@ -195,7 +195,7 @@ void obj_buffer_retrieve(obj_buffer_t *buf, int len) {
     }
 }
 
-void obj_buffer_v_init(obj_buffer_t *buf) {
+void obj_buffer_v_reset(obj_buffer_t *buf) {
     buf->v_read_index = buf->read_index;
 }
 
@@ -243,6 +243,7 @@ obj_bool_t obj_buffer_read_fd(obj_buffer_t *buf, int fd, int *saved_errno, int *
     int writable = obj_buffer_writable_bytes(buf);
     int iovcnt;
     int n;
+    /* use stack space */
     vec[0].iov_base = buf->buf + buf->write_index;
     vec[0].iov_len = writable;
     vec[1].iov_base = extrabuf;
