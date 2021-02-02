@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
-noinst_PROGRAMS = object test_bson test_req test_hash test_sds test_string
+noinst_PROGRAMS = object test_bson test_req test_hash test_sds test_string test_array
 
 AM_CPPFLAGS = -I$(srcdir)/include
 
@@ -14,6 +14,7 @@ test_req_SOURCES = test/test_req.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_b
 test_hash_SOURCES = test/test_hash.c util/obj_hash.c util/obj_siphash.c mem/obj_mem_simple.c mem/obj_mem.c
 test_sds_SOURCES = test/test_sds.c util/obj_sds.c mem/obj_mem_simple.c mem/obj_mem.c
 test_string_SOURCES = test/test_string.c util/obj_string.c
+test_array_SOURCES = test/test_array.c util/obj_array.c mem/obj_mem_simple.c mem/obj_mem.c
 
 all:
 	mv -f object ../bin/object
@@ -22,6 +23,7 @@ all:
 	mv -f test_hash ../bin/test_hash
 	mv -f test_sds ../bin/test_sds
 	mv -f test_string ../bin/test_string
+	mv -f test_array ../bin/test_array
 	mv -f obj_daemon.o obj_thread.o obj.o bson/*.o mem/*.o network/*.o test/*.o util/*.o ../obj
 clean:
 	rm -f ../bin/object
@@ -30,6 +32,7 @@ clean:
 	rm -f ../bin/test_hash
 	rm -f ../bin/test_sds
 	rm -f ../bin/test_string
+	rm -f ../bin/test_array
 	rm -f ../obj/*
 clean-local:
 	-rm config.log 

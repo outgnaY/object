@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <math.h>
 #include <string.h>
 #include <assert.h>
 #include <sys/time.h>
@@ -39,6 +40,7 @@
 #include "mem/obj_mem.h"
 #include "mem/obj_mem_simple.h"
 /* util */
+#include "util/obj_array.h"
 #include "util/obj_atomic.h"
 #include "util/obj_endian.h"
 #include "util/obj_hash.h"
@@ -51,6 +53,10 @@
 #include "bson/obj_bson_iter.h"
 #include "bson/obj_bson_validate.h"
 #include "bson/obj_bson_visit.h"
+
+/* expr */
+#include "expr/obj_expr.h"
+#include "expr/obj_expr_parse.h"
 
 /* network */
 #include "network/obj_proto.h"
