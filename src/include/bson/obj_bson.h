@@ -86,6 +86,8 @@ obj_bson_t *obj_bson_init_with_data(const obj_uint8_t *data, obj_int32_t len);
 
 obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *data, obj_int32_t len);
 
+obj_bool_t obj_bson_is_empty(obj_bson_t *bson);
+
 void obj_bson_destroy(obj_bson_t *bson);
 
 const char *obj_bson_type_to_name(obj_bson_type_t type);

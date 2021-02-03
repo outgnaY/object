@@ -92,6 +92,7 @@ void *obj_array_get_index(obj_array_t *array, int index) {
     return array->data + index * array->element_size;
 }
 
+
 /* set element at index */
 void obj_array_set_index(obj_array_t *array, int index, void *element_ptr) {
     obj_assert(array && array->data && array->size > index);

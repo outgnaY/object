@@ -9,6 +9,7 @@ struct test_s {
 #define ARR_LEN 100000
 test_t *test_arr[ARR_LEN];
 
+
 int main() {
     obj_global_mem_context_init();
     int i;

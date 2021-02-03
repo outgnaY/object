@@ -5,7 +5,7 @@
 
 typedef enum obj_expr_type obj_expr_type_t;
 typedef struct obj_expr_base_s obj_expr_base_t;
-typedef struct obj_expr_logical_s obj_expr_logical_t;
+typedef struct obj_expr_tree_s obj_expr_tree_t;
 typedef struct obj_expr_compare_s obj_expr_compare_t;
 
 enum obj_expr_type {
@@ -27,11 +27,10 @@ struct obj_expr_base_s {
     obj_expr_type_t type;
 };
 
-/* AND OR */
-struct obj_expr_logical_s {
+/* AND OR NOR */
+struct obj_expr_tree_s {
     obj_expr_base_t type;
-    obj_expr_base_t **list;
-    int len;
+    obj_array_t *expr_list;
 };
 
 /* EQ LTE LT GT GTE */
@@ -40,5 +39,14 @@ struct obj_expr_compare_s {
     char *path;
     obj_bson_value_t value;
 };
+
+/* NOT */
+struct obj_expr_not_s {
+    obj_expr_base_t type;
+    obj_expr_base_t *expr;
+};
+
+obj_expr_base_t *obj_expr_tree_create(obj_expr_type_t type);
+obj_bool_t obj_expr_tree_add_child(obj_expr_base_t *expr, obj_expr_base_t *child);
 
 #endif  /* OBJ_EXPR_H */

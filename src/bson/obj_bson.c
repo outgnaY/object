@@ -82,7 +82,6 @@ obj_bson_t *obj_bson_init_with_data(const obj_uint8_t *data, obj_int32_t len) {
     return bson;
 }
 
-
 /* init bson from a static context, with given length */
 obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *data, obj_int32_t len) {
     obj_int32_t len_le;
@@ -104,6 +103,9 @@ obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *da
     return true;
 }
 
+obj_bool_t obj_bson_is_empty(obj_bson_t *bson) {
+    return bson->len <= 5;
+}
 
 /* destroy a bson */
 void obj_bson_destroy(obj_bson_t *bson) {

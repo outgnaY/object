@@ -47,6 +47,7 @@
 #include "util/obj_list.h"
 #include "util/obj_math.h"
 #include "util/obj_sds.h"
+#include "util/obj_status_with.h"
 #include "util/obj_string.h"
 /* bson */
 #include "bson/obj_bson.h"

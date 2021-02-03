@@ -27,6 +27,7 @@ struct obj_array_s {
 #define obj_array_set_free(arr, fn) (((arr)->free) = fn)
 #define obj_array_is_empty(arr) (((arr)->size) == 0)
 #define obj_array_length(arr) ((arr)->size)
+#define obj_array_get_index_value(arr, i, T) *((T *)obj_array_get_index(arr, i))
 
 obj_array_t *obj_array_create(int element_size);
 obj_array_t *obj_array_create_size(int element_size, int size);
@@ -41,5 +42,6 @@ void obj_array_pop_back(obj_array_t *array);
 obj_bool_t obj_array_insert(obj_array_t *array, int index, void *element_ptr);
 void obj_array_remove(obj_array_t *array, int index);
 void obj_array_dump(obj_array_t *array, void (*cb)(obj_array_t *array));
+
 
 #endif  /* OBJ_ARRAY_H */

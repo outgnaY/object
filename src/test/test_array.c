@@ -57,6 +57,11 @@ void array4_cb(obj_array_t *array) {
     printf("\n");
 }
 
+void time_interval(struct timeval t1, struct timeval t2) {
+    int us = (t2.tv_sec - t1.tv_sec) * 1000000 + t2.tv_usec - t1.tv_usec;
+    printf("total time: %ds %dus\n", us / 1000000, us - (us / 1000000) * 1000000);
+}
+
 /* array test */
 int main() {
     obj_global_mem_context_init();
@@ -145,6 +150,7 @@ int main() {
     obj_array_destroy(&array3);
     */
     /* array with complicated struct */
+    /*
     obj_array_t array4;
     obj_array_init(&array4, sizeof(complicated_t));
     obj_array_set_free(&array4, clean);
@@ -182,5 +188,27 @@ int main() {
     obj_array_push_back(&array4, &a1);
     obj_array_dump(&array4, array4_cb);
     obj_array_destroy(&array4);
+    */
+    /* time */
+    int i;
+    int a = 1;
+    struct timeval start;
+    struct timeval end;
+    /*
+    gettimeofday(&start, NULL);
+    obj_list_t *list = obj_list_create();
+    for (i = 0; i < 1000000; i++) {
+        obj_list_add_node_tail(list, &a);
+    }
+    gettimeofday(&end, NULL);
+    time_interval(start, end);
+    */
+    gettimeofday(&start, NULL);
+    obj_array_t *array = obj_array_create(sizeof(int));
+    for (i = 0; i < 1000000; i++) {
+        obj_array_push_back(array, &a);
+    }
+    gettimeofday(&end, NULL);
+    time_interval(start, end);
     return 0;
 }
