@@ -162,7 +162,7 @@ static obj_bool_t obj_bson_visit_print_visit_int32(const obj_bson_iter_t *iter, 
 static obj_bool_t obj_bson_visit_print_visit_int64(const obj_bson_iter_t *iter, obj_int64_t v_int64, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     printf("[int64]");
-    printf("%lld", v_int64);
+    printf("%ld", v_int64);
     return true;
 }
 

@@ -11,6 +11,7 @@
 #define obj_memmove(dst, src, n) (void) memmove(dst, src, n)
 
 #define obj_strlen(s)   strlen(s)
+#define obj_strcpy(dst, src) strcpy(dst, src);
 #define obj_strcat(dst, src)    strcat(dst, src)
 #define obj_strncmp(s1, s2, n) strncmp((const char *)s1, (const char *)s2, n)
 #define obj_strcmp(s1, s2) strcmp((const char *)s1, (const char *)s2)

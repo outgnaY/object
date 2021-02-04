@@ -7,6 +7,7 @@ typedef enum obj_expr_type obj_expr_type_t;
 typedef struct obj_expr_base_s obj_expr_base_t;
 typedef struct obj_expr_tree_s obj_expr_tree_t;
 typedef struct obj_expr_compare_s obj_expr_compare_t;
+typedef struct obj_expr_not_s obj_expr_not_t;
 
 enum obj_expr_type {
     /* logical */
@@ -20,7 +21,8 @@ enum obj_expr_type {
     OBJ_EXPR_GTE,
     /* negation */
     OBJ_EXPR_NOT,
-    OBJ_EXPR_NOR
+    OBJ_EXPR_NOR,
+    OBJ_EXPR_NEQ
 };
 
 struct obj_expr_base_s {
@@ -46,7 +48,11 @@ struct obj_expr_not_s {
     obj_expr_base_t *expr;
 };
 
+obj_expr_base_t *obj_expr_not_create(obj_expr_base_t *child);
+obj_expr_base_t *obj_expr_compare_create(const char *path, obj_expr_type_t type, obj_bson_value_t *value);
+void obj_expr_compare_destroy(obj_expr_base_t *expr);
 obj_expr_base_t *obj_expr_tree_create(obj_expr_type_t type);
+void obj_expr_tree_destroy(obj_expr_base_t *expr);
 obj_bool_t obj_expr_tree_add_child(obj_expr_base_t *expr, obj_expr_base_t *child);
 
 #endif  /* OBJ_EXPR_H */

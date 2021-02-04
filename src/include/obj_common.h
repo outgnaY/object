@@ -61,7 +61,8 @@ enum obj_global_error_code {
     /* expression */
     OBJ_CODE_EXPR_BAD_VALUE = 30001,
     OBJ_CODE_EXPR_NOMEM = 30002,
-    OBJ_CODE_EXPR_PARSER_NOT_FOUND = 30003
+    OBJ_CODE_EXPR_PARSER_NOT_FOUND = 30003,
+    OBJ_CODE_EXPR_TYPE_NOT_FOUND = 30004,
 };
 
 
