@@ -3,12 +3,6 @@
 int main() {
     obj_global_mem_context_init();
     int i;
-    /*
-    obj_bson_t *bson = obj_bson_init_heap();
-    obj_bson_append_utf8(bson, "hello", 5, "world", 5);
-    obj_bson_print(bson);
-    */
-
     /* validate test */
     obj_global_error_code_t code;
     /* empty bson */

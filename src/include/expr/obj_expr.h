@@ -49,10 +49,11 @@ struct obj_expr_not_s {
 };
 
 obj_expr_base_t *obj_expr_not_create(obj_expr_base_t *child);
-obj_expr_base_t *obj_expr_compare_create(const char *path, obj_expr_type_t type, obj_bson_value_t *value);
+obj_expr_base_t *obj_expr_compare_create(const char *path, obj_expr_type_t type, const obj_bson_value_t *value);
 void obj_expr_compare_destroy(obj_expr_base_t *expr);
 obj_expr_base_t *obj_expr_tree_create(obj_expr_type_t type);
 void obj_expr_tree_destroy(obj_expr_base_t *expr);
 obj_bool_t obj_expr_tree_add_child(obj_expr_base_t *expr, obj_expr_base_t *child);
+void obj_expr_dump(obj_expr_base_t *expr);
 
 #endif  /* OBJ_EXPR_H */

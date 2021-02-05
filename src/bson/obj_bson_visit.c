@@ -88,7 +88,7 @@ static obj_bool_t obj_bson_visit_print_visit_utf8(const obj_bson_iter_t *iter, o
 }
 
 static obj_bool_t obj_bson_visit_print_visit_object(const obj_bson_iter_t *iter, const obj_bson_t *v_object, void *data) {
-    printf("visit object\n");
+    /* printf("visit object\n"); */
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     obj_bson_visit_print_state_t child_state;
     obj_bson_iter_t child;

@@ -1,5 +1,12 @@
 #include "obj_core.h"
 
+static void obj_expr_print(obj_expr_base_t *expr, int skip);
+static void obj_expr_print_compare(int skip, obj_expr_base_t *expr);
+static void obj_expr_print_tree(int skip, obj_expr_base_t *expr);
+static void obj_expr_print_not(int skip, obj_expr_base_t *expr);
+static void obj_expr_print_value(obj_bson_value_t *value);
+
+
 static const char *obj_expr_type_str_map[] = {
     "&&",       /* AND */
     "||",       /* OR */
@@ -21,11 +28,11 @@ obj_expr_base_t *obj_expr_not_create(obj_expr_base_t *child) {
     }
     expr->type.type = OBJ_EXPR_NOT;
     expr->expr = child;
-    return expr;
+    return (obj_expr_base_t *)expr;
 }
 
 /* create compare expression */
-obj_expr_base_t *obj_expr_compare_create(const char *path, obj_expr_type_t type, obj_bson_value_t *value) {
+obj_expr_base_t *obj_expr_compare_create(const char *path, obj_expr_type_t type, const obj_bson_value_t *value) {
     obj_assert(type == OBJ_EXPR_EQ || type == OBJ_EXPR_GT || type == OBJ_EXPR_GTE || type == OBJ_EXPR_LT || type == OBJ_EXPR_LTE);
     obj_expr_compare_t *expr;
     expr = obj_alloc(sizeof(obj_expr_compare_t));
@@ -43,7 +50,7 @@ obj_expr_base_t *obj_expr_compare_create(const char *path, obj_expr_type_t type,
     obj_memcpy(expr->path, path, len);
     expr->path[len] = '\0';
     */
-    expr->path = path;
+    expr->path = (char *)path;
     expr->value = *value;
     return (obj_expr_base_t *)expr;
 }
@@ -131,6 +138,7 @@ static void obj_expr_print_compare(int skip, obj_expr_base_t *expr) {
     printf("%s", ((obj_expr_compare_t *)expr)->path);
     printf("%s", obj_expr_type_str_map[expr->type]);
     obj_expr_print_value(&((obj_expr_compare_t *)expr)->value);
+    printf("\n");
 }
 
 static void obj_expr_print_tree(int skip, obj_expr_base_t *expr) {
@@ -175,7 +183,7 @@ static void obj_expr_print_value(obj_bson_value_t *value) {
         case OBJ_BSON_TYPE_BINARY: {
             int i;
             for (i = 0; i < value->value.v_binary.len; i++) {
-                printf("%02x", value->value.v_binary.data);
+                printf("%02x", value->value.v_binary.data[i]);
             }
             break;
         }

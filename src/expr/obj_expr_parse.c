@@ -1,5 +1,17 @@
 #include "obj_core.h"
 
+static obj_expr_parse_fn obj_expr_parse_get_parser(const char *name);
+static obj_expr_type_t obj_expr_parse_get_type(const char *name);
+static obj_bool_t obj_expr_parse_is_expression(obj_bson_value_t *value);
+static obj_bool_t obj_expr_parse_is_legal_compare_value(obj_bson_value_t *value);
+static obj_status_with_t obj_expr_parse_not(const char *name, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
+static obj_status_with_t obj_expr_parse_or(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
+static obj_status_with_t obj_expr_parse_and(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
+static obj_status_with_t obj_expr_parse_nor(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
+static obj_status_with_t obj_expr_parse_top_level(obj_expr_type_t expr_type, const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
+static obj_status_with_t obj_expr_parse_sub(const char *name, obj_bson_t *bson, obj_expr_base_t *root, obj_expr_parse_level_t current_level);
+static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *name, const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
+
 /* parse function map. MUST be added with name order!!! */
 static obj_expr_parse_fn_pair_t obj_expr_parse_fn_map[] = {
     {"and", obj_expr_parse_and},
@@ -17,20 +29,6 @@ static obj_expr_parse_type_pair_t obj_expr_parse_type_map[] = {
     {"neq", OBJ_EXPR_NEQ},
     {"not", OBJ_EXPR_NOT}
 };
-
-static obj_expr_parse_fn obj_expr_parse_get_parser(const char *name);
-static obj_expr_type_t obj_expr_parse_get_type(const char *name);
-static obj_bool_t obj_expr_parse_is_expression(obj_bson_value_t *value);
-static obj_bool_t obj_expr_parse_is_legal_compare_value(obj_bson_value_t *value);
-static obj_status_with_t obj_expr_parse_not(const char *name, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
-static obj_status_with_t obj_expr_parse_or(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
-static obj_status_with_t obj_expr_parse_and(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
-static obj_status_with_t obj_expr_parse_nor(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
-static obj_status_with_t obj_expr_parse_top_level(obj_expr_type_t expr_type, const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
-static obj_status_with_t obj_expr_parse_sub(const char *name, obj_bson_t *bson, obj_expr_base_t *root, obj_expr_parse_level_t current_level);
-static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *name, const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
-
-
 
 /* get corresponding parser */
 static obj_expr_parse_fn obj_expr_parse_get_parser(const char *name) {
@@ -84,7 +82,7 @@ static obj_expr_type_t obj_expr_parse_get_type(const char *name) {
         return -1;
     }
     /* lo == hi */
-    if (obj_strcmp(obj_expr_parse_type_map[lo].name, name)) {
+    if (!obj_strcmp(obj_expr_parse_type_map[lo].name, name)) {
         return obj_expr_parse_type_map[lo].type;
     }
     return -1;
@@ -103,8 +101,7 @@ static obj_bool_t obj_expr_parse_is_expression(obj_bson_value_t *value) {
     }
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, &bson);
-    obj_bson_value_t *value;
-    char *key;
+    const char *key;
     obj_bson_type_t bson_type;
     while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
         if (key[0] != '$') {
@@ -135,7 +132,7 @@ obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_parse_leve
     obj_expr_parse_fn fn;
     obj_bson_value_t *value;
     obj_expr_base_t *root;
-    char *key;
+    const char *key;
     obj_status_with_t status;
     obj_bson_iter_init(&iter, bson);
     /* create $and as root */
@@ -145,7 +142,7 @@ obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_parse_leve
     }
     while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
         /* get value */
-        obj_bson_value_t *value = obj_bson_iter_value(&iter);
+        obj_bson_value_t *value = (obj_bson_value_t *)obj_bson_iter_value(&iter);
         /* $and/$nor/$or */
         if (key[0] == '$') {
             fn = obj_expr_parse_get_parser(key + 1);
@@ -215,7 +212,7 @@ static obj_status_with_t obj_expr_parse_not(const char *name, const obj_bson_val
         return sub_status;
     }
     /* create not */
-    obj_expr_not_t *not_expr = obj_expr_not_create(and_expr);
+    obj_expr_base_t *not_expr = obj_expr_not_create(and_expr);
     if (not_expr == NULL) {
         obj_expr_tree_destroy(and_expr);
         return obj_status_create(NULL, "can't create $not: out of memory", OBJ_CODE_EXPR_NOMEM);
@@ -249,24 +246,24 @@ static obj_status_with_t obj_expr_parse_top_level(obj_expr_type_t expr_type, con
     obj_bson_t array_bson;
     obj_bson_type_t bson_type;
     obj_status_with_t sub;
-    obj_bson_value_t *value;
-    char *key;
+    obj_bson_value_t *child_value;
+    const char *child_key;
     temp = obj_expr_tree_create(expr_type);
     if (temp == NULL) {
         return obj_status_create(NULL, "can't create expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
     }
     obj_bson_init_static_with_len(&array_bson, value->value.v_array.data, value->value.v_array.len);
     obj_bson_iter_init(&iter, &array_bson);
-    while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
+    while (obj_bson_iter_next_internal(&iter, &child_key, &bson_type)) {
         if (bson_type != OBJ_BSON_TYPE_OBJECT) {
             return obj_status_create(NULL, "$or/$and/$nor entries need to be full objects", OBJ_CODE_EXPR_BAD_VALUE);
         }
         /* parse children */
-        value = obj_bson_iter_value(&iter);
+        child_value = (obj_bson_value_t *)obj_bson_iter_value(&iter);
         obj_bson_t sub_bson;
-        obj_bson_init_static_with_len(&sub_bson, value->value.v_object.data, value->value.v_object.len);
+        obj_bson_init_static_with_len(&sub_bson, child_value->value.v_object.data, child_value->value.v_object.len);
         sub = obj_expr_parse_all(&sub_bson, current_level);
-        if (obj_status_isok(&sub)) {
+        if (!obj_status_isok(&sub)) {
             return sub;
         }
         if (!obj_expr_tree_add_child(temp, (obj_expr_base_t *)sub.data)) {
@@ -280,11 +277,11 @@ static obj_status_with_t obj_expr_parse_top_level(obj_expr_type_t expr_type, con
 static obj_status_with_t obj_expr_parse_sub(const char *name, obj_bson_t *bson, obj_expr_base_t *root, obj_expr_parse_level_t current_level) {
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, bson);
-    char *key;
+    const char *key;
     obj_bson_type_t bson_type;
     obj_bson_value_t *value;
     while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
-        value = obj_bson_iter_value(&iter);
+        value = (obj_bson_value_t *)obj_bson_iter_value(&iter);
         obj_status_with_t status = obj_expr_parse_sub_field(bson, name, key, value, current_level);
         if (!obj_status_isok(&status)) {
             return status;
