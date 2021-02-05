@@ -34,6 +34,7 @@ obj_expr_base_t *obj_expr_not_create(obj_expr_base_t *child) {
 /* create compare expression */
 obj_expr_base_t *obj_expr_compare_create(const char *path, obj_expr_type_t type, const obj_bson_value_t *value) {
     obj_assert(type == OBJ_EXPR_EQ || type == OBJ_EXPR_GT || type == OBJ_EXPR_GTE || type == OBJ_EXPR_LT || type == OBJ_EXPR_LTE);
+    /* printf("compare value type %d\n", value->type); */
     obj_expr_compare_t *expr;
     expr = obj_alloc(sizeof(obj_expr_compare_t));
     if (expr == NULL) {
@@ -106,6 +107,9 @@ void obj_expr_dump(obj_expr_base_t *expr) {
 
 /* helper function */
 static void obj_expr_print(obj_expr_base_t *expr, int skip) {
+    if (expr == NULL) {
+        return;
+    }
     switch (expr->type) {
         /* compare */
         case OBJ_EXPR_EQ: 

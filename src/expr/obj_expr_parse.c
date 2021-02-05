@@ -3,7 +3,8 @@
 static obj_expr_parse_fn obj_expr_parse_get_parser(const char *name);
 static obj_expr_type_t obj_expr_parse_get_type(const char *name);
 static obj_bool_t obj_expr_parse_is_expression(obj_bson_value_t *value);
-static obj_bool_t obj_expr_parse_is_legal_compare_value(obj_bson_value_t *value);
+static obj_bool_t obj_expr_parse_is_legal_compare_value(const obj_bson_value_t *value);
+static obj_bool_t obj_expr_parse_is_legal_equal_value(const obj_bson_value_t *value);
 static obj_status_with_t obj_expr_parse_not(const char *name, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
 static obj_status_with_t obj_expr_parse_or(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
 static obj_status_with_t obj_expr_parse_and(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level);
@@ -111,9 +112,14 @@ static obj_bool_t obj_expr_parse_is_expression(obj_bson_value_t *value) {
     return true;
 }
 
-/* check if this is a legal value for compare expression($eq, $lt, $lte, $gt, $gte) */
-static obj_bool_t obj_expr_parse_is_legal_compare_value(obj_bson_value_t *value) {
+/* check if this is a legal value for common compare expression($eq, $lt, $lte, $gt, $gte, $neq) */
+static inline obj_bool_t obj_expr_parse_is_legal_compare_value(const obj_bson_value_t *value) {
     return value->type == OBJ_BSON_TYPE_DOUBLE || value->type == OBJ_BSON_TYPE_INT32 || value->type == OBJ_BSON_TYPE_INT64 || value->type == OBJ_BSON_TYPE_UTF8 || value->type == OBJ_BSON_TYPE_BINARY;
+}
+
+/* check if this is a legal value for $eq | $neq compare expression */
+static inline obj_bool_t obj_expr_parse_is_legal_equal_value(const obj_bson_value_t *value) {
+    return obj_expr_parse_is_legal_compare_value(value) || value->type == OBJ_BSON_TYPE_BOOL || value->type == OBJ_BSON_TYPE_NULL;
 }
 
 /* parse entrance */
@@ -310,6 +316,9 @@ static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *
             return obj_expr_parse_not(name, value, current_level);
         }
         case OBJ_EXPR_EQ: {
+            if (!obj_expr_parse_is_legal_equal_value(value)) {
+                return obj_status_create(expr, "illegal type for $eq", OBJ_CODE_EXPR_BAD_VALUE);
+            }
             expr = obj_expr_compare_create(name, OBJ_EXPR_EQ, value);
             if (expr == NULL) {
                 return obj_status_create(NULL, "can't create $eq expression: out of memory", OBJ_CODE_EXPR_NOMEM);
@@ -317,6 +326,9 @@ static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *
             return obj_status_create(expr, "", 0);
         }
         case OBJ_EXPR_NEQ: {
+            if (!obj_expr_parse_is_legal_equal_value(value)) {
+                return obj_status_create(expr, "illegal type for $neq", OBJ_CODE_EXPR_BAD_VALUE);
+            }
             obj_expr_base_t *eq = obj_expr_compare_create(name, OBJ_EXPR_EQ, value);
             if (eq == NULL) {
                 return obj_status_create(NULL, "can't create $neq expression: out of memory", OBJ_CODE_EXPR_NOMEM);
@@ -329,6 +341,9 @@ static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *
             return obj_status_create(expr, "", 0);
         }
         case OBJ_EXPR_LT: {
+            if (!obj_expr_parse_is_legal_compare_value(value)) {
+                return obj_status_create(expr, "illegal type for $lt", OBJ_CODE_EXPR_BAD_VALUE);
+            }
             expr = obj_expr_compare_create(name, OBJ_EXPR_LT, value);
             if (expr == NULL) {
                 return obj_status_create(NULL, "can't create $lt expression: out of memory", OBJ_CODE_EXPR_NOMEM);
@@ -336,6 +351,9 @@ static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *
             return obj_status_create(expr, "", 0);
         }
         case OBJ_EXPR_LTE: {
+            if (!obj_expr_parse_is_legal_compare_value(value)) {
+                return obj_status_create(expr, "illegal type for $lte", OBJ_CODE_EXPR_BAD_VALUE);
+            }
             expr = obj_expr_compare_create(name, OBJ_EXPR_LTE, value);
             if (expr == NULL) {
                 return obj_status_create(NULL, "can't create $lte expression: out of memory", OBJ_CODE_EXPR_NOMEM);
@@ -343,6 +361,9 @@ static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *
             return obj_status_create(expr, "", 0);
         }
         case OBJ_EXPR_GT: {
+            if (!obj_expr_parse_is_legal_compare_value(value)) {
+                return obj_status_create(expr, "illegal type for $gte", OBJ_CODE_EXPR_BAD_VALUE);
+            }
             expr = obj_expr_compare_create(name, OBJ_EXPR_GT, value);
             if (expr == NULL) {
                 return obj_status_create(NULL, "can't create $gt expression: out of memory", OBJ_CODE_EXPR_NOMEM);
@@ -350,6 +371,9 @@ static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *
             return obj_status_create(expr, "", 0);
         }
         case OBJ_EXPR_GTE: {
+            if (!obj_expr_parse_is_legal_compare_value(value)) {
+                return obj_status_create(expr, "illegal type for $gte", OBJ_CODE_EXPR_BAD_VALUE);
+            }
             expr = obj_expr_compare_create(name, OBJ_EXPR_GTE, value);
             if (expr == NULL) {
                 return obj_status_create(NULL, "can't create $gte expression: out of memory", OBJ_CODE_EXPR_NOMEM);
