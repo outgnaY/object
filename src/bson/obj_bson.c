@@ -8,6 +8,9 @@ static obj_bool_t obj_bson_append_va(obj_bson_t *bson, int n_pairs, int n_bytes,
 
 static obj_bool_t obj_bson_append(obj_bson_t *bson, int n_pairs, int n_bytes, int first_len, const obj_uint8_t *first_data, ...);
 
+static obj_bool_t obj_bson_append_bson_begin(obj_bson_t *bson, const char *key, int key_len, obj_bson_type_t child_type, obj_bson_t *child);
+
+static obj_bool_t obj_bson_append_bson_end(obj_bson_t *bson, obj_bson_t *child);
 
 static const obj_uint8_t obj_g_zero = 0;
 
@@ -48,6 +51,8 @@ obj_bson_t *obj_bson_init() {
     bson->len = 5;
     bson->depth = 0;
     bson->cap = OBJ_BSON_INIT_SIZE;
+    bson->offset = 0;
+    bson->parent = NULL;
     bson->data[0] = 5;
     bson->data[1] = 0;
     bson->data[2] = 0;
@@ -79,6 +84,8 @@ obj_bson_t *obj_bson_init_with_data(const obj_uint8_t *data, obj_int32_t len) {
     bson->len = bson->cap = len;
     bson->data = (obj_uint8_t *)data;
     bson->depth = 0;
+    bson->offset = 0;
+    bson->parent = NULL;
     return bson;
 }
 
@@ -100,6 +107,8 @@ obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *da
     bson->len = bson->cap = len;
     bson->depth = 0;
     bson->data = (obj_uint8_t *)data;
+    bson->offset = 0;
+    bson->parent = NULL;
     return true;
 }
 
@@ -135,14 +144,15 @@ const char *obj_bson_type_to_name(obj_bson_type_t type) {
 }
 
 obj_uint8_t *obj_bson_data(const obj_bson_t *bson) {
-    return bson->data;
+    return bson->data + bson->offset;
 }
 
 
 /* check available space */
 static obj_bool_t obj_bson_grow(obj_bson_t *bson, obj_size_t size) {
     obj_size_t req;
-    req = bson->len + size;
+    /* consider child as well */
+    req = bson->offset + bson->len + size + bson->depth;
     if (req <= bson->cap) {
         return true;
     }
@@ -232,6 +242,78 @@ obj_bool_t obj_bson_append_utf8(obj_bson_t *bson, const char *key, int key_len, 
     4, &value_len_le,
     value_len, value,
     1, &obj_g_zero);
+}
+
+static obj_bool_t obj_bson_append_bson_begin(obj_bson_t *bson, const char *key, int key_len, obj_bson_type_t child_type, obj_bson_t *child) {
+    const obj_uint8_t type = child_type;
+    /* empty by default */
+    const obj_uint8_t empty[5] = {5};
+    obj_assert(bson && key && child);
+    obj_assert(!(bson->flag & OBJ_BSON_FLAG_IN_CHILD));
+    obj_assert(!(bson->flag & OBJ_BSON_FLAG_RDONLY));
+    obj_assert((child_type == OBJ_BSON_TYPE_OBJECT) || (child_type == OBJ_BSON_TYPE_ARRAY));
+    if (!obj_bson_append(bson, 4, (1 + key_len + 1 + 5),
+    1, &type,
+    key_len, key,
+    1, &obj_g_zero,
+    5, empty)) {
+        return false;
+    }
+    bson->flag |= OBJ_BSON_FLAG_IN_CHILD;
+    child->flag = (OBJ_BSON_FLAG_CHILD | OBJ_BSON_FLAG_NOFREE | OBJ_BSON_FLAG_STATIC);
+    if (bson->flag & OBJ_BSON_FLAG_CHILD) {
+        child->depth = bson->depth + 1;
+    } else {
+        child->depth = 1;
+    }
+    /* init child */
+    child->parent = bson;
+    /* 1: ending '\0';5: empty child */
+    child->offset = bson->offset + bson->len - 1 - 5;
+    child->len = 5;
+    child->cap = bson->cap;
+    child->data = bson->data;
+
+    return true;
+}
+
+static obj_bool_t obj_bson_append_bson_end(obj_bson_t *bson, obj_bson_t *child) {
+    obj_assert(bson);
+    obj_assert(bson->flag & OBJ_BSON_FLAG_IN_CHILD);
+    obj_assert(!(child->flag & OBJ_BSON_FLAG_IN_CHILD));
+    /* in flag */
+    bson->flag &= ~OBJ_BSON_FLAG_IN_CHILD;
+    /* not including the default 5 byte added */
+    bson->len = (bson->len + child->len - 5);
+    obj_bson_data(bson)[bson->len - 1] = '\0';
+    obj_bson_encode_length(bson);
+    return true;
+}
+
+obj_bool_t obj_bson_append_array_begin(obj_bson_t *bson, const char *key, int key_len, obj_bson_t *child) {
+    obj_assert(bson);
+    obj_assert(key);
+    obj_assert(child);
+    return obj_bson_append_bson_begin(bson, key, key_len, OBJ_BSON_TYPE_ARRAY, child);
+}
+
+obj_bool_t obj_bson_append_array_end(obj_bson_t *bson, obj_bson_t *child) {
+    obj_assert(bson);
+    obj_assert(child);
+    return obj_bson_append_bson_end(bson, child);
+}
+
+obj_bool_t obj_bson_append_object_begin(obj_bson_t *bson, const char *key, int key_len, obj_bson_t *child) {
+    obj_assert(bson);
+    obj_assert(key);
+    obj_assert(child);
+    return obj_bson_append_bson_begin(bson, key, key_len, OBJ_BSON_TYPE_OBJECT, child);
+}
+
+obj_bool_t obj_bson_append_object_end(obj_bson_t *bson, obj_bson_t *child) {
+    obj_assert(bson);
+    obj_assert(child);
+    return obj_bson_append_bson_end(bson, child);
 }
 
 /* append object */

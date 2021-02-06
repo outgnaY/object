@@ -16,9 +16,12 @@ typedef struct obj_bson_value_s obj_bson_value_t;
 
 /* bson flags */
 enum obj_bson_flag {
-    OBJ_BSON_FLAG_STATIC = 1,               /* init from a static context */
-    OBJ_BSON_FLAG_RDONLY = 2,               /* read only */
-    OBJ_BSON_FLAG_NOFREE = 4                /* don't free data */
+    OBJ_BSON_FLAG_NONE = 0,
+    OBJ_BSON_FLAG_STATIC = (1 << 0),               /* init from a static context */
+    OBJ_BSON_FLAG_RDONLY = (1 << 1),               /* read only */
+    OBJ_BSON_FLAG_NOFREE = (1 << 2),               /* don't free data */
+    OBJ_BSON_FLAG_CHILD = (1 << 3),                
+    OBJ_BSON_FLAG_IN_CHILD = (1 << 4)
 };
 
 /* bson types */
@@ -41,8 +44,11 @@ struct obj_bson_s {
     obj_bson_flag_t flag;                   /* flag */
     obj_int32_t len;                        /* length of bson */
     obj_uint8_t *data;                      /* data pointer */
-    int depth;                              /* current depth */
     obj_int32_t cap;                        /* capacity */
+    
+    int depth;                              /* current depth */
+    obj_bson_t *parent;                     /* parent bson if this is a child */
+    int offset;                             /* offset in buffer */
 };
 
 /* a k-v pair of bson object */
@@ -112,6 +118,13 @@ obj_bool_t obj_bson_append_int32(obj_bson_t *bson, const char *key, int key_len,
 
 obj_bool_t obj_bson_append_int64(obj_bson_t *bson, const char *key, int key_len, obj_int64_t value);
 
+obj_bool_t obj_bson_append_array_begin(obj_bson_t *bson, const char *key, int key_len, obj_bson_t *child);
+
+obj_bool_t obj_bson_append_array_end(obj_bson_t *bson, obj_bson_t *child);
+
+obj_bool_t obj_bson_append_object_begin(obj_bson_t *bson, const char *key, int key_len, obj_bson_t *child);
+
+obj_bool_t obj_bson_append_object_end(obj_bson_t *bson, obj_bson_t *child);
 
 
 #endif  /* OBJ_BSON_H */
