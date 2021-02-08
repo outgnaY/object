@@ -49,6 +49,7 @@
 #include "util/obj_sds.h"
 #include "util/obj_status_with.h"
 #include "util/obj_string.h"
+#include "util/obj_rbtree.h"
 /* bson */
 #include "bson/obj_bson.h"
 #include "bson/obj_bson_iter.h"
