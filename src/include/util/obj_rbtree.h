@@ -42,5 +42,9 @@ struct obj_rbtree_methods_s {
 
 #define obj_rbtree_sentinel_init(n) (obj_rbtree_black(n))
 
+obj_rbtree_t *obj_rbtree_default_init();
+obj_rbtree_t *obj_rbtree_init(obj_rbtree_methods_t *methods);
+obj_bool_t obj_rbtree_insert(obj_rbtree_t *tree, const void *key, const void *value);
+
 
 #endif  /* OBJ_RBTREE_H */

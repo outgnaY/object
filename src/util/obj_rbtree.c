@@ -3,9 +3,27 @@
 /* sentinel black node */
 static obj_rbtree_node_t s_sentinel;
 
+static int obj_rbtree_default_key_compare(const void *key1, const void *key2);
+static obj_rbtree_node_t *obj_rbtree_create_node(const void *key, const void *value);
+static obj_rbtree_node_t *obj_rbtree_leftmost(obj_rbtree_node_t *node);
+static obj_rbtree_node_t *obj_rbtree_rightmost(obj_rbtree_node_t *node);
+static void obj_rbtree_rotate_left(obj_rbtree_node_t *node, obj_rbtree_node_t **root);
+static void obj_rbtree_rotate_right(obj_rbtree_node_t *node, obj_rbtree_node_t **root);
+static void obj_rbtree_rebalance_for_insert(obj_rbtree_node_t *node, obj_rbtree_node_t **root);
+static void obj_rbtree_rebalance_for_delete(obj_rbtree_node_t *node, obj_rbtree_node_t **root);
+static obj_bool_t obj_rbtree_insert_node(obj_rbtree_t *tree, obj_rbtree_node_t *node);
+static obj_bool_t obj_rbtree_insert_node_unique(obj_rbtree_t *tree, obj_rbtree_node_t *node);
+static void obj_rbtree_default_dump(obj_rbtree_t *tree);
+static void obj_rbtree_pretty_print(obj_rbtree_node_t *node);
+static void obj_rbtree_pretty_print_helper(obj_rbtree_node_t *node, int skip);
+static void obj_rbtree_default_preorder_traverse(obj_rbtree_node_t *node);
+static void obj_rbtree_default_midorder_traverse(obj_rbtree_node_t *node);
+static void obj_rbtree_default_postorder_traverse(obj_rbtree_node_t *node);
+
+
 static obj_rbtree_methods_t default_methods = {
     obj_rbtree_default_key_compare,
-    obj_rbtree_insert_value_unique,
+    obj_rbtree_insert_node_unique,
     obj_rbtree_default_dump
 };
 
@@ -36,13 +54,14 @@ obj_rbtree_t *obj_rbtree_init(obj_rbtree_methods_t *methods) {
 }
 
 /* create new red-black tree node */
-static inline obj_rbtree_node_t *obj_rbtree_create_node(const void *val) {
+static inline obj_rbtree_node_t *obj_rbtree_create_node(const void *key, const void *value) {
     obj_rbtree_node_t *node = obj_alloc(sizeof(obj_rbtree_node_t));
     if (node == NULL) {
         return NULL;
     }
     obj_memset(node, 0, sizeof(obj_rbtree_node_t));
-    node->value = val;
+    node->key = key;
+    node->value = value;
     return node;
 }
 
@@ -173,7 +192,7 @@ static void obj_rbtree_rebalance_for_insert(obj_rbtree_node_t *node, obj_rbtree_
             /* case 3 */
             obj_rbtree_black(parent);
             obj_rbtree_red(gparent);
-            obj_rbtree_rotate_right(gparent, root);
+            obj_rbtree_rotate_left(gparent, root);
         }
     }
     /* color the root black */
@@ -186,7 +205,7 @@ static void obj_rbtree_rebalance_for_delete(obj_rbtree_node_t *node, obj_rbtree_
 }
 
 /* insert */
-static obj_bool_t obj_rbtree_insert(obj_rbtree_t *tree, obj_rbtree_node_t *node) {
+static obj_bool_t obj_rbtree_insert_node(obj_rbtree_t *tree, obj_rbtree_node_t *node) {
     obj_rbtree_node_t *temp;
     if (tree->root == &s_sentinel) {
         /* empty tree */
@@ -196,7 +215,8 @@ static obj_bool_t obj_rbtree_insert(obj_rbtree_t *tree, obj_rbtree_node_t *node)
         /* color black */
         obj_rbtree_black(node);
         tree->root = node;
-        return;
+        tree->node_cnt++;
+        return true;
     }
     /* insert the node to the tree */
     if (!tree->methods->insert(tree, node)) {
@@ -204,11 +224,12 @@ static obj_bool_t obj_rbtree_insert(obj_rbtree_t *tree, obj_rbtree_node_t *node)
     }
     /* rebalance the tree */
     obj_rbtree_rebalance_for_insert(node, &tree->root);
+    tree->node_cnt++;
     return true;
 }
 
-/* insert value */
-static obj_bool_t obj_rbtree_insert_value_unique(obj_rbtree_t *tree, obj_rbtree_node_t *node) {
+/* insert unique*/
+static obj_bool_t obj_rbtree_insert_node_unique(obj_rbtree_t *tree, obj_rbtree_node_t *node) {
     obj_rbtree_node_t **p;
     obj_rbtree_node_t *temp = tree->root;
     int compare;
@@ -236,18 +257,14 @@ static obj_bool_t obj_rbtree_insert_value_unique(obj_rbtree_t *tree, obj_rbtree_
 }
 
 /* insert value can't be duplicated */
-/*
-obj_bool_t obj_rbtree_insert_unique(obj_rbtree_t *tree, const void *value) {
-
+obj_bool_t obj_rbtree_insert(obj_rbtree_t *tree, const void *key, const void *value) {
+    obj_rbtree_node_t *node = obj_rbtree_create_node(key, value);
+    if (node == NULL) {
+        return false;
+    }
+    return obj_rbtree_insert_node(tree, node);
 }
-*/
 
-/* insert value can be duplicated */
-/*
-obj_bool_t obj_rbtree_insert_equal(obj_rbtree_t *tree, const void *value) {
-
-}
-*/
 
 /* delete */
 void obj_rbtree_delete(obj_rbtree_t *tree, obj_rbtree_node_t *node) {
@@ -261,19 +278,62 @@ static void obj_rbtree_default_dump(obj_rbtree_t *tree) {
         printf("empty tree\n");
         return;
     }
+    obj_rbtree_pretty_print(tree->root);
+    /*
+    printf("total node num %d\n", tree->node_cnt);
+    printf("********** preorder **********\n");
+    obj_rbtree_default_preorder_traverse(tree->root);
     printf("********** midorder **********\n");
     obj_rbtree_default_midorder_traverse(tree->root);
+    printf("********** postorder **********\n");
+    obj_rbtree_default_postorder_traverse(tree->root);
+    */
 }
 
+/* pretty print */
+static void obj_rbtree_pretty_print(obj_rbtree_node_t *node) {
+    obj_rbtree_pretty_print_helper(node, 0);
+}
 
+/* helper function */
+static void obj_rbtree_pretty_print_helper(obj_rbtree_node_t *node, int skip) {
+    int i;
+    for (i = 0; i < skip; i++) {
+        printf("-");
+    }
+    if (node == &s_sentinel) {
+        printf("<nil>\n");
+        return;
+    }
+    printf("%s\n", (char *)node->key);
+    obj_rbtree_pretty_print_helper(node->left, skip + obj_strlen((char *)node->key));
+    obj_rbtree_pretty_print_helper(node->right, skip + obj_strlen((char *)node->key));
+}
+
+static void obj_rbtree_default_preorder_traverse(obj_rbtree_node_t *node) {
+    if (node == &s_sentinel) {
+        return;
+    }
+    printf("[key]: %s, [value]: %s [color]: %d\n", (char *)node->key, (char *)node->value, node->color);
+    obj_rbtree_default_preorder_traverse(node->left);
+    obj_rbtree_default_preorder_traverse(node->right);
+}
 
 static void obj_rbtree_default_midorder_traverse(obj_rbtree_node_t *node) {
-    if (node == NULL) {
+    if (node == &s_sentinel) {
         return;
     }
     obj_rbtree_default_midorder_traverse(node->left);
-    printf("[key]: %s, [value]: %s\n", (char *)node->key, (char *)node->value);
+    printf("[key]: %s, [value]: %s [color]: %d\n", (char *)node->key, (char *)node->value, node->color);
     obj_rbtree_default_midorder_traverse(node->right);
 }
 
+static void obj_rbtree_default_postorder_traverse(obj_rbtree_node_t *node) {
+    if (node == &s_sentinel) {
+        return;
+    }
+    obj_rbtree_default_postorder_traverse(node->left);
+    obj_rbtree_default_postorder_traverse(node->right);
+    printf("[key]: %s, [value]: %s [color]: %d\n", (char *)node->key, (char *)node->value, node->color);
+}
 
