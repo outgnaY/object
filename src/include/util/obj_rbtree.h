@@ -31,6 +31,8 @@ struct obj_rbtree_methods_s {
     int (*key_compare)(const void *key1, const void *key2);             /* key comparer */
     obj_bool_t (*insert)(obj_rbtree_t *tree, obj_rbtree_node_t *node);  /* insert implemention */
     void (*dump)(obj_rbtree_t *tree);
+    void (*key_free)(void *key);
+    void (*value_free)(void *value);
 };
 
 
@@ -39,12 +41,13 @@ struct obj_rbtree_methods_s {
 #define obj_rbtree_is_red(n) ((n)->color)
 #define obj_rbtree_is_black(n) (!obj_rbtree_is_red(n))
 #define obj_rbtree_parent(n) ((n)->parent)
+#define obj_rbtree_copy_color(dst, src) (dst->color = src->color)
 
 #define obj_rbtree_sentinel_init(n) (obj_rbtree_black(n))
 
 obj_rbtree_t *obj_rbtree_default_init();
 obj_rbtree_t *obj_rbtree_init(obj_rbtree_methods_t *methods);
 obj_bool_t obj_rbtree_insert(obj_rbtree_t *tree, const void *key, const void *value);
-
+obj_bool_t obj_rbtree_delete(obj_rbtree_t *tree, const void *key);
 
 #endif  /* OBJ_RBTREE_H */

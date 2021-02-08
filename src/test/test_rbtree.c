@@ -13,5 +13,42 @@ int main() {
         res = obj_rbtree_insert(tree, keys[i], values[i]);
     }
     tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "7");
+    printf("after delete 7\n");
+    tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "8");
+    printf("after delete 8\n");
+    tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "9");
+    printf("after delete 8\n");
+    tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "6");
+    printf("after delete 8\n");
+    tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "4");
+    printf("after delete 8\n");
+    tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "5");
+    printf("after delete 8\n");
+    tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "1");
+    printf("after delete 8\n");
+    tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "2");
+    printf("after delete 8\n");
+    tree->methods->dump(tree);
+
+    obj_rbtree_delete(tree, "3");
+    printf("after delete 8\n");
+    tree->methods->dump(tree);
+
     return 0;
 }

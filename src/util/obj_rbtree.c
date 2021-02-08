@@ -13,6 +13,8 @@ static void obj_rbtree_rebalance_for_insert(obj_rbtree_node_t *node, obj_rbtree_
 static void obj_rbtree_rebalance_for_delete(obj_rbtree_node_t *node, obj_rbtree_node_t **root);
 static obj_bool_t obj_rbtree_insert_node(obj_rbtree_t *tree, obj_rbtree_node_t *node);
 static obj_bool_t obj_rbtree_insert_node_unique(obj_rbtree_t *tree, obj_rbtree_node_t *node);
+static obj_rbtree_node_t *obj_rbtree_find_node(obj_rbtree_t *tree, const void *key);
+static void obj_rbtree_delete_node(obj_rbtree_t *tree, obj_rbtree_node_t *node);
 static void obj_rbtree_default_dump(obj_rbtree_t *tree);
 static void obj_rbtree_pretty_print(obj_rbtree_node_t *node);
 static void obj_rbtree_pretty_print_helper(obj_rbtree_node_t *node, int skip);
@@ -24,7 +26,9 @@ static void obj_rbtree_default_postorder_traverse(obj_rbtree_node_t *node);
 static obj_rbtree_methods_t default_methods = {
     obj_rbtree_default_key_compare,
     obj_rbtree_insert_node_unique,
-    obj_rbtree_default_dump
+    obj_rbtree_default_dump,
+    NULL,
+    NULL
 };
 
 /* TODO implement iterator? */
@@ -200,8 +204,65 @@ static void obj_rbtree_rebalance_for_insert(obj_rbtree_node_t *node, obj_rbtree_
 }
 
 /* balance the tree after delete */
-static void obj_rbtree_rebalance_for_delete(obj_rbtree_node_t *node, obj_rbtree_node_t **root) {
-
+static void obj_rbtree_rebalance_for_delete(obj_rbtree_node_t *temp, obj_rbtree_node_t **root) {
+    obj_rbtree_node_t *other;
+    while (temp != *root && obj_rbtree_is_black(temp)) {
+        if (temp == temp->parent->left) {
+            /* cousin node */
+            other = temp->parent->right;
+            if (obj_rbtree_is_red(other)) {
+                obj_rbtree_black(other);
+                obj_rbtree_red(temp->parent);
+                obj_rbtree_rotate_left(temp->parent, root);
+                other = temp->parent->right;
+            }
+            if (obj_rbtree_is_black(other->left) && obj_rbtree_is_black(other->right)) {
+                obj_rbtree_red(other);
+                temp = temp->parent;
+            } else {
+                if (obj_rbtree_is_black(other->right)) {
+                    obj_rbtree_black(other->left);
+                    obj_rbtree_red(other);
+                    obj_rbtree_rotate_right(other, root);
+                    other = temp->parent->right;
+                }
+                obj_rbtree_copy_color(other, temp->parent);
+                obj_rbtree_black(temp->parent);
+                obj_rbtree_black(other->right);
+                obj_rbtree_rotate_left(temp->parent, root);
+                /* terminate */
+                temp = *root;
+            }
+        } else {
+            /* symmetric operations */
+            other = temp->parent->left;
+            if (obj_rbtree_is_red(other)) {
+                obj_rbtree_black(other);
+                obj_rbtree_red(temp->parent);
+                obj_rbtree_rotate_right(temp->parent, root);
+                other = temp->parent->left;
+            }
+            if (obj_rbtree_is_black(other->left) && obj_rbtree_is_black(other->right)) {
+                obj_rbtree_red(other);
+                temp = temp->parent;
+            } else {
+                if (obj_rbtree_is_black(other->left)) {
+                    obj_rbtree_black(other->right);
+                    obj_rbtree_red(other);
+                    obj_rbtree_rotate_left(other, root);
+                    other = temp->parent->left;
+                }
+                obj_rbtree_copy_color(other, temp->parent);
+                obj_rbtree_black(temp->parent);
+                obj_rbtree_black(other->left);
+                obj_rbtree_rotate_right(temp->parent, root);
+                /* terminate */
+                temp = *root;
+            }
+        }
+    }
+    /* black the node */
+    obj_rbtree_black(temp);
 }
 
 /* insert */
@@ -265,10 +326,98 @@ obj_bool_t obj_rbtree_insert(obj_rbtree_t *tree, const void *key, const void *va
     return obj_rbtree_insert_node(tree, node);
 }
 
+/* delete*/
+obj_bool_t obj_rbtree_delete(obj_rbtree_t *tree, const void *key) {
+    obj_rbtree_node_t *node;
+    node = obj_rbtree_find_node(tree, key);
+    if (node == NULL) {
+        return false;
+    }
+    obj_rbtree_delete_node(tree, node);
+    return true;
+}
 
-/* delete */
-void obj_rbtree_delete(obj_rbtree_t *tree, obj_rbtree_node_t *node) {
+static obj_rbtree_node_t *obj_rbtree_find_node(obj_rbtree_t *tree, const void *key) {
+    obj_rbtree_node_t *node = tree->root;
+    int compare;
+    while ((compare = tree->methods->key_compare(key, node->key)) != 0) {
+        if (compare < 0) {
+            if (node->left != &s_sentinel) {
+                node = node->left;
+            } else {
+                return NULL;
+            }
+        } else {
+            if (node->right != &s_sentinel) {
+                node = node->right;
+            } else {
+                return NULL;
+            }
+        }
+    }
+    return node;
+}
 
+/* delete node */
+static void obj_rbtree_delete_node(obj_rbtree_t *tree, obj_rbtree_node_t *node) {
+    obj_rbtree_node_t *temp, *subst;
+    obj_rbtree_node_t **root = &tree->root;
+    obj_bool_t red;
+    if (node->left == &s_sentinel) {
+        temp = node->right;
+        subst = node;
+    } else if (node->right == &s_sentinel) {
+        temp = node->left;
+        subst = node;
+    } else {
+        subst = obj_rbtree_leftmost(node->right);
+        temp = subst->right;
+    }
+    if (subst == *root) {
+        *root = temp;
+        obj_rbtree_black(temp);
+        /* TODO free key/value of node */
+        return;
+    }
+    red = obj_rbtree_is_red(subst);
+    if (subst == subst->parent->left) {
+        subst->parent->left = temp;
+    } else {
+        subst->parent->right = temp;
+    }
+    if (subst == node) {
+        temp->parent = subst->parent;
+    } else {
+        if (subst->parent == node) {
+            temp->parent = subst;
+        } else {
+            temp->parent = subst->parent;
+        }
+        subst->left = node->left;
+        subst->right = node->right;
+        subst->parent = node->parent;
+        obj_rbtree_copy_color(subst, node);
+        if (node == *root) {
+            *root = subst;
+        } else {
+            if (node == node->parent->left) {
+                node->parent->left = subst;
+            } else {
+                node->parent->right = subst;
+            }
+        }
+        if (subst->left != &s_sentinel) {
+            subst->left->parent = subst;
+        }
+        if (subst->right != &s_sentinel) {
+            subst->right->parent = subst;
+        }
+    }
+    /* TODO free key/value of node */
+    if (red) {
+        return;
+    }
+    obj_rbtree_rebalance_for_delete(temp, root);
 }
 
 /* for debug */
