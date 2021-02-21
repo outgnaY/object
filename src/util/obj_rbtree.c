@@ -485,4 +485,3 @@ static void obj_rbtree_default_postorder_traverse(obj_rbtree_node_t *node) {
     obj_rbtree_default_postorder_traverse(node->right);
     printf("[key]: %s, [value]: %s [color]: %d\n", (char *)node->key, (char *)node->value, node->color);
 }
-

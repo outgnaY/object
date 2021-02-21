@@ -27,6 +27,9 @@ typedef unsigned int obj_rel_time_t;
 typedef enum obj_global_error_code obj_global_error_code_t;
 
 #define OBJ_INT32_MAX 0x7fffffff
+#define OBJ_UINT32_MAX 0xffffffff
+#define OBJ_INT64_MAX 0x7fffffffffffffff
+#define OBJ_UINT64_MAX 0xffffffffffffffff
 
 /* alignment requiredment */
 #define OBJ_ALIGNMENT sizeof(unsigned long)
@@ -39,6 +42,7 @@ typedef enum obj_global_error_code obj_global_error_code_t;
 
 /* error description */
 #define OBJ_STRERROR(no) (strerror(no) != NULL ? strerror(no) : "unknown error")
+
 
 /* error code */
 enum obj_global_error_code {

@@ -40,6 +40,7 @@
 #include "mem/obj_mem.h"
 #include "mem/obj_mem_simple.h"
 /* util */
+#include "util/obj_embedded_list.h"
 #include "util/obj_array.h"
 #include "util/obj_atomic.h"
 #include "util/obj_endian.h"
@@ -68,11 +69,12 @@
 #include "network/obj_conn.h"
 #include "obj_thread.h"
 
+/* concurrency */
+#include "concurrency/obj_lock.h"
+
 /* storage */
-/*
-#include "storage/obj_logical.h"
-#include "storage/obj_physical.h"
-*/
+#include "storage/obj_engine.h"
+#include "storage/v1/obj_v1_engine.h"
 
 /* client library */
 #include "client/obj_client.h"

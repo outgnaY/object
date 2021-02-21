@@ -3,7 +3,7 @@
 
 #include "obj_core.h"
 
-
+/* based on red-black tree */
 
 
 #endif  /* OBJ_MAP_H */

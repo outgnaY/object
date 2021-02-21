@@ -21,6 +21,10 @@ void *obj_lib_calloc(obj_size_t size) {
 
 void obj_global_mem_context_init() {
     g_context = obj_mem_simple_context_create(1 * 1024, 32 * 1024);
+    if (g_context == NULL) {
+        fprintf(stderr, "can't init global memory context\n");
+        exit(1);
+    }
 }
 
 void obj_global_mem_context_reset() {
