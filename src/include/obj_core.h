@@ -45,6 +45,7 @@
 #include "util/obj_atomic.h"
 #include "util/obj_endian.h"
 #include "util/obj_hash.h"
+#include "util/obj_hashtable.h"
 #include "util/obj_list.h"
 #include "util/obj_math.h"
 #include "util/obj_sds.h"

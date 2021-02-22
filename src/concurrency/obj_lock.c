@@ -115,7 +115,7 @@ obj_lock_result_t obj_lock_new_request(obj_lock_request_t *request, obj_lock_hea
     return OBJ_LOCK_RESULT_OK;
 }
 
-void obj_lock_request_init(obj_lock_request_t *request) {
+void obj_lock_request_init(obj_lock_request_t *request, obj_lock_grant_notify_t *notify) {
     request->enqueue_front = false;
     request->compatible_first = false;
     request->mode = OBJ_LOCK_MODE_NONE;
@@ -123,6 +123,7 @@ void obj_lock_request_init(obj_lock_request_t *request) {
     request->status = OBJ_LOCK_REQUEST_STATUS_NEW;
     request->convert_mode = OBJ_LOCK_MODE_NONE;
     request->lock_head = NULL;
+    request->notify = notify;
 }
 
 static inline void obj_lock_incr_granted_mode_count(obj_lock_head_t *lock_head, obj_lock_mode_t mode) {
@@ -208,7 +209,125 @@ obj_lock_head_t *obj_lock_find_or_insert(obj_lock_bucket_t *bucket, obj_lock_res
     return lock_head;
 }
 
+/* get bucket according to resource id */
 obj_lock_bucket_t *obj_lock_manager_get_bucket(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id) {
     return &lock_manager->buckets[resource_id % OBJ_LOCK_BUCKET_NUM];
+}
+
+/* for debug */
+void obj_lock_manager_dump(obj_lock_manager_t *lock_manager) {
+
+}
+
+void obj_lock_cleanup_unused_locks(obj_lock_manager_t *lock_manager) {
+    int i;
+    obj_lock_bucket_t *bucket;
+    for (i = 0; i < lock_manager->num_buckets; i++) {
+        bucket = &lock_manager->buckets[i];
+        pthread_mutex_lock(&bucket->mutex);
+        obj_lock_cleanup_unused_locks_in_bucket(bucket);
+        pthread_mutex_unlock(&bucket->mutex);
+    }
+}
+
+void obj_lock_cleanup_unused_locks_in_bucket(obj_lock_bucket_t *bucket) {
+
+}
+
+/* call back function */
+void obj_lock_on_lock_mode_changed(obj_lock_manager_t *lock_manager, obj_lock_head_t *lock_head, obj_bool_t check_conflict_queue) {
+    /* unblock any converting requests */
+    obj_lock_request_t *curr = OBJ_EMBEDDED_LIST_GET_FIRST(lock_head->granted_list);
+    int i;
+    while (curr != NULL && (lock_head->conversion_count > 0)) {
+        if (curr->status == OBJ_LOCK_REQUEST_STATUS_CONVERTING) {
+            obj_assert(curr->convert_mode != 0);
+            int granted
+            for (i = 1; i < OBJ_LOCK_MODE_COUNT; i++) {
+                int curr_request_holds = (curr->mode == i ? 1 : 0);
+                int curr_request_waits = (curr->convert_mode == i ? 1 : 0);
+                obj_assert(curr_request_holds + curr_request_waits <= 1);
+                if (lock_head->granted_count[i] > (curr_request_holds + curr_request_waits)) {
+
+                }
+            }
+            if () {
+
+            }
+        }
+        curr = OBJ_EMBEDDED_LIST_GET_NEXT(list, curr);
+    }
+    /* grant any conflicting requests, which might now be unblocked */
+    curr = OBJ_EMBEDDED_LIST_GET_FIRST(lock_head->conflict_list);
+    obj_lock_request_t *curr_next = NULL;
+    /* set on enabling compatiblefirst mode */
+    obj_bool_t newly_compatible_first = false;
+    while (curr != NULL && check_conflict_queue) {
+        obj_assert(curr->status == OBJ_LOCK_REQUEST_STATUS_WAITING);
+        curr_next = OBJ_EMBEDDED_LIST_GET_NEXT(list, curr);
+        /* check conflict */
+        if (obj_lock_conflict(curr->mode, lock_head->granted_mode)) {
+            if (!OBJ_EMBEDDED_LIST_GET_PREV(list, curr) && !newly_compatible_first) {
+                break;
+            }
+            continue;
+        }
+        curr->status = OBJ_LOCK_REQUEST_STATUS_GRANTED;
+        /* remove from the conflict list */
+        OBJ_EMBEDDED_LIST_REMOVE(list, lock_head->conflict_list, curr);
+        obj_lock_decr_conflict_mode_count(lock_head, curr->mode);
+        /* add to the granted list */
+        OBJ_EMBEDDED_LIST_ADD_LAST(list, lock_head->granted_list, curr);
+        obj_lock_incr_granted_mode_count(lock_head, curr->mode);
+        
+        if (curr->compatible_first) {
+            newly_compatible_first |= (lock_head->compatible_first_count++ == 0);
+        }
+        /* notify waiter */
+        obj_lock_grant_notify_notify(curr->notify, OBJ_LOCK_RESULT_OK);
+        /* nothing is compatible with a OBJ_LOCK_MODE_X */
+        if (curr->mode == OBJ_LOCK_MODE_X) {
+            break;
+        }
+        curr = curr_next;
+    }
+}
+
+void obj_lock_grant_notify_init(obj_lock_grant_notify_t *notify) {
+    pthread_mutex_init(&notify->mutex, NULL);
+    pthread_cond_init(&notify->cond, NULL);
+    notify->result = OBJ_LOCK_RESULT_COUNT;
+}
+
+void obj_lock_grant_notify_clear(obj_lock_grant_notify_t *notify) {
+    /* set invalid */
+    notify->result = OBJ_LOCK_RESULT_COUNT;
+}
+
+/*
+obj_lock_result_t obj_lock_grant_notify_wait(obj_lock_grant_notify_t *notify) {
+    pthread_mutex_lock(&notify->mutex);
+    while (notify->result != OBJ_LOCK_RESULT_COUNT) {
+        pthread_cond_wait(&notify->cond, &notify->mutex);
+    }
+    pthread_mutex_unlock(&notify->mutex);
+}
+*/
+
+/* wait milliseconds */
+obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *notify, struct timespec) {
+    pthread_mutex_lock(&notify->mutex);
+    while (notify->result != OBJ_LOCK_RESULT_COUNT) {
+
+    }
+    pthread_mutex_unlock(&notify->mutex);
+}
+
+/* notify all waiters */
+void obj_lock_grant_notify_notify(obj_lock_grant_notify_t *notify, obj_lock_result_t result) {
+    pthread_mutex_lock(&notify->mutex);
+    notify->result = result;
+    pthread_cond_broadcast(&notify->cond);
+    pthread_mutex_unlock(&notify->mutex);
 }
 

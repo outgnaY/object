@@ -13,8 +13,10 @@ typedef enum obj_lock_mode obj_lock_mode_t;
 typedef struct obj_lock_manager_s obj_lock_manager_t;
 typedef struct obj_lock_bucket_s obj_lock_bucket_t;
 typedef enum obj_lock_request_status obj_lock_request_status_t;
+typedef struct obj_lock_grant_notify_s obj_lock_grant_notify_t;
 typedef struct obj_lock_request_s obj_lock_request_t;
 typedef struct obj_lock_head_s obj_lock_head_t;
+typedef struct obj_lock_locker_s obj_lock_locker_t;
 
 /* resources to lock */
 enum obj_lock_resource_type {
@@ -76,6 +78,12 @@ enum obj_lock_request_status {
     OBJ_LOCK_REQUEST_STATUS_COUNT
 };
 
+struct obj_lock_grant_notify_s {
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    obj_lock_result_t result;
+};
+
 struct obj_lock_request_s {
     obj_lock_mode_t mode;
     obj_lock_head_t *lock_head;
@@ -85,6 +93,7 @@ struct obj_lock_request_s {
     int recursive_count;
     obj_lock_mode_t convert_mode;
     OBJ_EMBEDDED_LIST_NODE_T(obj_lock_request_t) list;
+    obj_lock_grant_notify_t *notify;
 };
 
 struct obj_lock_head_s {
@@ -101,6 +110,10 @@ struct obj_lock_head_s {
     int compatible_first_count;
     /* resource */
     obj_lock_resource_id_t resource_id;
+};
+
+struct obj_lock_locker_s {
+    obj_lock_grant_notify_t notify;
 };
 
 #define OBJ_LOCK_BUCKET_NUM 128

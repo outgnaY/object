@@ -1,7 +1,6 @@
 #ifndef OBJ_EMBEDDED_LIST_H
 #define OBJ_EMBEDDED_LIST_H
 
-#include "obj_core.h"
 
 #define OBJ_EMBEDDED_LIST_BASE_NODE_T(TYPE)\
 struct {\
