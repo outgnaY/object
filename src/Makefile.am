@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
-noinst_PROGRAMS = object test_bson test_req test_hash test_sds test_string test_array test_expr test_bcon test_rbtree
+noinst_PROGRAMS = object test_bson test_req test_hash test_sds test_string test_array test_expr test_bcon test_rbtree test_object_pool
 
 AM_CPPFLAGS = -I$(srcdir)/include
 
@@ -18,6 +18,7 @@ test_array_SOURCES = test/test_array.c util/obj_array.c util/obj_list.c mem/obj_
 test_expr_SOURCES = test/test_expr.c  bson/obj_bson_iter.c bson/obj_bson_visit.c bson/obj_bson.c expr/obj_expr_parse.c expr/obj_expr.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_array.c util/obj_math.c util/obj_status_with.c util/obj_string.c
 test_bcon_SOURCES = test/test_bcon.c bson/obj_bson_iter.c bson/obj_bson_visit.c bson/obj_bson.c bson/obj_bson_bcon.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_math.c util/obj_string.c
 test_rbtree_SOURCES = test/test_rbtree.c  util/obj_rbtree.c mem/obj_mem_simple.c mem/obj_mem.c
+test_object_pool_SOURCES = test/test_object_pool.c util/obj_object_pool.c util/obj_array.c util/obj_list.c mem/obj_mem_simple.c mem/obj_mem.c 
 
 all:
 	mv -f object ../bin/object
@@ -30,6 +31,7 @@ all:
 	mv -f test_expr ../bin/test_expr
 	mv -f test_bcon ../bin/test_bcon
 	mv -f test_rbtree ../bin/test_rbtree
+	mv -f test_object_pool ../bin/test_object_pool
 	mv -f obj_daemon.o obj_thread.o obj.o bson/*.o  expr/*.o mem/*.o network/*.o test/*.o util/*.o ../obj
 clean:
 	rm -f ../bin/object
@@ -42,6 +44,7 @@ clean:
 	rm -f ../bin/test_expr
 	rm -f ../bin/test_bcon
 	rm -f ../bin/test_rbtree
+	rm -f ../bin/test_object_pool
 	rm -f ../obj/*
 clean-local:
 	-rm config.log 

@@ -28,6 +28,7 @@ struct obj_array_s {
 #define obj_array_is_empty(arr) (((arr)->size) == 0)
 #define obj_array_length(arr) ((arr)->size)
 #define obj_array_get_index_value(arr, i, T) *((T *)obj_array_get_index(arr, i))
+#define obj_array_back(arr, T) obj_array_get_index_value(arr, (arr)->size - 1, T)
 
 obj_array_t *obj_array_create(int element_size);
 obj_array_t *obj_array_create_size(int element_size, int size);

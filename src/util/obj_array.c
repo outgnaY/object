@@ -110,6 +110,7 @@ obj_bool_t obj_array_push_back(obj_array_t *array, void *element_ptr) {
     return true;
 }
 
+
 /* pop back */
 void obj_array_pop_back(obj_array_t *array) {
     obj_assert(array && array->size > 0);

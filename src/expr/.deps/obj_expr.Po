@@ -105,18 +105,19 @@ expr/obj_expr.o: expr/obj_expr.c /usr/include/stdc-predef.h \
  /usr/local/libevent/include/event2/tag.h \
  /usr/local/libevent/include/event2/tag_compat.h include/obj_config.h \
  include/obj_common.h include/mem/obj_mem.h include/mem/obj_mem_simple.h \
- include/util/obj_array.h include/util/obj_atomic.h include/obj_config.h \
- include/util/obj_endian.h include/util/obj_hash.h \
+ include/util/obj_embedded_list.h include/util/obj_array.h \
+ include/util/obj_atomic.h include/obj_config.h include/util/obj_endian.h \
+ include/util/obj_hash.h include/util/obj_hashtable.h \
  include/util/obj_list.h include/util/obj_math.h include/util/obj_sds.h \
  include/util/obj_status_with.h include/util/obj_string.h \
- include/util/obj_rbtree.h include/bson/obj_bson.h \
- include/bson/obj_bson_iter.h include/bson/obj_bson_validate.h \
- include/bson/obj_bson_visit.h include/bson/obj_bson_bcon.h \
- include/expr/obj_expr.h include/expr/obj_expr_parse.h \
- include/expr/obj_expr_optimize.h include/network/obj_proto.h \
- include/network/obj_buffer.h include/network/obj_conn.h \
- include/obj_thread.h include/obj_core.h include/client/obj_client.h \
- include/obj.h
+ include/util/obj_rbtree.h include/util/obj_object_pool.h \
+ include/bson/obj_bson.h include/bson/obj_bson_iter.h \
+ include/bson/obj_bson_validate.h include/bson/obj_bson_visit.h \
+ include/bson/obj_bson_bcon.h include/expr/obj_expr.h \
+ include/expr/obj_expr_parse.h include/expr/obj_expr_optimize.h \
+ include/network/obj_proto.h include/network/obj_buffer.h \
+ include/network/obj_conn.h include/obj_thread.h include/obj_core.h \
+ include/client/obj_client.h include/obj.h
 
 /usr/include/stdc-predef.h:
 
@@ -396,6 +397,8 @@ include/mem/obj_mem.h:
 
 include/mem/obj_mem_simple.h:
 
+include/util/obj_embedded_list.h:
+
 include/util/obj_array.h:
 
 include/util/obj_atomic.h:
@@ -405,6 +408,8 @@ include/obj_config.h:
 include/util/obj_endian.h:
 
 include/util/obj_hash.h:
+
+include/util/obj_hashtable.h:
 
 include/util/obj_list.h:
 
@@ -417,6 +422,8 @@ include/util/obj_status_with.h:
 include/util/obj_string.h:
 
 include/util/obj_rbtree.h:
+
+include/util/obj_object_pool.h:
 
 include/bson/obj_bson.h:
 

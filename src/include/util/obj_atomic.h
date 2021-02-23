@@ -5,7 +5,7 @@
 #include "obj_config.h"
 /* atomic operations */
 
-#if defined(OBJ_HAVE_ATOMIC)
+/* #if defined(OBJ_HAVE_ATOMIC) */
 /* implementation using gcc builtin functions */
 
 #define obj_atomic_incr(var, count) __sync_add_and_fetch(&var, (count))
@@ -20,9 +20,9 @@
     while(!__sync_bool_compare_and_swap(&var, var, value)); \
 } while(0)
 
-#else
+/* #else */
 /* implementation using pthread mutex */
-
+/*
 #define obj_atomic_incr(var, count) do { \
     pthread_mutex_lock(&var ## _mutex); \
     var += (count); \
@@ -55,5 +55,5 @@
  } while(0)
 
 #endif
-
+*/
 #endif  /* OBJ_ATOMIC_H */

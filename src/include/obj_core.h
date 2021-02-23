@@ -52,6 +52,7 @@
 #include "util/obj_status_with.h"
 #include "util/obj_string.h"
 #include "util/obj_rbtree.h"
+#include "util/obj_object_pool.h"
 /* bson */
 #include "bson/obj_bson.h"
 #include "bson/obj_bson_iter.h"
@@ -71,11 +72,13 @@
 #include "obj_thread.h"
 
 /* concurrency */
-#include "concurrency/obj_lock.h"
+/* #include "concurrency/obj_lock.h" */
 
 /* storage */
+/*
 #include "storage/obj_engine.h"
 #include "storage/v1/obj_v1_engine.h"
+*/
 
 /* client library */
 #include "client/obj_client.h"

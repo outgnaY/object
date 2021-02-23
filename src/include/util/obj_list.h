@@ -13,6 +13,7 @@ typedef struct obj_list_s obj_list_t;
 #define obj_list_prev_node(n) ((n)->prev)
 #define obj_list_next_node(n) ((n)->next)
 #define obj_list_node_value(n) ((n)->value)
+#define obj_list_set_free(l, fn) ((l)->free = fn)
 
 struct obj_list_node_s {
     obj_list_node_t *prev;
