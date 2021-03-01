@@ -29,6 +29,8 @@ autom4te.cache
 /src/include/stamp-h1
 /src/bson/.deps
 /src/bson/.dirstamp
+/src/concurrency/.deps
+/src/concurrency/.dirstamp
 /src/expr/.deps
 /src/expr/.dirstamp
 /src/mem/.deps
