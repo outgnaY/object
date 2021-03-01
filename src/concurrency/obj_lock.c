@@ -4,6 +4,27 @@
 obj_lock_manager_t *g_lock_manager;
 /* resource id of global */
 obj_lock_resource_id_t g_resource_id_global;
+
+static obj_uint64_t obj_resource_id_lock_head_map_hash_func(const void *key);
+static int obj_resource_id_lock_head_map_key_compare(const void *key1, const void *key2);
+static void *obj_resource_id_lock_head_map_key_get(void *data);
+static void *obj_resource_id_lock_head_map_value_get(void *data);
+static void obj_resource_id_lock_head_map_key_set(void *data, void *key);
+static void obj_resource_id_lock_head_map_value_set(void *data, void *value);
+static obj_bool_t obj_lock_conflict(obj_lock_mode_t new_mode, int existing_mode);
+static int obj_lock_mode_mask(obj_lock_mode_t mode);
+static obj_uint64_t obj_lock_hash_string(const void *key, int len);
+static obj_lock_manager_t *obj_lock_manager_create();
+static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager);
+static obj_bool_t obj_lock_bucket_init(obj_lock_bucket_t *bucket);
+static void obj_lock_bucket_destroy_static(obj_lock_bucket_t *bucket);
+static void obj_lock_lock_head_destroy(obj_lock_head_t *lock_head);
+static void obj_lock_incr_granted_mode_count(obj_lock_head_t *lock_head, obj_lock_mode_t mode);
+static void obj_lock_decr_granted_mode_count(obj_lock_head_t *lock_head, obj_lock_mode_t mode);
+static void obj_lock_incr_conflict_mode_count(obj_lock_head_t *lock_head, obj_lock_mode_t mode);
+static void obj_lock_decr_conflict_mode_count(obj_lock_head_t *lock_head, obj_lock_mode_t mode);
+static obj_lock_resource_id_t obj_lock_resource_id_fullhash(obj_lock_resource_type_t type, obj_uint64_t hash);
+
 static obj_prealloc_map_methods_t obj_resource_id_lock_head_map_methods = {
     obj_resource_id_lock_head_map_hash_func,
     obj_resource_id_lock_head_map_key_compare,
@@ -16,6 +37,7 @@ static obj_prealloc_map_methods_t obj_resource_id_lock_head_map_methods = {
     NULL,
     NULL
 };
+
 
 static obj_uint64_t obj_resource_id_lock_head_map_hash_func(const void *key) {
     return obj_prealloc_map_hash_function(key, sizeof(obj_lock_resource_id_t));
@@ -142,6 +164,11 @@ static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager) {
     }
     obj_free(lock_manager->buckets);
     obj_free(lock_manager);
+}
+
+void obj_global_lock_manager_destroy() {
+    obj_assert(g_lock_manager);
+    obj_lock_manager_destroy(g_lock_manager);
 }
 
 /* init a lock bucket */
@@ -473,12 +500,12 @@ void obj_lock_on_lock_mode_changed(obj_lock_manager_t *lock_manager, obj_lock_he
 void obj_lock_grant_notify_init(obj_lock_grant_notify_t *notify) {
     pthread_mutex_init(&notify->mutex, NULL);
     pthread_cond_init(&notify->cond, NULL);
-    notify->result = OBJ_LOCK_RESULT_COUNT;
+    notify->result = OBJ_LOCK_RESULT_INVALID;
 }
 
 void obj_lock_grant_notify_clear(obj_lock_grant_notify_t *notify) {
     /* set invalid */
-    notify->result = OBJ_LOCK_RESULT_COUNT;
+    notify->result = OBJ_LOCK_RESULT_INVALID;
 }
 
 void obj_lock_grant_notify_destroy(obj_lock_grant_notify_t *notify) {
@@ -506,7 +533,7 @@ obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *noti
     deadline.tv_sec = tv.tv_sec + nsec / 1000000000 + wait_time / 1000;
     deadline.tv_nsec = nsec % 1000000000;
     pthread_mutex_lock(&notify->mutex);
-    while (notify->result == OBJ_LOCK_RESULT_COUNT) {
+    while (notify->result == OBJ_LOCK_RESULT_INVALID) {
         wait_res = pthread_cond_timedwait(&notify->cond, &notify->mutex, &deadline);
         if (wait_res == 0) {
             continue;

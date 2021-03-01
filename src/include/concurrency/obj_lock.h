@@ -43,7 +43,7 @@ enum obj_lock_result {
     OBJ_LOCK_RESULT_TIMEOUT,
     OBJ_LOCK_RESULT_DEADLOCK,
     OBJ_LOCK_RESULT_INTERNAL_ERROR,
-    OBJ_LOCK_RESULT_COUNT
+    OBJ_LOCK_RESULT_INVALID
 };
 
 /**
@@ -128,10 +128,35 @@ struct obj_lock_head_s {
 #define OBJ_LOCK_BUCKET_NUM 128
 #define OBJ_LOCK_RESOURCE_TYPE_BITS 3
 
+/* globals */
+extern obj_lock_resource_id_t g_resource_id_global;
+
 /* forward declaration */
 obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
 
-/* globals */
-extern obj_lock_resource_id_t g_resource_id_global;
+obj_bool_t obj_lock_is_shared_lock_mode(obj_lock_mode_t mode);
+obj_bool_t obj_lock_is_mode_covered(obj_lock_mode_t mode, obj_lock_mode_t cover_mode);
+void obj_global_lock_manager_init();
+void obj_global_lock_manager_destroy();
+obj_lock_result_t obj_lock_new_request(obj_lock_request_t *request, obj_lock_head_t *lock_head);
+void obj_lock_request_init(obj_lock_request_t *request, obj_locker_t *locker, obj_lock_grant_notify_t *notify);
+obj_lock_resource_id_t obj_lock_resource_id(obj_lock_resource_type_t type, char *str, int len);
+obj_lock_resource_id_t obj_lock_resource_id_from_hashid(obj_lock_resource_type_t type, obj_uint64_t hash);
+obj_lock_resource_type_t obj_lock_resource_id_get_type(obj_lock_resource_id_t resource_id);
+obj_lock_result_t obj_lock_lock(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id, obj_lock_request_t *request, obj_lock_mode_t mode);
+obj_lock_result_t obj_lock_convert(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id, obj_lock_request_t *request, obj_lock_mode_t new_mode);
+void obj_lock_downgrade(obj_lock_manager_t *lock_manager, obj_lock_request_t *request, obj_lock_mode_t new_mode);
+obj_bool_t obj_lock_unlock(obj_lock_manager_t *lock_manager, obj_lock_request_t *request);
+obj_lock_head_t *obj_lock_find_or_insert(obj_lock_bucket_t *bucket, obj_lock_resource_id_t resource_id);
+obj_lock_bucket_t *obj_lock_manager_get_bucket(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id);
+void obj_lock_manager_dump(obj_lock_manager_t *lock_manager);
+void obj_lock_cleanup_unused_locks(obj_lock_manager_t *lock_manager);
+void obj_lock_cleanup_unused_locks_in_bucket(obj_lock_bucket_t *bucket);
+void obj_lock_on_lock_mode_changed(obj_lock_manager_t *lock_manager, obj_lock_head_t *lock_head, obj_bool_t check_conflict_queue);
+void obj_lock_grant_notify_init(obj_lock_grant_notify_t *notify);
+void obj_lock_grant_notify_clear(obj_lock_grant_notify_t *notify);
+void obj_lock_grant_notify_destroy(obj_lock_grant_notify_t *notify);
+obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *notify, obj_duration_msecond wait_time);
+void obj_lock_grant_notify_notify(obj_lock_grant_notify_t *notify, obj_lock_result_t result);
 
 #endif  /* OBJ_LOCK_H */

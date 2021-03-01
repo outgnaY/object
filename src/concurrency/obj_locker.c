@@ -1,6 +1,15 @@
 #include "obj_core.h"
 
+/* default deadlock timeout is 500ms */
 static obj_duration_msecond s_obj_locker_default_deadlock_timeout = 500;
+
+static obj_uint64_t obj_resource_id_request_map_hash_func(const void *key);
+static int obj_resource_id_request_map_key_compare(const void *key1, const void *key2);
+static void *obj_resource_id_request_map_key_get(void *data);
+static void *obj_resource_id_request_map_value_get(void *data);
+static void obj_resource_id_request_map_key_set(void *data, void *key);
+static void obj_resource_id_request_map_value_set(void *data, void *value);
+static obj_bool_t obj_locker_unlock_internal(obj_locker_t *locker, obj_prealloc_map_entry_t *entry);
 
 static obj_prealloc_map_methods_t obj_resource_id_request_map_methods = {
     obj_resource_id_request_map_hash_func,         
@@ -251,7 +260,7 @@ obj_bool_t obj_locker_unlock(obj_locker_t *locker, obj_lock_resource_id_t resour
     return obj_locker_unlock_internal(locker, entry);
 }
 
-obj_bool_t obj_locker_unlock_internal(obj_locker_t *locker, obj_prealloc_map_entry_t *entry) {
+static obj_bool_t obj_locker_unlock_internal(obj_locker_t *locker, obj_prealloc_map_entry_t *entry) {
     obj_lock_resource_id_t resource_id;
     obj_lock_request_t *request;
     obj_prealloc_map_t *map = &locker->request_map;
