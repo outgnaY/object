@@ -2,6 +2,18 @@
 
 /* a simple, unsafe hashtable implemention */
 
+static int obj_hashtable_index(obj_uint64_t hash, int bucket_size);
+static void obj_hashtable_resize(obj_hashtable_t *table);
+
+/* hash functions */
+static obj_uint8_t obj_hashtable_hash_function_seed[16];
+/* forward declaration */
+obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
+
+obj_uint64_t obj_hashtable_hash_function(const void *key, int len) {
+    return obj_siphash(key, len, obj_hashtable_hash_function_seed);
+}
+
 obj_hashtable_t *obj_hashtable_create(obj_hashtable_methods_t *methods) {
     obj_hashtable_t *table = obj_alloc(sizeof(obj_hashtable_t));
     if (table == NULL) {
@@ -17,7 +29,7 @@ obj_hashtable_t *obj_hashtable_create(obj_hashtable_methods_t *methods) {
     }
     /* clear */
     obj_memset(table->bucket, 0, sizeof(obj_hashtable_entry_t *) * table->bucket_size);
-    return table->bucket;
+    return table;
 }
 
 void obj_hashtable_destroy(obj_hashtable_t *table) {
@@ -51,6 +63,9 @@ static void obj_hashtable_resize(obj_hashtable_t *table) {
         return;
     }
     obj_hashtable_entry_t **new_bucket = (obj_hashtable_entry_t **)obj_alloc(new_bucket_size * sizeof(obj_hashtable_entry_t *));
+    if (new_bucket == NULL) {
+        return;
+    }
     obj_memset(new_bucket, 0, new_bucket_size * sizeof(obj_hashtable_entry_t *));
     int i;
     obj_hashtable_entry_t *entry = NULL, *next_entry = NULL;
@@ -80,8 +95,7 @@ obj_global_error_code_t obj_hashtable_add(obj_hashtable_t *table, void *key, voi
     int index;
     obj_uint64_t hash = obj_hashtable_hash_key(table, key);
     /* check for resize */
-    ++table->size;
-    if (table->size > (table->bucket_size - 1) * OBJ_HASHTABLE_LOAD_FACTOR) {
+    if (table->size > table->bucket_size * OBJ_HASHTABLE_LOAD_FACTOR) {
         obj_hashtable_resize(table);
     }
     index = obj_hashtable_index(hash, table->bucket_size);
@@ -101,6 +115,7 @@ obj_global_error_code_t obj_hashtable_add(obj_hashtable_t *table, void *key, voi
     table->bucket[index] = entry;
     obj_hashtable_set_key(table, entry, key);
     obj_hashtable_set_value(table, entry, value);
+    ++table->size;
     return OBJ_CODE_OK;
 }
 
@@ -148,4 +163,25 @@ obj_hashtable_entry_t *obj_hashtable_find(obj_hashtable_t *table, void *key) {
         entry = entry->next;
     }
     return NULL;
+}
+
+/* for check */
+obj_bool_t obj_hashtable_is_empty(obj_hashtable_t *table) {
+    int i;
+    obj_hashtable_entry_t *entry;
+    for (i = 0; i < table->bucket_size; i++) {
+        entry = table->bucket[i];
+        if (entry) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void obj_hashtable_default_key_free(void *key) {
+    obj_free(key);
+}
+
+void obj_hashtable_default_value_free(void *value) {
+    obj_free(value);
 }

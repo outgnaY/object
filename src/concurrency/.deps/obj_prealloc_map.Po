@@ -1,6 +1,6 @@
-expr/obj_expr_parse.o: expr/obj_expr_parse.c /usr/include/stdc-predef.h \
- include/obj_core.h /usr/include/stdio.h /usr/include/features.h \
- /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+concurrency/obj_prealloc_map.o: concurrency/obj_prealloc_map.c \
+ /usr/include/stdc-predef.h include/obj_core.h /usr/include/stdio.h \
+ /usr/include/features.h /usr/include/x86_64-linux-gnu/sys/cdefs.h \
  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \

@@ -72,7 +72,10 @@
 #include "obj_thread.h"
 
 /* concurrency */
-/* #include "concurrency/obj_lock.h" */
+#include "concurrency/obj_prealloc_map.h"
+#include "concurrency/obj_lock.h" 
+#include "concurrency/obj_locker.h"
+#include "concurrency/obj_concurrency.h"
 
 /* storage */
 /*

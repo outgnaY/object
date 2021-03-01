@@ -3,8 +3,12 @@
 
 #include "obj_core.h"
 
+/* forward declaration */
+typedef struct obj_locker_s obj_locker_t;
+
 /* lock resource */
 typedef enum obj_lock_resource_type obj_lock_resource_type_t;
+typedef enum obj_lock_resource_id_singleton_hashid obj_lock_resource_id_singleton_hashid_t;
 typedef obj_uint64_t obj_lock_resource_id_t;
 
 /* lock implemention related */
@@ -27,17 +31,17 @@ enum obj_lock_resource_type {
     OBJ_LOCK_RESOURCE_TYPE_COUNT
 };
 
-/*
-struct obj_lock_resource_id_s {
-    obj_uint64_t fullhash;
+enum obj_lock_resource_id_singleton_hashid {
+    OBJ_LOCK_RESOURCE_ID_SINGLETON_INVALID = 0,
+    OBJ_LOCK_RESOURCE_ID_SINGLETON_GLOBAL
 };
-*/
 
 enum obj_lock_result {
     OBJ_LOCK_RESULT_OK,
     OBJ_LOCK_RESULT_WAITING,
     OBJ_LOCK_RESULT_TIMEOUT,
     OBJ_LOCK_RESULT_DEADLOCK,
+    OBJ_LOCK_RESULT_INTERNAL_ERROR,
     OBJ_LOCK_RESULT_COUNT
 };
 
@@ -68,6 +72,7 @@ struct obj_lock_manager_s {
 
 struct obj_lock_bucket_s {
     pthread_mutex_t mutex;
+    /* obj_hashtable_t *table; */
 };
 
 enum obj_lock_request_status {
@@ -94,6 +99,7 @@ struct obj_lock_request_s {
     obj_lock_mode_t convert_mode;
     OBJ_EMBEDDED_LIST_NODE_T(obj_lock_request_t) list;
     obj_lock_grant_notify_t *notify;
+    obj_locker_t *locker;
 };
 
 struct obj_lock_head_s {
@@ -112,14 +118,13 @@ struct obj_lock_head_s {
     obj_lock_resource_id_t resource_id;
 };
 
-struct obj_lock_locker_s {
-    obj_lock_grant_notify_t notify;
-};
-
 #define OBJ_LOCK_BUCKET_NUM 128
 #define OBJ_LOCK_RESOURCE_TYPE_BITS 3
 
 /* forward declaration */
 obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
+
+/* globals */
+extern obj_lock_resource_id_t g_resource_id_global;
 
 #endif  /* OBJ_LOCK_H */

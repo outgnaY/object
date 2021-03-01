@@ -117,6 +117,8 @@ expr/obj_expr.o: expr/obj_expr.c /usr/include/stdc-predef.h \
  include/expr/obj_expr_parse.h include/expr/obj_expr_optimize.h \
  include/network/obj_proto.h include/network/obj_buffer.h \
  include/network/obj_conn.h include/obj_thread.h include/obj_core.h \
+ include/concurrency/obj_prealloc_map.h include/concurrency/obj_lock.h \
+ include/concurrency/obj_locker.h include/concurrency/obj_concurrency.h \
  include/client/obj_client.h include/obj.h
 
 /usr/include/stdc-predef.h:
@@ -450,6 +452,14 @@ include/network/obj_conn.h:
 include/obj_thread.h:
 
 include/obj_core.h:
+
+include/concurrency/obj_prealloc_map.h:
+
+include/concurrency/obj_lock.h:
+
+include/concurrency/obj_locker.h:
+
+include/concurrency/obj_concurrency.h:
 
 include/client/obj_client.h:
 

@@ -84,11 +84,13 @@ struct {\
 
 #define OBJ_EMBEDDED_LIST_GET_PREV(NAME, N) (((N)->NAME).prev)
 
-#define OBJ_EMBEDDED_LIST_GET_LEN(BASE) (BASE).count
+#define OBJ_EMBEDDED_LIST_GET_LEN(BASE) ((BASE).count)
 
-#define OBJ_EMBEDDED_LIST_GET_FIRST(BASE) (BASE).start
+#define OBJ_EMBEDDED_LIST_GET_FIRST(BASE) ((BASE).start)
 
-#define OBJ_EMBEDDED_LIST_GET_LAST(BASE) (BASE).end
+#define OBJ_EMBEDDED_LIST_GET_LAST(BASE) ((BASE).end)
+
+#define OBJ_EMBEDDED_LIST_IS_EMPTY(BASE) (((BASE).count) == 0)
 
 
 #endif  /* OBJ_EMBEDDED_LIST_H */

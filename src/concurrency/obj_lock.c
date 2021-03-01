@@ -2,6 +2,23 @@
 
 /* global lock manager */
 obj_lock_manager_t *g_lock_manager;
+/* resource id of global */
+obj_lock_resource_id_t g_resource_id_global;
+
+static obj_hashtable_methods_t hashtable_methods = {
+    obj_hashtable_hash_function,
+    NULL,
+    NULL,
+    obj_lock_resource_id_compare,
+    obj_hashtable_default_key_free,
+    obj_lock_lock_head_destroy
+};
+
+static int obj_lock_resource_id_compare(const void *key1, const void *key2) {
+    obj_lock_resource_id_t *id1 = (obj_lock_resource_id_t *)key1;
+    obj_lock_resource_id_t *id2 = (obj_lock_resource_id_t *)key2;
+    return (*id1) - (*id2);
+}
 
 static int obj_lock_conflict_table[] = {
     /* OBJ_LOCK_MODE_NONE */
@@ -30,6 +47,15 @@ static inline int obj_lock_mode_mask(obj_lock_mode_t mode) {
     return 1 << mode;
 }
 
+inline obj_bool_t obj_lock_is_shared_lock_mode(obj_lock_mode_t mode) {
+    return (mode == OBJ_LOCK_MODE_IS || mode == OBJ_LOCK_MODE_S);
+}
+
+/* if mode is covered by cover_mode */
+inline obj_bool_t obj_lock_is_mode_covered(obj_lock_mode_t mode, obj_lock_mode_t cover_mode) {
+    return (obj_lock_conflict_table[cover_mode] | obj_lock_conflict_table[mode]) == obj_lock_conflict_table[cover_mode];
+}
+
 /* hash string */
 static inline obj_uint64_t obj_lock_hash_string(const void *key, int len) {
     return obj_siphash(key, len, obj_lock_string_hash_seed);
@@ -42,6 +68,8 @@ void obj_global_lock_manager_init() {
         fprintf(stderr, "can't init global lock manager\n");
         exit(1);
     }
+    /* set global resource id */
+    g_resource_id_global = obj_lock_resource_id_from_hashid(OBJ_LOCK_RESOURCE_GLOBAL, OBJ_LOCK_RESOURCE_ID_SINGLETON_GLOBAL);
 }
 
 /* create lock manager */
@@ -57,18 +85,12 @@ static obj_lock_manager_t *obj_lock_manager_create() {
     }
     int i;
     for (i = 0; i < OBJ_LOCK_BUCKET_NUM; i++) {
-        obj_lock_bucket_init(&lock_manager->buckets[i]);
+        if (!obj_lock_bucket_init(&lock_manager->buckets[i])) {
+            goto clean;
+        }
     }
     return lock_manager;
 clean:
-    obj_lock_manager_destroy(lock_manager);
-    return NULL;
-}
-
-/* destroy a lock manager */
-static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager) {
-    /* TODO clean unused locks */
-    int i;
     if (lock_manager) {
         if (lock_manager->buckets) {
             for (i = 0; i < OBJ_LOCK_BUCKET_NUM; i++) {
@@ -78,17 +100,42 @@ static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager) {
         }
         obj_free(lock_manager);
     }
+    return NULL;
+}
+
+/* destroy a lock manager */
+static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager) {
+    int i;
+    obj_lock_cleanup_unused_locks(lock_manager);
+    for (i = 0; i < OBJ_LOCK_BUCKET_NUM; i++) {
+        obj_assert(obj_hashtable_is_empty(lock_manager->buckets[i].table));
+        obj_lock_bucket_destroy(&lock_manager->buckets[i]);
+    }
+    obj_free(lock_manager->buckets);
+    obj_free(lock_manager);
 }
 
 /* init a lock bucket */
-static void obj_lock_bucket_init(obj_lock_bucket_t *bucket) {
+static obj_bool_t obj_lock_bucket_init(obj_lock_bucket_t *bucket) {
     obj_assert(bucket);
     pthread_mutex_init(&bucket->mutex, NULL);
+    bucket->table = obj_hashtable_create(&hashtable_methods);
+    if (bucket->table == NULL) {
+        return false;
+    }
+    return true;
 }
 
 /* don't free bucket itself */
 static void obj_lock_bucket_destroy(obj_lock_bucket_t *bucket) {
     pthread_mutex_destroy(&bucket->mutex);
+    if (bucket->table != NULL) {
+        obj_hashtable_destroy(bucket->table);
+    }
+}
+
+static void obj_lock_lock_head_destroy(obj_lock_head_t *lock_head) {
+    obj_free(lock_head);
 }
 
 /* put a lock request in the lockhead's conflict queue or granted queue */
@@ -115,7 +162,7 @@ obj_lock_result_t obj_lock_new_request(obj_lock_request_t *request, obj_lock_hea
     return OBJ_LOCK_RESULT_OK;
 }
 
-void obj_lock_request_init(obj_lock_request_t *request, obj_lock_grant_notify_t *notify) {
+void obj_lock_request_init(obj_lock_request_t *request, obj_locker_t *locker, obj_lock_grant_notify_t *notify) {
     request->enqueue_front = false;
     request->compatible_first = false;
     request->mode = OBJ_LOCK_MODE_NONE;
@@ -124,6 +171,7 @@ void obj_lock_request_init(obj_lock_request_t *request, obj_lock_grant_notify_t 
     request->convert_mode = OBJ_LOCK_MODE_NONE;
     request->lock_head = NULL;
     request->notify = notify;
+    request->locker = locker;
 }
 
 static inline void obj_lock_incr_granted_mode_count(obj_lock_head_t *lock_head, obj_lock_mode_t mode) {
@@ -159,9 +207,17 @@ inline obj_lock_resource_id_t obj_lock_resource_id(obj_lock_resource_type_t type
     return obj_lock_resource_id_fullhash(type, hash);
 }
 
+inline obj_lock_resource_id_t obj_lock_resource_id_from_hashid(obj_lock_resource_type_t type, obj_uint64_t hash) {
+    return obj_lock_resource_id_fullhash(type, hash);
+}
+
 /* hash with resource type */
 static inline obj_lock_resource_id_t obj_lock_resource_id_fullhash(obj_lock_resource_type_t type, obj_uint64_t hash) {
     return (type << (64 - OBJ_LOCK_RESOURCE_TYPE_BITS)) + (hash & ((obj_uint64_t)OBJ_UINT64_MAX >> OBJ_LOCK_RESOURCE_TYPE_BITS));
+}
+
+inline obj_lock_resource_type_t obj_lock_resource_id_get_type(obj_lock_resource_id_t resource_id) {
+    return resource_id >> (64 - OBJ_LOCK_RESOURCE_TYPE_BITS);
 }
 
 /* lock */
@@ -180,8 +236,38 @@ obj_lock_result_t obj_lock_lock(obj_lock_manager_t *lock_manager, obj_lock_resou
 }
 
 /* convert */
-obj_lock_result_t obj_lock_convert(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id, obj_lock_request_t *request, obj_lock_mode_t mode) {
+obj_lock_result_t obj_lock_convert(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id, obj_lock_request_t *request, obj_lock_mode_t new_mode) {
+    /* already hold the lock in some mode */
+    obj_assert(request->status == OBJ_LOCK_REQUEST_STATUS_GRANTED);
+    obj_assert(request->recursive_count > 0);
+    request->recursive_count++;
+    /* acquire same lock, don't need lock */
+    if ((obj_lock_conflict_table[request->mode] | obj_lock_conflict_table[new_mode]) == obj_lock_conflict_table[request->mode]) {
+        return OBJ_LOCK_RESULT_OK;
+    }
+    /* more strict */
+    obj_assert((obj_lock_conflict_table[request->mode] | obj_lock_conflict_table[new_mode]) == obj_lock_conflict_table[request->mode]);
+    obj_lock_bucket_t *bucket = obj_lock_manager_get_bucket(lock_manager, resource_id);
+    pthread_mutex_lock(&bucket->mutex);
 
+
+    pthread_mutex_unlock(&bucket->mutex);
+}
+
+void obj_lock_downgrade(obj_lock_manager_t *lock_manager, obj_lock_request_t *request, obj_lock_mode_t new_mode) {
+    obj_assert(request->lock_head);
+    obj_assert(request->status == OBJ_LOCK_REQUEST_STATUS_GRANTED);
+    obj_assert(request->recursive_count > 0);
+    /* assert request is more strict */
+    obj_assert((obj_lock_conflict_table[request->mode] | obj_lock_conflict_table[new_mode]) == obj_lock_conflict_table[request->mode]);
+    obj_lock_head_t *lock_head = request->lock_head;
+    obj_lock_bucket_t *bucket = obj_lock_manager_get_bucket(lock_manager, lock_head->resource_id);
+    pthread_mutex_lock(&bucket->mutex);
+    obj_lock_incr_granted_mode_count(lock_head, new_mode);
+    obj_lock_decr_granted_mode_count(lock_head, request->mode);
+    request->mode = new_mode;
+    obj_lock_on_lock_mode_changed(lock_manager, lock_head, true);
+    pthread_mutex_unlock(&bucket->mutex);
 }
 
 /* unlock */
@@ -197,10 +283,39 @@ obj_bool_t obj_lock_unlock(obj_lock_manager_t *lock_manager, obj_lock_request_t 
     obj_assert(bucket);
     pthread_mutex_lock(&bucket->mutex);
     if (request->status == OBJ_LOCK_REQUEST_STATUS_GRANTED) {
-        
-        
+        /* release a currently held lock, most common path */
+        /* remove from granted list */
+        OBJ_EMBEDDED_LIST_REMOVE(list, lock_head->granted_list, request);
+        obj_lock_decr_granted_mode_count(lock_head, request->mode);
+        if (request->compatible_first) {
+            obj_assert(lock_head->compatible_first_count > 0);
+            lock_head->compatible_first_count--;
+            obj_assert(lock_head->compatible_first_count == 0 || !OBJ_EMBEDDED_LIST_IS_EMPTY(lock_head->granted_list));
+        }
+        /* if granted list is empty now, check conflict queue */
+        obj_lock_on_lock_mode_changed(lock_manager, lock_head, lock_head->granted_count[request->mode] == 0);
+    } else if (request->status == OBJ_LOCK_REQUEST_STATUS_WAITING) {
+        obj_assert(request->recursive_count == 0);
+        OBJ_EMBEDDED_LIST_REMOVE(list, lock_head->conflict_list, request);
+        obj_lock_decr_conflict_mode_count(lock_head, request->mode);
+        /* check conflict queue */
+        obj_lock_on_lock_mode_changed(lock_manager, lock_head, true);
+    } else if (request->status == OBJ_LOCK_REQUEST_STATUS_CONVERTING) {
+        /* cancel a pending convert request */
+        obj_assert(request->recursive_count > 0);
+        obj_assert(lock_head->conversion_count > 0);
+        /* cancel the conversion reqeust */
+        request->status = OBJ_LOCK_REQUEST_STATUS_GRANTED;
+        lock_head->conversion_count--;
+        obj_lock_decr_granted_mode_count(lock_head, request->convert_mode);
+        request->convert_mode = OBJ_LOCK_MODE_NONE;
+        obj_lock_on_lock_mode_changed(lock_manager, lock_head, lock_head->granted_count[request->convert_mode] == 0);
+    } else {
+        /* can't reach here */
+        obj_assert(0);
     }
     pthread_mutex_unlock(&bucket->mutex);
+    return request->recursive_count > 0;
 }
 
 obj_lock_head_t *obj_lock_find_or_insert(obj_lock_bucket_t *bucket, obj_lock_resource_id_t resource_id) {
@@ -231,28 +346,65 @@ void obj_lock_cleanup_unused_locks(obj_lock_manager_t *lock_manager) {
 }
 
 void obj_lock_cleanup_unused_locks_in_bucket(obj_lock_bucket_t *bucket) {
-
+    int i;
+    obj_hashtable_entry_t *entry = NULL;
+    obj_hashtable_entry_t *prev_entry = NULL;
+    obj_hashtable_t *table = bucket->table;
+    obj_lock_head_t *lock_head;
+    for (i = 0; i < table->bucket_size; i++) {
+        entry = table->bucket[i];
+        prev_entry = NULL;
+        while (entry != NULL) {
+            lock_head = (obj_lock_head_t *)entry->value;
+            if (lock_head->granted_mode == 0) {
+                obj_assert(lock_head->granted_mode == 0);
+                obj_assert(OBJ_EMBEDDED_LIST_IS_EMPTY(lock_head->granted_list));
+                obj_assert(lock_head->conflict_mode == 0);
+                obj_assert(OBJ_EMBEDDED_LIST_IS_EMPTY(lock_head->conflict_list));
+                obj_assert(lock_head->conversion_count == 0);
+                obj_assert(lock_head->compatible_first_count == 0);
+                /* delete entry */
+                if (prev_entry != NULL) {
+                    prev_entry->next = entry->next;
+                } else {
+                    table->bucket[i] = entry->next;
+                }
+                obj_free(entry->key);
+                obj_lock_lock_head_destroy(lock_head);
+                obj_free(entry);
+            }
+            prev_entry = entry;
+            entry = entry->next;
+        }
+    }
 }
 
 /* call back function */
 void obj_lock_on_lock_mode_changed(obj_lock_manager_t *lock_manager, obj_lock_head_t *lock_head, obj_bool_t check_conflict_queue) {
-    /* unblock any converting requests */
+    /* unblock any converting requests. because conversions are still counted as granted and are on the granted queue */
     obj_lock_request_t *curr = OBJ_EMBEDDED_LIST_GET_FIRST(lock_head->granted_list);
     int i;
     while (curr != NULL && (lock_head->conversion_count > 0)) {
         if (curr->status == OBJ_LOCK_REQUEST_STATUS_CONVERTING) {
             obj_assert(curr->convert_mode != 0);
-            int granted
+            int granted_modes_without_current_request = 0;
             for (i = 1; i < OBJ_LOCK_MODE_COUNT; i++) {
                 int curr_request_holds = (curr->mode == i ? 1 : 0);
                 int curr_request_waits = (curr->convert_mode == i ? 1 : 0);
+                /* can't both hold and wait on the same lock mode */
                 obj_assert(curr_request_holds + curr_request_waits <= 1);
                 if (lock_head->granted_count[i] > (curr_request_holds + curr_request_waits)) {
-
+                    granted_modes_without_current_request |= obj_lock_mode_mask(i);
                 }
             }
-            if () {
-
+            /* convert now if possible */
+            if (!obj_lock_conflict(curr->convert_mode, granted_modes_without_current_request)) {
+                lock_head->conversion_count--;
+                obj_lock_decr_granted_mode_count(lock_head, curr->mode);
+                curr->status = OBJ_LOCK_REQUEST_STATUS_GRANTED;
+                curr->mode = curr->convert_mode;
+                curr->convert_mode = OBJ_LOCK_MODE_NONE;
+                obj_lock_grant_notify_notify(lock_head->resource_id, OBJ_LOCK_RESULT_OK);
             }
         }
         curr = OBJ_EMBEDDED_LIST_GET_NEXT(list, curr);
@@ -304,6 +456,11 @@ void obj_lock_grant_notify_clear(obj_lock_grant_notify_t *notify) {
     notify->result = OBJ_LOCK_RESULT_COUNT;
 }
 
+void obj_lock_grant_notify_destroy(obj_lock_grant_notify_t *notify) {
+    pthread_mutex_destroy(&notify->mutex);
+    pthread_cond_destroy(&notify->cond);
+}
+
 /*
 obj_lock_result_t obj_lock_grant_notify_wait(obj_lock_grant_notify_t *notify) {
     pthread_mutex_lock(&notify->mutex);
@@ -315,7 +472,7 @@ obj_lock_result_t obj_lock_grant_notify_wait(obj_lock_grant_notify_t *notify) {
 */
 
 /* wait milliseconds */
-obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *notify, struct timespec) {
+obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *notify, struct timespec deadline) {
     pthread_mutex_lock(&notify->mutex);
     while (notify->result != OBJ_LOCK_RESULT_COUNT) {
 

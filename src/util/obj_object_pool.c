@@ -288,11 +288,11 @@ inline int obj_object_pool_return_object(obj_object_pool_t *pool, void *ptr) {
 
 
 static void *obj_object_pool_get_object_local(obj_object_pool_local_pool_t *local_pool) {
-    /* try to fetch from local free chunk */
+    /* try to fetch from local free chunk list */
     if (local_pool->cur_free.header.nfree) {
         return local_pool->cur_free.ptrs[--local_pool->cur_free.header.nfree];
     }
-    /* try to fetch from global */
+    /* try to fetch from global free chunk list */
     if (obj_object_pool_pop_free_chunk(local_pool->pool, &local_pool->cur_free)) {
         return local_pool->cur_free.ptrs[--local_pool->cur_free.header.nfree];
     }

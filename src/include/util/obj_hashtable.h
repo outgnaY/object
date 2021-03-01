@@ -32,20 +32,21 @@ struct obj_hashtable_s {
     obj_hashtable_methods_t *methods;
 };
 
+obj_uint64_t obj_hashtable_hash_function(const void *key, int len);
 obj_hashtable_t *obj_hashtable_create(obj_hashtable_methods_t *methods);
-
 void obj_hashtable_destroy(obj_hashtable_t *table);
+obj_global_error_code_t obj_hashtable_add(obj_hashtable_t *table, void *key, void *value);
+obj_global_error_code_t obj_hashtable_delete(obj_hashtable_t *table, void *key, obj_bool_t nofree);
+obj_hashtable_entry_t *obj_hashtable_find(obj_hashtable_t *table, void *key);
+obj_bool_t obj_hashtable_is_empty(obj_hashtable_t *table);
+void obj_hashtable_default_key_free(void *key);
+void obj_hashtable_default_value_free(void *value);
 
-void obj_hashtable_resize(obj_hashtable_t *table);
 
 #define OBJ_HASHTABLE_BUCKET_INIT_SIZE 16
-
 #define OBJ_HASHTABLE_BUCKET_MAX_SIZE 65536
-
 #define OBJ_HASHTABLE_LOAD_FACTOR 0.75
-
 #define obj_hashtable_hash_key(table, key) ((table)->methods->hash_func(key))
-
 #define obj_hashtable_compare_keys(table, key1, key2) \
     (((table)->methods->key_compare) ? \
     (table)->methods->key_compare(key1, key2) : \
