@@ -12,7 +12,7 @@ struct obj_locker_s {
     obj_prealloc_map_t request_map;
     obj_bool_t max_lock_timeout_is_set;
     struct timespec max_lock_timeout;
-    
+    obj_duration_msecond deadlock_timeout;
 };
 
 struct obj_resource_id_request_pair_s {

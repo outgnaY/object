@@ -564,7 +564,7 @@ obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short
     }
     c->state = init_state;
     /* set for idle kicker */
-    c->last_cmd_time = obj_rel_current_time;
+    c->last_cmd_time = g_rel_current_time;
     c->close_after_write = false;
     inbuf = obj_buffer_init();
     if (inbuf == NULL) {
@@ -699,7 +699,7 @@ void obj_conn_event_handler(const evutil_socket_t fd, const short which, void *a
 
 /* close idle connection */
 void obj_conn_close_idle(obj_conn_t *c) {
-    if (obj_settings.idle_timeout > 0 && (obj_rel_current_time - c->last_cmd_time) > obj_settings.idle_timeout) {
+    if (obj_settings.idle_timeout > 0 && (g_rel_current_time - c->last_cmd_time) > obj_settings.idle_timeout) {
         /* a connection timeout */
         if (c->state != OBJ_CONN_NEW_CMD && c->state != OBJ_CONN_READ) {
             if (obj_settings.verbose > 1) {

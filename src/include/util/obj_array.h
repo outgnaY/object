@@ -4,12 +4,14 @@
 typedef enum obj_array_flag obj_array_flag_t;
 typedef struct obj_array_s obj_array_t;
 
+/*
 enum obj_array_flag {
-    OBJ_ARRAY_FLAG_STATIC = 1           /* allocate from static context */
+    OBJ_ARRAY_FLAG_STATIC = 1           
 };
+*/
 
 struct obj_array_s {
-    obj_array_flag_t flag;
+    /* obj_array_flag_t flag; */
     void *data;
     int size;
     int element_size;
@@ -34,6 +36,7 @@ obj_array_t *obj_array_create(int element_size);
 obj_array_t *obj_array_create_size(int element_size, int size);
 obj_array_t *obj_array_init(obj_array_t *array, int element_size);
 obj_array_t *obj_array_init_size(obj_array_t *array, int element_size, int size);
+void obj_array_destroy_static(obj_array_t *array);
 void obj_array_destroy(obj_array_t *array);
 void obj_array_empty(obj_array_t *array);
 void *obj_array_get_index(obj_array_t *array, int index);

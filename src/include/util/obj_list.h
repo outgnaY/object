@@ -33,6 +33,8 @@ obj_list_t *obj_list_create();
 
 void obj_list_empty(obj_list_t *list);
 
+void obj_list_destroy_static(obj_list_t *list);
+
 void obj_list_destroy(obj_list_t *list);
 
 obj_bool_t obj_list_add_node_head(obj_list_t *list, void *value);

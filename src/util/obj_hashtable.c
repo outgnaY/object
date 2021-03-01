@@ -7,8 +7,6 @@ static void obj_hashtable_resize(obj_hashtable_t *table);
 
 /* hash functions */
 static obj_uint8_t obj_hashtable_hash_function_seed[16];
-/* forward declaration */
-obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
 
 obj_uint64_t obj_hashtable_hash_function(const void *key, int len) {
     return obj_siphash(key, len, obj_hashtable_hash_function_seed);
@@ -32,7 +30,7 @@ obj_hashtable_t *obj_hashtable_create(obj_hashtable_methods_t *methods) {
     return table;
 }
 
-void obj_hashtable_destroy(obj_hashtable_t *table) {
+void obj_hashtable_destroy_static(obj_hashtable_t *table) {
     obj_assert(table);
     obj_assert(table->bucket);
     int i;
@@ -50,6 +48,10 @@ void obj_hashtable_destroy(obj_hashtable_t *table) {
         }
     }
     obj_free(table->bucket);
+}
+
+void obj_hashtable_destroy(obj_hashtable_t *table) {
+    obj_hashtable_destroy_static(table);
     obj_free(table);
 }
 

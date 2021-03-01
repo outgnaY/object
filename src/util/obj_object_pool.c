@@ -75,7 +75,7 @@ static void obj_object_pool_destroy(obj_object_pool_t *pool) {
     pthread_mutex_destroy(&pool->block_group_mutex);
     pthread_mutex_destroy(&pool->free_chunks_mutex);
     pthread_mutex_destroy(&pool->change_thread_mutex);
-    obj_array_destroy(&pool->free_chunks);
+    obj_array_destroy_static(&pool->free_chunks);
     /* clear object pool */
     pthread_mutex_lock(&pool->change_thread_mutex);
     int nlocal;

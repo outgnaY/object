@@ -1,5 +1,6 @@
 #include "obj_core.h"
 
+static obj_duration_msecond s_obj_locker_default_deadlock_timeout = 500;
 
 static obj_prealloc_map_methods_t obj_resource_id_request_map_methods = {
     obj_resource_id_request_map_hash_func,         
@@ -129,19 +130,26 @@ obj_bool_t obj_locker_init(obj_locker_t *locker) {
     if (!obj_prealloc_map_init(&locker->request_map, &obj_resource_id_request_map_methods, sizeof(obj_resource_id_request_pair_t))) {
         return false;
     }
+    locker->deadlock_timeout = s_obj_locker_default_deadlock_timeout;
+    locker->max_lock_timeout_is_set = false;
     return true;
+}
+
+void obj_locker_destroy_static(obj_locker_t *locker) {
+    obj_lock_grant_notify_destroy(&locker->notify);
+    /* request map must be empty */
+    obj_assert(obj_prealloc_map_is_empty(&locker->request_map));
+    obj_prealloc_map_destroy_static(&locker->request_map);
 }
 
 /* destroy a locker */
 void obj_locker_destroy(obj_locker_t *locker) {
-    obj_lock_grant_notify_destroy(&locker->notify);
-    /* request map must be empty */
-    obj_assert(obj_prealloc_map_is_empty(&locker->request_map));
-    obj_prealloc_map_destroy(&locker->request_map);
+    obj_locker_destroy_static(locker);
+    obj_free(locker);
 }
 
 /* do lock */
-obj_lock_result_t obj_locker_lock(obj_locker_t *locker, obj_lock_resource_id_t resource_id, obj_lock_mode_t mode, struct timespec deadline, obj_bool_t check_deadlock) {
+obj_lock_result_t obj_locker_lock(obj_locker_t *locker, obj_lock_resource_id_t resource_id, obj_lock_mode_t mode, obj_abs_time_msecond deadline, obj_bool_t check_deadlock) {
     obj_lock_result_t result = obj_locker_lock_begin(locker, resource_id, mode);
     if (result == OBJ_LOCK_RESULT_OK) {
         return result;
@@ -188,17 +196,47 @@ obj_lock_result_t obj_locker_lock_begin(obj_locker_t *locker, obj_lock_resource_
     return result;
 }
 
-obj_lock_result_t obj_locker_lock_complete(obj_locker_t *locker, obj_lock_resource_id_t resource_id, obj_lock_mode_t mode, struct timespec deadline, obj_bool_t check_deadlock) {
+obj_lock_result_t obj_locker_lock_complete(obj_locker_t *locker, obj_lock_resource_id_t resource_id, obj_lock_mode_t mode, obj_abs_time_msecond deadline, obj_bool_t check_deadlock) {
     obj_lock_result_t result;
+    obj_duration_msecond timeout = 0;
+    obj_duration_msecond wait_time = 0;
+    obj_duration_msecond total_block_time = 0;
+    
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    if (deadline == -1) {
+        timeout = OBJ_DURATION_MSECOND_MAX;
+    } else {
+        timeout = deadline - (tv.tv_sec * 1000 + tv.tv_usec / 1000);
+    }
+    if (timeout < 0) {
+        timeout = 0;
+    }
+    /* wait time */
+    wait_time = (timeout < locker->deadlock_timeout ? timeout : locker->deadlock_timeout);
+    obj_abs_time_msecond total_wait_time_start = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    
     while (true) {
-        result = obj_lock_grant_notify_timed_wait(&locker->notify, deadline);
+        result = obj_lock_grant_notify_timed_wait(&locker->notify, wait_time);
         if (result == OBJ_LOCK_RESULT_OK) {
             break;
         }
+        /* check current time and update next wait time */
+        gettimeofday(&tv, NULL);
+        /* TODO check deadlock periodically */
         if (check_deadlock) {
-
+            
         }
-
+        if (timeout == OBJ_DURATION_MSECOND_MAX) {
+            continue;
+        }
+        total_block_time = (tv.tv_sec * 1000 + tv.tv_usec / 1000) - total_wait_time_start;
+        obj_duration_msecond remaind_time = timeout - total_block_time;
+        wait_time = (total_block_time < timeout) ? (remaind_time < locker->deadlock_timeout ? remaind_time : locker->deadlock_timeout) : 0;
+        if (wait_time == 0) {
+            /* fprintf(stderr, "failed to fetch the lock\n"); */
+            break;
+        }
     }
     
     return result;

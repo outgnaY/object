@@ -30,11 +30,14 @@ void obj_list_empty(obj_list_t *list) {
     list->len = 0;
 }
 
+void obj_list_destroy_static(obj_list_t *list) {
+    obj_assert(list);
+    obj_list_empty(list);
+}
 
 /* destroy a list */
 void obj_list_destroy(obj_list_t *list) {
-    obj_assert(list);
-    obj_list_empty(list);
+    obj_list_destroy_static(list);
     obj_free(list);
 }
 

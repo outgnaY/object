@@ -20,7 +20,7 @@ typedef int obj_bool_t;
 #define true 1
 #define false 0
 
-typedef unsigned int obj_rel_time_t;
+typedef unsigned int obj_rel_time_t; 
 
 #define obj_assert(expr) assert(expr)
 
@@ -30,6 +30,36 @@ typedef enum obj_global_error_code obj_global_error_code_t;
 #define OBJ_UINT32_MAX 0xffffffff
 #define OBJ_INT64_MAX 0x7fffffffffffffff
 #define OBJ_UINT64_MAX 0xffffffffffffffff
+
+/* time related */
+
+/* absolute times */
+
+/* second */
+typedef long obj_abs_time_second;
+/* millisecond */
+typedef long obj_abs_time_msecond;
+/* microsecond */
+typedef long obj_abs_time_usecond;
+/* nanosecond */
+typedef long obj_abs_time_nsecond;
+
+/* durations */
+
+/* second */
+typedef long obj_duration_second;
+/* millisecond */
+typedef long obj_duration_msecond;
+/* microsecond */
+typedef long obj_duration_usecond;
+/* nanosecond */
+typedef long obj_duration_nsecond;
+
+#define OBJ_DURATION_SECOND_MAX OBJ_INT32_MAX
+#define OBJ_DURATION_MSECOND_MAX OBJ_INT32_MAX
+#define OBJ_DURATION_USECOND_MAX OBJ_INT32_MAX
+#define OBJ_DURATION_NSECOND_MAX OBJ_INT32_MAX
+
 
 /* alignment requiredment */
 #define OBJ_ALIGNMENT sizeof(unsigned long)

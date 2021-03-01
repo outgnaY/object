@@ -4,21 +4,50 @@
 obj_lock_manager_t *g_lock_manager;
 /* resource id of global */
 obj_lock_resource_id_t g_resource_id_global;
-
-static obj_hashtable_methods_t hashtable_methods = {
-    obj_hashtable_hash_function,
+static obj_prealloc_map_methods_t obj_resource_id_lock_head_map_methods = {
+    obj_resource_id_lock_head_map_hash_func,
+    obj_resource_id_lock_head_map_key_compare,
     NULL,
+    obj_lock_lock_head_destroy,
+    obj_resource_id_lock_head_map_key_get,
+    obj_resource_id_lock_head_map_value_get,
+    obj_resource_id_lock_head_map_key_set,
+    obj_resource_id_lock_head_map_value_set,
     NULL,
-    obj_lock_resource_id_compare,
-    obj_hashtable_default_key_free,
-    obj_lock_lock_head_destroy
+    NULL
 };
 
-static int obj_lock_resource_id_compare(const void *key1, const void *key2) {
+static obj_uint64_t obj_resource_id_lock_head_map_hash_func(const void *key) {
+    return obj_prealloc_map_hash_function(key, sizeof(obj_lock_resource_id_t));
+}
+
+/* compare resource id */
+static int obj_resource_id_lock_head_map_key_compare(const void *key1, const void *key2) {
     obj_lock_resource_id_t *id1 = (obj_lock_resource_id_t *)key1;
     obj_lock_resource_id_t *id2 = (obj_lock_resource_id_t *)key2;
     return (*id1) - (*id2);
 }
+
+static void *obj_resource_id_lock_head_map_key_get(void *data) {
+    obj_resource_id_lock_head_pair_t *pair = (obj_resource_id_lock_head_pair_t *)data;
+    return &pair->resource_id;
+}
+
+static void *obj_resource_id_lock_head_map_value_get(void *data) {
+    obj_resource_id_lock_head_pair_t *pair = (obj_resource_id_lock_head_pair_t *)data;
+    return &pair->lock_head;
+}
+
+static void obj_resource_id_lock_head_map_key_set(void *data, void *key) {
+    obj_resource_id_lock_head_pair_t *pair = (obj_resource_id_lock_head_pair_t *)data;
+    obj_memcpy(&pair->resource_id, key, sizeof(obj_lock_resource_id_t));
+}
+
+static void obj_resource_id_lock_head_map_value_set(void *data, void *value) {
+    obj_resource_id_lock_head_pair_t *pair = (obj_resource_id_lock_head_pair_t *)data;
+    obj_memcpy(&pair->lock_head, value, sizeof(obj_lock_head_t *));
+}
+
 
 static int obj_lock_conflict_table[] = {
     /* OBJ_LOCK_MODE_NONE */
@@ -94,7 +123,7 @@ clean:
     if (lock_manager) {
         if (lock_manager->buckets) {
             for (i = 0; i < OBJ_LOCK_BUCKET_NUM; i++) {
-                obj_lock_bucket_destroy(&lock_manager->buckets[i]);
+                obj_lock_bucket_destroy_static(&lock_manager->buckets[i]);
             }
             obj_free(lock_manager->buckets);
         }
@@ -108,8 +137,8 @@ static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager) {
     int i;
     obj_lock_cleanup_unused_locks(lock_manager);
     for (i = 0; i < OBJ_LOCK_BUCKET_NUM; i++) {
-        obj_assert(obj_hashtable_is_empty(lock_manager->buckets[i].table));
-        obj_lock_bucket_destroy(&lock_manager->buckets[i]);
+        obj_assert(obj_prealloc_map_is_empty(&(lock_manager->buckets[i].map)));
+        obj_lock_bucket_destroy_static(&lock_manager->buckets[i]);
     }
     obj_free(lock_manager->buckets);
     obj_free(lock_manager);
@@ -119,19 +148,16 @@ static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager) {
 static obj_bool_t obj_lock_bucket_init(obj_lock_bucket_t *bucket) {
     obj_assert(bucket);
     pthread_mutex_init(&bucket->mutex, NULL);
-    bucket->table = obj_hashtable_create(&hashtable_methods);
-    if (bucket->table == NULL) {
+    if (!obj_prealloc_map_init(&bucket->map, &obj_resource_id_lock_head_map_methods, sizeof(obj_resource_id_lock_head_pair_t *))) {
         return false;
     }
     return true;
 }
 
 /* don't free bucket itself */
-static void obj_lock_bucket_destroy(obj_lock_bucket_t *bucket) {
+static void obj_lock_bucket_destroy_static(obj_lock_bucket_t *bucket) {
     pthread_mutex_destroy(&bucket->mutex);
-    if (bucket->table != NULL) {
-        obj_hashtable_destroy(bucket->table);
-    }
+    obj_prealloc_map_destroy_static(&bucket->map);
 }
 
 static void obj_lock_lock_head_destroy(obj_lock_head_t *lock_head) {
@@ -347,15 +373,15 @@ void obj_lock_cleanup_unused_locks(obj_lock_manager_t *lock_manager) {
 
 void obj_lock_cleanup_unused_locks_in_bucket(obj_lock_bucket_t *bucket) {
     int i;
-    obj_hashtable_entry_t *entry = NULL;
-    obj_hashtable_entry_t *prev_entry = NULL;
-    obj_hashtable_t *table = bucket->table;
+    obj_prealloc_map_entry_t *entry = NULL;
+    obj_prealloc_map_entry_t *prev_entry = NULL;
+    obj_prealloc_map_t *map = &bucket->map;
     obj_lock_head_t *lock_head;
-    for (i = 0; i < table->bucket_size; i++) {
-        entry = table->bucket[i];
+    for (i = 0; i < map->bucket_size; i++) {
+        entry = map->bucket[i];
         prev_entry = NULL;
         while (entry != NULL) {
-            lock_head = (obj_lock_head_t *)entry->value;
+            lock_head = *((obj_lock_head_t **)obj_prealloc_map_get_value(map, entry));
             if (lock_head->granted_mode == 0) {
                 obj_assert(lock_head->granted_mode == 0);
                 obj_assert(OBJ_EMBEDDED_LIST_IS_EMPTY(lock_head->granted_list));
@@ -367,9 +393,8 @@ void obj_lock_cleanup_unused_locks_in_bucket(obj_lock_bucket_t *bucket) {
                 if (prev_entry != NULL) {
                     prev_entry->next = entry->next;
                 } else {
-                    table->bucket[i] = entry->next;
+                    map->bucket[i] = entry->next;
                 }
-                obj_free(entry->key);
                 obj_lock_lock_head_destroy(lock_head);
                 obj_free(entry);
             }
@@ -472,12 +497,32 @@ obj_lock_result_t obj_lock_grant_notify_wait(obj_lock_grant_notify_t *notify) {
 */
 
 /* wait milliseconds */
-obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *notify, struct timespec deadline) {
+obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *notify, obj_duration_msecond wait_time) {
+    int wait_res;
+    struct timeval tv;
+    struct timespec deadline;
+    gettimeofday(&tv, NULL);
+    long nsec = tv.tv_usec * 1000 + (wait_time % 1000) * 1000000;
+    deadline.tv_sec = tv.tv_sec + nsec / 1000000000 + wait_time / 1000;
+    deadline.tv_nsec = nsec % 1000000000;
     pthread_mutex_lock(&notify->mutex);
-    while (notify->result != OBJ_LOCK_RESULT_COUNT) {
-
+    while (notify->result == OBJ_LOCK_RESULT_COUNT) {
+        wait_res = pthread_cond_timedwait(&notify->cond, &notify->mutex, &deadline);
+        if (wait_res == 0) {
+            continue;
+        } else  if (wait_res == ETIMEDOUT) {
+            /* timeout */
+            pthread_mutex_unlock(&notify->mutex);
+            return OBJ_LOCK_RESULT_TIMEOUT;
+        } else {
+            /* unexpected error */
+            fprintf(stderr, "unexpected error occurred during wait \n");
+            pthread_mutex_unlock(&notify->mutex);
+            return OBJ_LOCK_RESULT_INTERNAL_ERROR;
+        }
     }
     pthread_mutex_unlock(&notify->mutex);
+    return OBJ_LOCK_RESULT_OK;
 }
 
 /* notify all waiters */

@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
-noinst_PROGRAMS = object test_bson test_req test_hash test_sds test_string test_array test_expr test_bcon test_rbtree test_object_pool test_prealloc_map
+noinst_PROGRAMS = object test_bson test_req test_hash test_sds test_string test_array test_expr test_bcon test_rbtree test_object_pool test_prealloc_map test_lock
 
 AM_CPPFLAGS = -I$(srcdir)/include
 
@@ -20,6 +20,7 @@ test_bcon_SOURCES = test/test_bcon.c bson/obj_bson_iter.c bson/obj_bson_visit.c 
 test_rbtree_SOURCES = test/test_rbtree.c  util/obj_rbtree.c mem/obj_mem_simple.c mem/obj_mem.c
 test_object_pool_SOURCES = test/test_object_pool.c util/obj_object_pool.c util/obj_array.c util/obj_list.c mem/obj_mem_simple.c mem/obj_mem.c 
 test_prealloc_map_SOURCES = test/test_prealloc_map.c concurrency/obj_prealloc_map.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_siphash.c
+test_lock_SOURCES = test/test_lock.c concurrency/obj_concurrency.c concurrency/obj_lock.c concurrency/obj_locker.c concurrency/obj_prealloc_map.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_siphash.c
 
 all:
 	mv -f object ../bin/object
@@ -34,6 +35,7 @@ all:
 	mv -f test_rbtree ../bin/test_rbtree
 	mv -f test_object_pool ../bin/test_object_pool
 	mv -f test_prealloc_map ../bin/test_prealloc_map
+	mv -f test_lock ../bin/test_lock
 	mv -f obj_daemon.o obj_thread.o obj.o bson/*.o concurrency/*.o expr/*.o mem/*.o network/*.o test/*.o util/*.o ../obj
 clean:
 	rm -f ../bin/object
@@ -48,6 +50,7 @@ clean:
 	rm -f ../bin/test_rbtree
 	rm -f ../bin/test_object_pool
 	rm -f ../bin/test_prealloc_map
+	rm -f ../bin/test_lock
 	rm -f ../obj/*
 clean-local:
 	-rm config.log 

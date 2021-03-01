@@ -156,7 +156,7 @@ static void *obj_thread_conn_timeout_thread(void *arg) {
     }
     useconds_t timeslice = 1000000 / sleep_slice;
     while (obj_thread_run_conn_timeout_thread) {
-        oldest_last_cmd = obj_rel_current_time;
+        oldest_last_cmd = g_rel_current_time;
         for (i = 0; i < obj_conn_max_fds; i++) {
             /* sleep */
             if ((i % OBJ_CONN_PER_SLICE) == 0) {
@@ -170,7 +170,7 @@ static void *obj_thread_conn_timeout_thread(void *arg) {
             if (c->state != OBJ_CONN_NEW_CMD && c->state != OBJ_CONN_READ) {
                 continue;
             }
-            if ((obj_rel_current_time - c->last_cmd_time) > obj_settings.idle_timeout) {
+            if ((g_rel_current_time - c->last_cmd_time) > obj_settings.idle_timeout) {
                 buf[0] = 't';
                 obj_memcpy(&buf[1], &i, sizeof(int));
                 if (write(c->thread->notify_send_fd, buf, OBJ_CONN_TIMEOUT_MSG_SIZE) != OBJ_CONN_TIMEOUT_MSG_SIZE) {
@@ -183,7 +183,7 @@ static void *obj_thread_conn_timeout_thread(void *arg) {
             }
         }
         /* soonest we could have another connection timeout */
-        sleep_time = obj_settings.idle_timeout - (obj_rel_current_time - oldest_last_cmd) + 1;
+        sleep_time = obj_settings.idle_timeout - (g_rel_current_time - oldest_last_cmd) + 1;
         if (sleep_time <= 0) {
             sleep_time = 1;
         }

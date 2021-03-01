@@ -23,7 +23,7 @@ struct obj_settings_s {
 };
 
 extern obj_settings_t obj_settings;                         /* settings */
-extern volatile obj_rel_time_t obj_rel_current_time;        /* seconds since process started */
+extern volatile obj_rel_time_t g_rel_current_time;          /* seconds since process started */
 extern time_t obj_process_started;                          /* when the process was started */  
 extern struct event_base *obj_main_base;                    /* main thread event base */
 

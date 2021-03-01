@@ -2,7 +2,7 @@
 
 /* globals */
 obj_settings_t obj_settings;                                /* settings */
-volatile obj_rel_time_t obj_rel_current_time;               /* second since process started */
+volatile obj_rel_time_t g_rel_current_time;                 /* seconds since process started */
 time_t obj_process_started;                                 /* when the process was started */
 struct event_base *obj_main_base;                           /* main thread event base */
 
@@ -60,7 +60,7 @@ static void obj_clock_handler(const evutil_socket_t fd, const short which, void 
     evtimer_add(&obj_clockevent, &t);
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    obj_rel_current_time = (obj_rel_time_t)(tv.tv_sec - obj_process_started);
+    g_rel_current_time = (obj_rel_time_t)(tv.tv_sec - obj_process_started);
 }
 
 static void obj_version() {

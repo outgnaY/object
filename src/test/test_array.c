@@ -118,7 +118,7 @@ int main() {
     obj_array_push_back(&array2, &a1);
     obj_array_push_back(&array2, &a1);
     obj_array_dump(&array2, array1_cb);
-    obj_array_destroy(&array2);
+    obj_array_destroy_static(&array2);
     */
     /* array with simple struct */
     /*
@@ -147,7 +147,7 @@ int main() {
     obj_array_push_back(&array3, &a1);
     obj_array_push_back(&array3, &a1);
     obj_array_dump(&array3, array3_cb);
-    obj_array_destroy(&array3);
+    obj_array_destroy_static(&array3);
     */
     /* array with complicated struct */
     /*
@@ -187,7 +187,7 @@ int main() {
     a1.b = make_string("cdefghijklmn");
     obj_array_push_back(&array4, &a1);
     obj_array_dump(&array4, array4_cb);
-    obj_array_destroy(&array4);
+    obj_array_destroy_static(&array4);
     */
     /* time */
     int i;

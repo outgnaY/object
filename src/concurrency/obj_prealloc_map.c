@@ -8,8 +8,6 @@ static void obj_prealloc_map_resize(obj_prealloc_map_t *map);
 
 /* hash functions */
 static obj_uint8_t obj_prealloc_map_hash_function_seed[16];
-/* forward declaration */
-obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
 
 obj_uint64_t obj_prealloc_map_hash_function(const void *key, int len) {
     return obj_siphash(key, len, obj_prealloc_map_hash_function_seed);
@@ -41,6 +39,10 @@ obj_bool_t obj_prealloc_map_init(obj_prealloc_map_t *map, obj_prealloc_map_metho
 }
 
 void obj_prealloc_map_destroy_static(obj_prealloc_map_t *map) {
+    obj_assert(map);
+    if (map->bucket == NULL) {
+        return;
+    }
     int i;
     obj_prealloc_map_entry_t *entry = NULL, *next_entry = NULL;
     for (i = 0; i < map->bucket_size; i++) {
@@ -59,23 +61,7 @@ void obj_prealloc_map_destroy_static(obj_prealloc_map_t *map) {
 }
 
 void obj_prealloc_map_destroy(obj_prealloc_map_t *map) {
-    obj_assert(map);
-    obj_assert(map->bucket);
-    int i;
-    obj_prealloc_map_entry_t *entry = NULL, *next_entry = NULL;
-    for (i = 0; i < map->bucket_size; i++) {
-        if ((entry = map->bucket[i]) == NULL) {
-            continue;
-        }
-        while (entry) {
-            next_entry = entry->next;
-            obj_prealloc_map_free_key(map, entry);
-            obj_prealloc_map_free_value(map, entry);
-            obj_free(entry);
-            entry = next_entry;
-        }
-    }
-    obj_free(map->bucket);
+    obj_prealloc_map_destroy_static(map);
     obj_free(map);
 }
 

@@ -46,6 +46,8 @@ struct obj_prealloc_map_s {
     int element_size;
     obj_prealloc_map_methods_t *methods;
 };
+/* forward declaration */
+obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
 
 obj_uint64_t obj_prealloc_map_hash_function(const void *key, int len);
 obj_prealloc_map_t *obj_prealloc_map_create(obj_prealloc_map_methods_t *methods, int element_size);

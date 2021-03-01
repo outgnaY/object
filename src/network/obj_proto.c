@@ -522,7 +522,7 @@ obj_bool_t obj_proto_read_command(obj_conn_t *c) {
         /* test process command */
         obj_process_command(c, header);
         /* set last command time of the connection */
-        c->last_cmd_time = obj_rel_current_time;
+        c->last_cmd_time = g_rel_current_time;
         return true;
     } else {
         return false;

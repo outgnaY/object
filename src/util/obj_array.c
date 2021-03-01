@@ -18,7 +18,7 @@ obj_array_t *obj_array_create_size(int element_size, int init_size) {
         obj_free(array);
         return NULL;
     }
-    array->flag = 0;
+    /* array->flag = 0; */
     array->element_size = element_size;
     array->free = NULL;
     array->size = 0;
@@ -38,7 +38,7 @@ obj_array_t *obj_array_init_size(obj_array_t *array, int element_size, int init_
     if (array->data == NULL) {
         return NULL;
     }
-    array->flag = OBJ_ARRAY_FLAG_STATIC;
+    /* array->flag = OBJ_ARRAY_FLAG_STATIC; */
     array->element_size = element_size;
     array->free = NULL;
     array->size = 0;
@@ -46,14 +46,17 @@ obj_array_t *obj_array_init_size(obj_array_t *array, int element_size, int init_
     return array;
 }
 
-/* destroy */
-void obj_array_destroy(obj_array_t *array) {
+void obj_array_destroy_static(obj_array_t *array) {
     obj_assert(array);
     obj_array_empty(array);
     obj_free(array->data);
-    if (!array->flag & OBJ_ARRAY_FLAG_STATIC) {
-        obj_free(array);
-    }
+
+}
+
+/* destroy */
+void obj_array_destroy(obj_array_t *array) {
+    obj_array_destroy_static(array);
+    obj_free(array);
 }
 
 /* empty */

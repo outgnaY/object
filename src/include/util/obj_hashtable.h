@@ -32,8 +32,12 @@ struct obj_hashtable_s {
     obj_hashtable_methods_t *methods;
 };
 
+/* forward declaration */
+obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
+
 obj_uint64_t obj_hashtable_hash_function(const void *key, int len);
 obj_hashtable_t *obj_hashtable_create(obj_hashtable_methods_t *methods);
+void obj_hashtable_destroy_static(obj_hashtable_t *table);
 void obj_hashtable_destroy(obj_hashtable_t *table);
 obj_global_error_code_t obj_hashtable_add(obj_hashtable_t *table, void *key, void *value);
 obj_global_error_code_t obj_hashtable_delete(obj_hashtable_t *table, void *key, obj_bool_t nofree);

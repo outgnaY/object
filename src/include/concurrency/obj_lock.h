@@ -14,6 +14,7 @@ typedef obj_uint64_t obj_lock_resource_id_t;
 /* lock implemention related */
 typedef enum obj_lock_result obj_lock_result_t;
 typedef enum obj_lock_mode obj_lock_mode_t;
+typedef struct obj_resource_id_lock_head_pair_s obj_resource_id_lock_head_pair_t;
 typedef struct obj_lock_manager_s obj_lock_manager_t;
 typedef struct obj_lock_bucket_s obj_lock_bucket_t;
 typedef enum obj_lock_request_status obj_lock_request_status_t;
@@ -65,6 +66,11 @@ enum obj_lock_mode {
     OBJ_LOCK_MODE_COUNT
 };
 
+struct obj_resource_id_lock_head_pair_s {
+    obj_lock_resource_id_t resource_id;
+    obj_lock_head_t *lock_head;
+};
+
 struct obj_lock_manager_s {
     int num_buckets;
     obj_lock_bucket_t *buckets;
@@ -72,6 +78,7 @@ struct obj_lock_manager_s {
 
 struct obj_lock_bucket_s {
     pthread_mutex_t mutex;
+    obj_prealloc_map_t map;
     /* obj_hashtable_t *table; */
 };
 
