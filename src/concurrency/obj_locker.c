@@ -253,6 +253,7 @@ obj_lock_result_t obj_locker_lock_complete(obj_locker_t *locker, obj_lock_resour
 }
 
 obj_bool_t obj_locker_unlock(obj_locker_t *locker, obj_lock_resource_id_t resource_id) {
+    printf("unlock: resource_id = %lu\n", resource_id);
     obj_prealloc_map_entry_t *entry = NULL;
     entry = obj_prealloc_map_find(&locker->request_map, &resource_id);
     if (entry == NULL) {

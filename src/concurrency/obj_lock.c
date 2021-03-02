@@ -272,7 +272,7 @@ static inline void obj_lock_incr_granted_mode_count(obj_lock_head_t *lock_head, 
 
 static inline void obj_lock_decr_granted_mode_count(obj_lock_head_t *lock_head, obj_lock_mode_t mode) {
     obj_assert(lock_head->granted_count[mode] >= 1);
-    if (--lock_head->conflict_count[mode] == 0) {
+    if (--lock_head->granted_count[mode] == 0) {
         lock_head->granted_mode &= ~obj_lock_mode_mask(mode);
     }
 }
@@ -409,6 +409,7 @@ obj_bool_t obj_lock_unlock(obj_lock_manager_t *lock_manager, obj_lock_request_t 
             obj_assert(lock_head->compatible_first_count == 0 || !OBJ_EMBEDDED_LIST_IS_EMPTY(lock_head->granted_list));
         }
         /* if granted list is empty now, check conflict queue */
+        printf("mode: %d, granted count %d\n", request->mode, lock_head->granted_count[request->mode]);
         obj_lock_on_lock_mode_changed(lock_manager, lock_head, lock_head->granted_count[request->mode] == 0);
     } else if (request->status == OBJ_LOCK_REQUEST_STATUS_WAITING) {
         obj_assert(request->recursive_count == 0);

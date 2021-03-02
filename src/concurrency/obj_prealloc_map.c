@@ -180,7 +180,6 @@ obj_prealloc_map_error_code_t obj_prealloc_map_add(obj_prealloc_map_t *map, void
     /* set key and value */
     obj_prealloc_map_set_key(map, entry, key);
     obj_prealloc_map_set_value(map, entry, value);
-    printf("entry = %p\n", entry);
     ++map->size;
     return OBJ_PREALLOC_MAP_CODE_OK;
 }
