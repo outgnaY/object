@@ -684,7 +684,7 @@ void obj_lock_grant_notify_notify(obj_lock_grant_notify_t *notify, obj_lock_resu
     printf("notify\n");
     pthread_mutex_lock(&notify->mutex);
     notify->result = result;
-    pthread_cond_broadcast(&notify->cond);
+    pthread_cond_signal(&notify->cond);
     pthread_mutex_unlock(&notify->mutex);
 }
 
