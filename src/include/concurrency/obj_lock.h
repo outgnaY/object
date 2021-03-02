@@ -145,6 +145,7 @@ obj_lock_resource_type_t obj_lock_resource_id_get_type(obj_lock_resource_id_t re
 obj_lock_result_t obj_lock_lock(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id, obj_lock_request_t *request, obj_lock_mode_t mode);
 obj_lock_result_t obj_lock_convert(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id, obj_lock_request_t *request, obj_lock_mode_t new_mode);
 void obj_lock_downgrade(obj_lock_manager_t *lock_manager, obj_lock_request_t *request, obj_lock_mode_t new_mode);
+void obj_lock_remove_request(obj_lock_manager_t *lock_manager, obj_lock_request_t *request);
 obj_bool_t obj_lock_unlock(obj_lock_manager_t *lock_manager, obj_lock_request_t *request);
 obj_lock_head_t *obj_lock_find_or_insert(obj_lock_bucket_t *bucket, obj_lock_resource_id_t resource_id);
 obj_lock_bucket_t *obj_lock_manager_get_bucket(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id);

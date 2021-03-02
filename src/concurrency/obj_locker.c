@@ -163,6 +163,9 @@ obj_lock_result_t obj_locker_lock(obj_locker_t *locker, obj_lock_resource_id_t r
     if (result == OBJ_LOCK_RESULT_OK) {
         return result;
     }
+    if (result == OBJ_LOCK_RESULT_INTERNAL_ERROR) {
+        return result;
+    }
     obj_assert(result == OBJ_LOCK_RESULT_WAITING);
     return obj_locker_lock_complete(locker, resource_id, mode, deadline, check_deadlock);
 }
@@ -174,7 +177,7 @@ obj_lock_result_t obj_locker_lock_begin(obj_locker_t *locker, obj_lock_resource_
     obj_prealloc_map_entry_t *entry = NULL;
     entry = obj_prealloc_map_find(&locker->request_map, &resource_id);
     if (entry == NULL) {
-        printf("new request, resource_id = %lu\n", resource_id);
+        /* printf("new request, resource_id = %lu\n", resource_id); */
         entry = obj_prealloc_map_add_key(&locker->request_map, &resource_id);
         if (entry == NULL) {
             /* out of memory */
@@ -184,7 +187,7 @@ obj_lock_result_t obj_locker_lock_begin(obj_locker_t *locker, obj_lock_resource_
             obj_lock_request_init(request, locker, &locker->notify);
         }
     } else {
-        printf("old request, resource_id = %lu\n", resource_id);
+        /* printf("old request, resource_id = %lu\n", resource_id); */
         /* already have the request */
         request = (obj_lock_request_t *)obj_prealloc_map_get_value(&locker->request_map, entry);
         is_new = false;
@@ -231,6 +234,9 @@ obj_lock_result_t obj_locker_lock_complete(obj_locker_t *locker, obj_lock_resour
         if (result == OBJ_LOCK_RESULT_OK) {
             break;
         }
+        if (result == OBJ_LOCK_RESULT_INTERNAL_ERROR) {
+            return result;
+        }
         /* check current time and update next wait time */
         gettimeofday(&tv, NULL);
         /* TODO check deadlock periodically */
@@ -253,7 +259,7 @@ obj_lock_result_t obj_locker_lock_complete(obj_locker_t *locker, obj_lock_resour
 }
 
 obj_bool_t obj_locker_unlock(obj_locker_t *locker, obj_lock_resource_id_t resource_id) {
-    printf("unlock: resource_id = %lu\n", resource_id);
+    /* printf("unlock: resource_id = %lu\n", resource_id); */
     obj_prealloc_map_entry_t *entry = NULL;
     entry = obj_prealloc_map_find(&locker->request_map, &resource_id);
     if (entry == NULL) {
@@ -274,4 +280,40 @@ static obj_bool_t obj_locker_unlock_internal(obj_locker_t *locker, obj_prealloc_
         return true;
     }
     return false;
+}
+
+
+/* clean requests of locker. used when a connection is closed */
+void obj_locker_clean_requests(obj_locker_t *locker) {
+    int i;
+    obj_prealloc_map_entry_t *entry = NULL, *next_entry = NULL;
+    obj_prealloc_map_t *map = &locker->request_map;
+    obj_lock_resource_id_t resource_id;
+    obj_lock_request_t *request;
+    for (i = 0; i < map->bucket_size; i++) {
+        entry = map->bucket[i];
+        while (entry) {
+            resource_id = *((obj_lock_resource_id_t *)obj_prealloc_map_get_key(map, entry));
+            request = (obj_lock_request_t *)obj_prealloc_map_get_value(map, entry);
+            /* unlock all requests */
+            obj_lock_remove_request(g_lock_manager, request);
+            entry = entry->next;
+        }
+    }
+    /* remove all entries in map */
+    for (i = 0; i < map->bucket_size; i++) {
+        entry = map->bucket[i];
+        if (entry == NULL) {
+            continue;
+        }
+        while (entry) {
+            next_entry = entry->next;
+            obj_prealloc_map_free_key(map, entry);
+            obj_prealloc_map_free_value(map, entry);
+            obj_free(entry);
+            entry = next_entry;
+        }
+        map->bucket[i] = NULL;
+    }
+    map->size = 0;
 }

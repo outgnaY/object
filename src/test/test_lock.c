@@ -84,6 +84,8 @@ void *fn1_time(void *arg) {
     result = obj_global_lock_unlock(&global_lock1);
     printf("th1 global_lock1 unlock result = %d\n", result);
     */
+    obj_locker_clean_requests(locker);
+    obj_locker_destroy(locker);
     return NULL;
 }
 
@@ -123,7 +125,6 @@ int main() {
     arg1.locker = locker1;
     arg2.tv = &tv2;
     arg2.locker = locker2;
-
     pthread_t tid1, tid2;
     gettimeofday(&tv, NULL);
     tv1.tv_sec = tv.tv_sec + 5;
@@ -138,8 +139,8 @@ int main() {
     pthread_create(&tid2, NULL, fn2_time, &arg2);
     pthread_join(tid1, NULL);
     pthread_join(tid2, NULL);
-
     obj_lock_dump_lock_manager(g_lock_manager);
-
+    obj_lock_cleanup_unused_locks(g_lock_manager);
+    obj_global_lock_manager_destroy();
     return 0;
 }

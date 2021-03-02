@@ -40,7 +40,7 @@ obj_lock_result_t obj_locker_lock(obj_locker_t *locker, obj_lock_resource_id_t r
 obj_lock_result_t obj_locker_lock_begin(obj_locker_t *locker, obj_lock_resource_id_t resource_id, obj_lock_mode_t mode);
 obj_lock_result_t obj_locker_lock_complete(obj_locker_t *locker, obj_lock_resource_id_t resource_id, obj_lock_mode_t mode, obj_abs_time_msecond deadline, obj_bool_t check_deadlock);
 obj_bool_t obj_locker_unlock(obj_locker_t *locker, obj_lock_resource_id_t resource_id);
-
+void obj_locker_clean_requests(obj_locker_t *locker);
 
 
 #endif  /* OBJ_LOCKER_H */

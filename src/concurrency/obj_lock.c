@@ -386,6 +386,38 @@ void obj_lock_downgrade(obj_lock_manager_t *lock_manager, obj_lock_request_t *re
     pthread_mutex_unlock(&bucket->mutex);
 }
 
+/* remove a request */
+void obj_lock_remove_request(obj_lock_manager_t *lock_manager, obj_lock_request_t *request) {
+    obj_lock_head_t *lock_head = request->lock_head;
+    obj_assert(lock_head);
+    obj_lock_bucket_t *bucket = obj_lock_manager_get_bucket(lock_manager, lock_head->resource_id);
+    obj_assert(bucket);
+    pthread_mutex_lock(&bucket->mutex);
+    if (request->status == OBJ_LOCK_REQUEST_STATUS_GRANTED) {
+        OBJ_EMBEDDED_LIST_REMOVE(list, lock_head->granted_list, request);
+        obj_lock_decr_granted_mode_count(lock_head, request->mode);
+        if (request->compatible_first) {
+            obj_assert(lock_head->compatible_first_count > 0);
+            lock_head->compatible_first_count--;
+            obj_assert(lock_head->compatible_first_count == 0 || !OBJ_EMBEDDED_LIST_IS_EMPTY(lock_head->granted_list));
+        }
+        /* if granted list is empty now, check conflict queue */
+        obj_lock_on_lock_mode_changed(lock_manager, lock_head, lock_head->granted_count[request->mode] == 0);
+    } else if (request->status == OBJ_LOCK_REQUEST_STATUS_WAITING) {
+        OBJ_EMBEDDED_LIST_REMOVE(list, lock_head->conflict_list, request);
+        obj_lock_decr_conflict_mode_count(lock_head, request->mode);
+        /* check conflict queue */
+        obj_lock_on_lock_mode_changed(lock_manager, lock_head, true);
+    } else if (request->status == OBJ_LOCK_REQUEST_STATUS_CONVERTING) {
+        lock_head->conversion_count--;
+        obj_lock_decr_granted_mode_count(lock_head, request->convert_mode);
+        obj_lock_on_lock_mode_changed(lock_manager, lock_head, lock_head->granted_count[request->convert_mode] == 0);
+    } else {
+        obj_assert(0);
+    }
+    pthread_mutex_unlock(&bucket->mutex);
+}
+
 /* unlock */
 obj_bool_t obj_lock_unlock(obj_lock_manager_t *lock_manager, obj_lock_request_t *request) {
     obj_assert(request->recursive_count > 0);
@@ -409,7 +441,7 @@ obj_bool_t obj_lock_unlock(obj_lock_manager_t *lock_manager, obj_lock_request_t 
             obj_assert(lock_head->compatible_first_count == 0 || !OBJ_EMBEDDED_LIST_IS_EMPTY(lock_head->granted_list));
         }
         /* if granted list is empty now, check conflict queue */
-        printf("mode: %d, granted count %d\n", request->mode, lock_head->granted_count[request->mode]);
+        /* printf("mode: %d, granted count %d\n", request->mode, lock_head->granted_count[request->mode]); */
         obj_lock_on_lock_mode_changed(lock_manager, lock_head, lock_head->granted_count[request->mode] == 0);
     } else if (request->status == OBJ_LOCK_REQUEST_STATUS_WAITING) {
         obj_assert(request->recursive_count == 0);
@@ -432,7 +464,7 @@ obj_bool_t obj_lock_unlock(obj_lock_manager_t *lock_manager, obj_lock_request_t 
         obj_assert(0);
     }
     pthread_mutex_unlock(&bucket->mutex);
-    return request->recursive_count > 0;
+    return request->recursive_count == 0;
 }
 
 obj_lock_head_t *obj_lock_find_or_insert(obj_lock_bucket_t *bucket, obj_lock_resource_id_t resource_id) {
@@ -537,6 +569,7 @@ void obj_lock_cleanup_unused_locks_in_bucket(obj_lock_bucket_t *bucket) {
         while (entry != NULL) {
             lock_head = *((obj_lock_head_t **)obj_prealloc_map_get_value(map, entry));
             if (lock_head->granted_mode == 0) {
+                /* unused */
                 obj_assert(lock_head->granted_mode == 0);
                 obj_assert(OBJ_EMBEDDED_LIST_IS_EMPTY(lock_head->granted_list));
                 obj_assert(lock_head->conflict_mode == 0);
@@ -551,6 +584,7 @@ void obj_lock_cleanup_unused_locks_in_bucket(obj_lock_bucket_t *bucket) {
                 }
                 obj_lock_lock_head_destroy(lock_head);
                 obj_free(entry);
+                map->size--;
             }
             prev_entry = entry;
             entry = entry->next;
@@ -681,7 +715,6 @@ obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *noti
 
 /* notify all waiters */
 void obj_lock_grant_notify_notify(obj_lock_grant_notify_t *notify, obj_lock_result_t result) {
-    printf("notify\n");
     pthread_mutex_lock(&notify->mutex);
     notify->result = result;
     pthread_cond_signal(&notify->cond);

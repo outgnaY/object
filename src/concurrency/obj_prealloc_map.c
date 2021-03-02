@@ -44,6 +44,11 @@ void obj_prealloc_map_destroy_static(obj_prealloc_map_t *map) {
     if (map->bucket == NULL) {
         return;
     }
+    /* fast path */
+    if (map->size == 0) {
+        obj_free(map->bucket);
+        return;
+    }
     int i;
     obj_prealloc_map_entry_t *entry = NULL, *next_entry = NULL;
     for (i = 0; i < map->bucket_size; i++) {
@@ -185,7 +190,6 @@ obj_prealloc_map_error_code_t obj_prealloc_map_add(obj_prealloc_map_t *map, void
 }
 
 void obj_prealloc_map_delete_entry(obj_prealloc_map_t *map, obj_prealloc_map_entry_t *entry) {
-    printf("delete entry\n");
     obj_assert(entry);
     int index;
     void *key = obj_prealloc_map_get_key(map, entry);
@@ -270,15 +274,7 @@ obj_prealloc_map_entry_t *obj_prealloc_map_find(obj_prealloc_map_t *map, void *k
 
 /* for check */
 obj_bool_t obj_prealloc_map_is_empty(obj_prealloc_map_t *map) {
-    int i;
-    obj_prealloc_map_entry_t *entry;
-    for (i = 0; i < map->bucket_size; i++) {
-        entry = map->bucket[i];
-        if (entry) {
-            return false;
-        }
-    }
-    return true;
+    return map->size == 0;
 }
 
 void obj_prealloc_map_default_key_free(void *key) {
