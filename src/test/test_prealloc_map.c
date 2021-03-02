@@ -55,7 +55,7 @@ static void obj_resource_id_request_map_value_set(void *data, void *value) {
 static void obj_resource_id_request_map_key_dump(void *key) {
     obj_lock_resource_id_t resource_id;
     resource_id = *((obj_lock_resource_id_t *)key);
-    printf("%llu", resource_id);
+    printf("%lu", resource_id);
 }
 
 int main() {

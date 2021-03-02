@@ -30,6 +30,7 @@ obj_bool_t obj_prealloc_map_init(obj_prealloc_map_t *map, obj_prealloc_map_metho
     map->bucket_size = OBJ_PREALLOC_MAP_BUCKET_INIT_SIZE;
     map->size = 0;
     map->methods = methods;
+    map->element_size = element_size;
     map->bucket = (obj_prealloc_map_entry_t **)obj_alloc(map->bucket_size * sizeof(obj_prealloc_map_entry_t *));
     if (map->bucket == NULL) {
         return false;
@@ -179,18 +180,19 @@ obj_prealloc_map_error_code_t obj_prealloc_map_add(obj_prealloc_map_t *map, void
     /* set key and value */
     obj_prealloc_map_set_key(map, entry, key);
     obj_prealloc_map_set_value(map, entry, value);
+    printf("entry = %p\n", entry);
     ++map->size;
     return OBJ_PREALLOC_MAP_CODE_OK;
 }
 
 void obj_prealloc_map_delete_entry(obj_prealloc_map_t *map, obj_prealloc_map_entry_t *entry) {
+    printf("delete entry\n");
     obj_assert(entry);
     int index;
     void *key = obj_prealloc_map_get_key(map, entry);
     obj_uint64_t hash;
     hash = obj_prealloc_map_hash_key(map, key);
     index = obj_prealloc_map_index(hash, map->bucket_size);
-    
     if (map->bucket[index] == entry) {
         map->bucket[index] = entry->next;
         goto free;
@@ -204,10 +206,12 @@ free:
     obj_prealloc_map_free_key(map, entry);
     obj_prealloc_map_free_value(map, entry);
     obj_free(entry);
+    map->size--;
     return;
 }
 
 obj_prealloc_map_error_code_t obj_prealloc_map_delete(obj_prealloc_map_t *map, void *key, obj_bool_t nofree) {
+    printf("delete\n");
     obj_prealloc_map_entry_t *entry, *prev_entry;
     obj_uint64_t hash;
     int index;
@@ -299,6 +303,7 @@ void obj_prealloc_map_dump(obj_prealloc_map_t *map) {
     obj_prealloc_map_entry_t *entry;
     void *key, *value;
     printf("********** map **********\n");
+    printf("map: %p, size: %d\n", map, map->size);
     for (i = 0; i < map->bucket_size; i++) {
         printf("bucket [%d]:\n", i);
         entry = map->bucket[i];

@@ -23,12 +23,12 @@ struct obj_prealloc_map_methods_s {
     void *(*value_dup)(const void *value);
     */
     int (*key_compare)(const void *key1, const void *key2);
-    void (*key_free)(void *key);
-    void (*value_free)(void *value);
+    void (*key_free)(void *data);
+    void (*value_free)(void *data);
     void *(*key_get)(void *data);
     void *(*value_get)(void *data);
     void (*key_set)(void *data, void *key);
-    void (*value_set)(void *data, void *key);
+    void (*value_set)(void *data, void *value);
     void (*key_dump)(void *key);
     void (*value_dump)(void *value);
 };

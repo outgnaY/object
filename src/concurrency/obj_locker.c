@@ -174,6 +174,7 @@ obj_lock_result_t obj_locker_lock_begin(obj_locker_t *locker, obj_lock_resource_
     obj_prealloc_map_entry_t *entry = NULL;
     entry = obj_prealloc_map_find(&locker->request_map, &resource_id);
     if (entry == NULL) {
+        printf("new request, resource_id = %lu\n", resource_id);
         entry = obj_prealloc_map_add_key(&locker->request_map, &resource_id);
         if (entry == NULL) {
             /* out of memory */
@@ -182,8 +183,8 @@ obj_lock_result_t obj_locker_lock_begin(obj_locker_t *locker, obj_lock_resource_
             request = (obj_lock_request_t *)obj_prealloc_map_get_value(&locker->request_map, entry);
             obj_lock_request_init(request, locker, &locker->notify);
         }
-        
     } else {
+        printf("old request, resource_id = %lu\n", resource_id);
         /* already have the request */
         request = (obj_lock_request_t *)obj_prealloc_map_get_value(&locker->request_map, entry);
         is_new = false;
