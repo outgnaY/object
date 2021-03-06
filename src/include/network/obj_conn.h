@@ -13,6 +13,7 @@ typedef enum obj_conn_write_result obj_conn_write_result_t;
 typedef struct obj_conn_queue_item_s obj_conn_queue_item_t;
 typedef struct obj_conn_queue_s obj_conn_queue_t;
 /* connection */
+typedef struct obj_conn_context_s obj_conn_context_t;
 typedef struct obj_conn_s obj_conn_t;
 typedef struct obj_conn_reply_block_s obj_conn_reply_block_t;
 
@@ -58,6 +59,10 @@ struct obj_conn_queue_s {
     pthread_mutex_t lock;
 };
 
+struct obj_conn_context_s {
+    obj_locker_t *locker;
+};
+
 /* an established thread */
 struct obj_conn_s {
     int sfd;                                    /* socket fd */
@@ -72,6 +77,7 @@ struct obj_conn_s {
     obj_bool_t close_after_write;               /* close the connection after write */
     obj_list_t *reply_list;                     /* reply send to client */
     obj_conn_t *next;                           /* used to generate a list of conn structures */
+    obj_conn_context_t *context;                /* context of current connection */
 };
 
 /* content of reply list */
@@ -93,6 +99,8 @@ obj_conn_queue_item_t *obj_conn_queue_pop(obj_conn_queue_t *cq);
 void obj_conn_queue_free_item(obj_conn_queue_item_t *item);
 obj_bool_t obj_conn_add_reply(obj_conn_t *c, obj_msg_reply_t *reply);
 void obj_conn_conns_init();
+obj_conn_context_t *obj_conn_context_create();
+void obj_conn_context_destroy(obj_conn_context_t *context);
 obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short event_flags, struct event_base *base);
 void obj_conn_dispatch_conn_new(int sfd, obj_conn_state_t init_state, int event_flags);
 void obj_conn_accept_new_conns(const obj_bool_t do_accept);

@@ -53,6 +53,7 @@
 #include "util/obj_string.h"
 #include "util/obj_rbtree.h"
 #include "util/obj_object_pool.h"
+#include "util/obj_stringdata.h"
 /* bson */
 #include "bson/obj_bson.h"
 #include "bson/obj_bson_iter.h"
@@ -65,23 +66,23 @@
 #include "expr/obj_expr_parse.h"
 #include "expr/obj_expr_optimize.h"
 
-/* network */
-#include "network/obj_proto.h"
-#include "network/obj_buffer.h"
-#include "network/obj_conn.h"
-#include "obj_thread.h"
-
 /* concurrency */
 #include "concurrency/obj_prealloc_map.h"
 #include "concurrency/obj_lock.h" 
 #include "concurrency/obj_locker.h"
 #include "concurrency/obj_concurrency.h"
 
+/* network */
+#include "network/obj_proto.h"
+#include "network/obj_buffer.h"
+#include "network/obj_conn.h"
+#include "obj_thread.h"
+
+
 /* storage */
-/*
-#include "storage/obj_engine.h"
+#include "storage/v1/obj_v1_record_store.h"
+#include "storage/v1/obj_v1_catalog.h"
 #include "storage/v1/obj_v1_engine.h"
-*/
 
 /* client library */
 #include "client/obj_client.h"

@@ -11,7 +11,7 @@ static void obj_resource_id_request_map_key_set(void *data, void *key);
 static void obj_resource_id_request_map_value_set(void *data, void *value);
 static obj_bool_t obj_locker_unlock_internal(obj_locker_t *locker, obj_prealloc_map_entry_t *entry);
 
-static obj_prealloc_map_methods_t obj_resource_id_request_map_methods = {
+static obj_prealloc_map_methods_t methods = {
     obj_resource_id_request_map_hash_func,         
     obj_resource_id_request_map_key_compare,
     NULL,
@@ -136,7 +136,7 @@ obj_locker_t *obj_locker_create() {
 obj_bool_t obj_locker_init(obj_locker_t *locker) {
     obj_assert(locker);
     obj_lock_grant_notify_init(&locker->notify);
-    if (!obj_prealloc_map_init(&locker->request_map, &obj_resource_id_request_map_methods, sizeof(obj_resource_id_request_pair_t))) {
+    if (!obj_prealloc_map_init(&locker->request_map, &methods, sizeof(obj_resource_id_request_pair_t))) {
         return false;
     }
     locker->deadlock_timeout = s_obj_locker_default_deadlock_timeout;

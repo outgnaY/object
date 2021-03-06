@@ -30,7 +30,7 @@ static void obj_lock_decr_conflict_mode_count(obj_lock_head_t *lock_head, obj_lo
 static obj_lock_resource_id_t obj_lock_resource_id_fullhash(obj_lock_resource_type_t type, obj_uint64_t hash);
 static void obj_lock_dump_bucket(obj_lock_bucket_t *bucket);
 
-static obj_prealloc_map_methods_t obj_resource_id_lock_head_map_methods = {
+static obj_prealloc_map_methods_t methods = {
     obj_resource_id_lock_head_map_hash_func,
     obj_resource_id_lock_head_map_key_compare,
     NULL,
@@ -186,7 +186,7 @@ void obj_global_lock_manager_destroy() {
 static obj_bool_t obj_lock_bucket_init(obj_lock_bucket_t *bucket) {
     obj_assert(bucket);
     pthread_mutex_init(&bucket->mutex, NULL);
-    if (!obj_prealloc_map_init(&bucket->map, &obj_resource_id_lock_head_map_methods, sizeof(obj_resource_id_lock_head_pair_t))) {
+    if (!obj_prealloc_map_init(&bucket->map, &methods, sizeof(obj_resource_id_lock_head_pair_t))) {
         return false;
     }
     return true;

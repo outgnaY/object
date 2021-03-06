@@ -547,11 +547,30 @@ void obj_conn_conns_init() {
     }
 }
 
+obj_conn_context_t *obj_conn_context_create() {
+    obj_conn_context_t *context = obj_alloc(sizeof(obj_conn_context_t));
+    if (context == NULL) {
+        return NULL;
+    }
+    context->locker = obj_locker_create();
+    if (context->locker == NULL) {
+        obj_free(context);
+        return NULL;
+    }
+    return context;
+}
+
+void obj_conn_context_destroy(obj_conn_context_t *context) {
+    obj_locker_destroy(context->locker);
+    obj_free(context);
+}
+
 obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short event_flags, struct event_base *base) {
     obj_conn_t *c = NULL;
     obj_buffer_t *inbuf = NULL;
     obj_buffer_t *outbuf = NULL;
     obj_list_t *reply_list = NULL;
+    obj_conn_context_t *context = NULL;
     obj_assert(sfd >= 0 && sfd < obj_conn_max_fds);
     c = obj_conn_conns[sfd];
     if (c == NULL) {
@@ -584,6 +603,11 @@ obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short
         goto clean;
     }
     c->reply_list = reply_list;
+    context = obj_conn_context_create();
+    if (context == NULL) {
+        fprintf(stderr, "failed to create connection context\n");
+        goto clean;
+    }
     event_set(&c->event, sfd, event_flags, obj_conn_event_handler, (void *)c);
     event_base_set(base, &c->event);
     c->event_flags = event_flags;
@@ -604,6 +628,9 @@ clean:
     }
     if (reply_list != NULL) {
         obj_list_destroy(reply_list);
+    }
+    if (context != NULL) {
+        obj_conn_context_destroy(context);
     }
     return NULL;
 }

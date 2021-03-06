@@ -13,10 +13,12 @@ void *fn1(void *arg) {
     obj_db_lock_t db_lock1;
     obj_collection_lock_t collection_lock1;
     obj_lock_result_t result;
+    obj_stringdata_t db = {"db1", 3};
+    obj_stringdata_t collection = {"db1.coll1", 9};
     
     obj_global_lock_init(&global_lock1, locker, OBJ_LOCK_MODE_IS);
-    obj_db_lock_init(&db_lock1, locker, OBJ_LOCK_MODE_IS, "db1", 3);
-    obj_collection_lock_init(&collection_lock1, locker, OBJ_LOCK_MODE_X, "db1.coll1", 9);
+    obj_db_lock_init(&db_lock1, locker, OBJ_LOCK_MODE_IS, &db);
+    obj_collection_lock_init(&collection_lock1, locker, OBJ_LOCK_MODE_X, &collection);
     
     result = obj_global_lock_lock(&global_lock1);
     printf("th1 global_lock1 lock result = %d\n", result);
@@ -42,10 +44,12 @@ void *fn2(void *arg) {
     obj_db_lock_t db_lock2;
     obj_collection_lock_t collection_lock2;
     obj_lock_result_t result;
+    obj_stringdata_t db = {"db1", 3};
+    obj_stringdata_t collection = {"db1.coll2", 9};
 
     obj_global_lock_init(&global_lock2, locker, OBJ_LOCK_MODE_IX);
-    obj_db_lock_init(&db_lock2, locker, OBJ_LOCK_MODE_IX, "db1", 3);
-    obj_collection_lock_init(&collection_lock2, locker, OBJ_LOCK_MODE_S, "db1.coll2", 9);
+    obj_db_lock_init(&db_lock2, locker, OBJ_LOCK_MODE_IX, &db);
+    obj_collection_lock_init(&collection_lock2, locker, OBJ_LOCK_MODE_S, &collection);
 
     result = obj_global_lock_lock(&global_lock2);
     printf("th2 global_lock2 lock result = %d\n", result);
@@ -70,9 +74,9 @@ void *fn1_time(void *arg) {
     obj_global_lock_t global_lock1;
     obj_db_lock_t db_lock1;
     obj_lock_result_t result;
-    
+    obj_stringdata_t db = {"db1", 3};
     obj_global_lock_init(&global_lock1, locker, OBJ_LOCK_MODE_IS);
-    obj_db_lock_init(&db_lock1, locker, OBJ_LOCK_MODE_IX, "db1", 3);
+    obj_db_lock_init(&db_lock1, locker, OBJ_LOCK_MODE_IX, &db);
 
     result = obj_global_lock_lock(&global_lock1);
     printf("th1 global_lock1 lock result = %d\n", result);
@@ -95,10 +99,11 @@ void *fn2_time(void *arg) {
     obj_global_lock_t global_lock2;
     obj_db_lock_t db_lock2;
     obj_lock_result_t result;
+    obj_stringdata_t db = {"db1", 3};
     obj_abs_time_msecond deadline = tv->tv_sec * 1000 + tv->tv_usec / 1000;
 
     obj_global_lock_init(&global_lock2, locker, OBJ_LOCK_MODE_IX);
-    obj_db_lock_init_with_deadline(&db_lock2, locker, OBJ_LOCK_MODE_X, "db1", 3, deadline);
+    obj_db_lock_init_with_deadline(&db_lock2, locker, OBJ_LOCK_MODE_X, &db, deadline);
 
     result = obj_global_lock_lock(&global_lock2);
     printf("th2 global_lock2 lock result = %d\n", result);

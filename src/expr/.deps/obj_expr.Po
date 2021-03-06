@@ -111,15 +111,16 @@ expr/obj_expr.o: expr/obj_expr.c /usr/include/stdc-predef.h \
  include/util/obj_list.h include/util/obj_math.h include/util/obj_sds.h \
  include/util/obj_status_with.h include/util/obj_string.h \
  include/util/obj_rbtree.h include/util/obj_object_pool.h \
- include/bson/obj_bson.h include/bson/obj_bson_iter.h \
- include/bson/obj_bson_validate.h include/bson/obj_bson_visit.h \
- include/bson/obj_bson_bcon.h include/expr/obj_expr.h \
- include/expr/obj_expr_parse.h include/expr/obj_expr_optimize.h \
- include/network/obj_proto.h include/network/obj_buffer.h \
- include/network/obj_conn.h include/obj_thread.h include/obj_core.h \
- include/concurrency/obj_prealloc_map.h include/concurrency/obj_lock.h \
- include/concurrency/obj_locker.h include/concurrency/obj_concurrency.h \
- include/client/obj_client.h include/obj.h
+ include/util/obj_stringdata.h include/bson/obj_bson.h \
+ include/bson/obj_bson_iter.h include/bson/obj_bson_validate.h \
+ include/bson/obj_bson_visit.h include/bson/obj_bson_bcon.h \
+ include/expr/obj_expr.h include/expr/obj_expr_parse.h \
+ include/expr/obj_expr_optimize.h include/concurrency/obj_prealloc_map.h \
+ include/concurrency/obj_lock.h include/concurrency/obj_locker.h \
+ include/concurrency/obj_concurrency.h include/network/obj_proto.h \
+ include/network/obj_buffer.h include/network/obj_conn.h \
+ include/obj_thread.h include/obj_core.h include/client/obj_client.h \
+ include/obj.h
 
 /usr/include/stdc-predef.h:
 
@@ -427,6 +428,8 @@ include/util/obj_rbtree.h:
 
 include/util/obj_object_pool.h:
 
+include/util/obj_stringdata.h:
+
 include/bson/obj_bson.h:
 
 include/bson/obj_bson_iter.h:
@@ -443,6 +446,14 @@ include/expr/obj_expr_parse.h:
 
 include/expr/obj_expr_optimize.h:
 
+include/concurrency/obj_prealloc_map.h:
+
+include/concurrency/obj_lock.h:
+
+include/concurrency/obj_locker.h:
+
+include/concurrency/obj_concurrency.h:
+
 include/network/obj_proto.h:
 
 include/network/obj_buffer.h:
@@ -452,14 +463,6 @@ include/network/obj_conn.h:
 include/obj_thread.h:
 
 include/obj_core.h:
-
-include/concurrency/obj_prealloc_map.h:
-
-include/concurrency/obj_lock.h:
-
-include/concurrency/obj_locker.h:
-
-include/concurrency/obj_concurrency.h:
 
 include/client/obj_client.h:
 

@@ -8,7 +8,7 @@ static void obj_resource_id_request_map_key_set(void *data, void *key);
 static void obj_resource_id_request_map_value_set(void *data, void *value);
 static void obj_resource_id_request_map_key_dump(void *key);
 
-static obj_prealloc_map_methods_t obj_resource_id_request_map_methods = {
+static obj_prealloc_map_methods_t methods = {
     obj_resource_id_request_map_hash_func,         
     obj_resource_id_request_map_key_compare,
     NULL,
@@ -63,7 +63,7 @@ int main() {
     obj_prealloc_map_t map;
     int i;
     obj_prealloc_map_entry_t *entry = NULL;
-    obj_prealloc_map_init(&map, &obj_resource_id_request_map_methods, sizeof(obj_resource_id_request_pair_t));
+    obj_prealloc_map_init(&map, &methods, sizeof(obj_resource_id_request_pair_t));
     /* add */
     obj_lock_resource_id_t id;
     for (i = 0; i < 32; i++) {
