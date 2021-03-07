@@ -80,9 +80,14 @@
 
 
 /* storage */
+#include "storage/obj_catalog.h"
+#include "storage/obj_record_store.h"
 #include "storage/v1/obj_v1_record_store.h"
 #include "storage/v1/obj_v1_catalog.h"
 #include "storage/v1/obj_v1_engine.h"
+
+/* metadata */
+#include "metadata/obj_metadata.h"
 
 /* client library */
 #include "client/obj_client.h"

@@ -18,7 +18,10 @@ struct obj_v1_record_s {
 };
 
 struct obj_v1_record_store_s {
+    /* base type */
+    obj_record_store_t base;
     OBJ_EMBEDDED_LIST_BASE_NODE_T(obj_v1_record_t) record_list;
+    int num_records;
 };
 
 obj_v1_record_store_t *obj_v1_record_store_create();

@@ -43,7 +43,7 @@ static void *obj_db_catalog_entry_map_value_get(void *data) {
     return &pair->entry;
 }
 
-/* must copy before set key */
+/* must copy string before set key */
 static void obj_db_catalog_entry_map_key_set(void *data, void *key) {
     obj_db_catalog_pair_t *pair = (obj_db_catalog_pair_t *)data;
     obj_memcpy(&pair->db, key, sizeof(obj_stringdata_t));

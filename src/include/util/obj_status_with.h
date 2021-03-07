@@ -12,6 +12,7 @@ struct obj_status_with_s {
     obj_global_error_code_t code;
 };
 
+
 obj_bool_t obj_status_isok(obj_status_with_t *status);
 obj_status_with_t obj_status_create(void *data, const char *message, obj_global_error_code_t code);
 

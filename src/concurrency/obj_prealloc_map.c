@@ -214,7 +214,6 @@ free:
 }
 
 obj_prealloc_map_error_code_t obj_prealloc_map_delete(obj_prealloc_map_t *map, void *key, obj_bool_t nofree) {
-    printf("delete\n");
     obj_prealloc_map_entry_t *entry, *prev_entry;
     obj_uint64_t hash;
     int index;

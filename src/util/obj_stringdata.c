@@ -111,11 +111,14 @@ obj_bool_t obj_stringdata_startwith(obj_stringdata_t *stringdata, obj_stringdata
     return obj_stringdata_compare(&substr, prefix) == 0;
 }
 
-/*
-obj_namespace_string_t obj_namespace_string_create(obj_stringdata_t *stringdata) {
+/* ********** namespace string ********** */
 
+obj_namespace_string_t obj_namespace_string_create(obj_stringdata_t *stringdata) {
+    obj_namespace_string_t nss;
+    nss.str = *stringdata;
+    nss.dot_index = obj_stringdata_find(stringdata, '.', 0);
+    return nss;
 }
-*/
 
 obj_stringdata_t obj_namespace_string_get_coll(obj_namespace_string_t *nss) {
     if (nss->dot_index == obj_stringdata_invalid) {

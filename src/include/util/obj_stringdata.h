@@ -30,6 +30,8 @@ int obj_stringdata_find(obj_stringdata_t *stringdata, char c, int from_pos);
 int obj_stringdata_findstr(obj_stringdata_t *stringdata, obj_stringdata_t *target, int from_pos);
 obj_stringdata_t obj_stringdata_substr(obj_stringdata_t *stringdata, int pos, int n);
 obj_bool_t obj_stringdata_startwith(obj_stringdata_t *stringdata, obj_stringdata_t *prefix);
+
+obj_namespace_string_t obj_namespace_string_create(obj_stringdata_t *stringdata);
 obj_stringdata_t obj_namespace_string_get_coll(obj_namespace_string_t *nss);
 obj_stringdata_t obj_namespace_string_get_db(obj_namespace_string_t *nss);
 
