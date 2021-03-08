@@ -20,4 +20,7 @@ struct obj_v1_engine_s {
 
 obj_v1_engine_t *obj_v1_engine_create();
 
+/* global v1 storage engine */
+extern obj_v1_engine_t *g_v1_engine;
+
 #endif  /* OBJ_V1_ENGINE_H */

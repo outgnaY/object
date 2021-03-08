@@ -20,6 +20,7 @@ struct obj_collection_catalog_pair_s {
 
 /* database catalog entry */
 struct obj_v1_db_catalog_entry_s {
+    obj_db_catalog_entry_t base;
     /* collection catalog entries */
     obj_prealloc_map_t collections;
 };

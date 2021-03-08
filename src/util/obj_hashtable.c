@@ -104,14 +104,14 @@ obj_global_error_code_t obj_hashtable_add(obj_hashtable_t *table, void *key, voi
     entry = table->bucket[index];
     while (entry) {
         if (key == entry->key || obj_hashtable_compare_keys(table, key, entry->key) == 0) {
-            return OBJ_CODE_HASH_TABLE_DUP_KEY;
+            return OBJ_HASHTABLE_CODE_DUP_KEY;
         }
         entry = entry->next;
     }
     
     entry = obj_alloc(sizeof(obj_hashtable_entry_t));
     if (entry == NULL) {
-        return OBJ_CODE_HASH_TABLE_NOMEM;
+        return OBJ_HASHTABLE_CODE_NOMEM;
     }
     entry->next = table->bucket[index];
     table->bucket[index] = entry;
@@ -148,7 +148,7 @@ obj_global_error_code_t obj_hashtable_delete(obj_hashtable_t *table, void *key, 
         prev_entry = entry;
         entry = entry->next;
     }
-    return OBJ_CODE_HASH_TABLE_KEY_NOT_EXISTS;
+    return OBJ_HASHTABLE_CODE_KEY_NOT_EXISTS;
 }
 
 obj_hashtable_entry_t *obj_hashtable_find(obj_hashtable_t *table, void *key) {

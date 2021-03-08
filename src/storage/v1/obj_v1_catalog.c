@@ -112,7 +112,7 @@ static void obj_collection_catalog_entry_map_value_set(void *data, void *value) 
     obj_memcpy(&pair->entry, value, sizeof(obj_v1_collection_catalog_entry_t *));
 }
 
-/* database catalog entry related methods */
+/* ********** database catalog entry methods ********** */
 
 /* create database catalog entry */
 obj_v1_db_catalog_entry_t *obj_v1_catalog_db_catalog_entry_create() {
@@ -135,5 +135,10 @@ obj_v1_db_catalog_entry_t *obj_v1_catalog_db_catalog_entry_get(obj_prealloc_map_
     return db_entry;
 }
 
+obj_status_t obj_v1_catalog_db_catalog_entry_create_collection() {
+    
+}
 
+
+/* ********** collection catalog entry methods ********** */
 

@@ -7,6 +7,14 @@ typedef struct obj_hashtable_methods_s obj_hashtable_methods_t;
 typedef struct obj_hashtable_entry_s obj_hashtable_entry_t;
 typedef struct obj_hashtable_s obj_hashtable_t;
 
+enum obj_hashtable_error_code {
+    OBJ_HASHTABLE_CODE_OK = 0,
+    /* hash error code */
+    OBJ_HASHTABLE_CODE_DUP_KEY,
+    OBJ_HASHTABLE_CODE_NOMEM,
+    OBJ_HASHTABLE_CODE_KEY_NOT_EXISTS
+};
+
 /* methods */
 struct obj_hashtable_methods_s {
     obj_uint64_t (*hash_func)(const void *key);

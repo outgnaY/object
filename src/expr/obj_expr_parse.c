@@ -144,7 +144,7 @@ obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_parse_leve
     /* create $and as root */
     root = obj_expr_tree_create(OBJ_EXPR_AND);
     if (root == NULL) {
-        return obj_status_create(NULL, "can't create expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
+        return obj_status_with_create(NULL, "can't create expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
     }
     while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
         /* get value */
@@ -154,7 +154,7 @@ obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_parse_leve
             fn = obj_expr_parse_get_parser(key + 1);
             if (!fn) {
                 /* not found. return error */
-                return obj_status_create(NULL, "parser not found", OBJ_CODE_EXPR_PARSER_NOT_FOUND);
+                return obj_status_with_create(NULL, "parser not found", OBJ_CODE_EXPR_PARSER_NOT_FOUND);
             }
             status = fn(key, value, current_level);
             if (!obj_status_isok(&status)) {
@@ -162,7 +162,7 @@ obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_parse_leve
             }
             obj_assert(status.data != NULL);
             if (!obj_expr_tree_add_child(root, (obj_expr_base_t *)status.data)) {
-                return obj_status_create(root, "can't add child to expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
+                return obj_status_with_create(root, "can't add child to expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
             }
             continue;
         }
@@ -178,14 +178,14 @@ obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_parse_leve
         }
         /* example: {x: 5} */
         if (!obj_expr_parse_is_legal_compare_value(value)) {
-            return obj_status_create(root, "compare type error", OBJ_CODE_EXPR_BAD_VALUE);
+            return obj_status_with_create(root, "compare type error", OBJ_CODE_EXPR_BAD_VALUE);
         }
         obj_expr_base_t *eq = obj_expr_compare_create(key, OBJ_EXPR_EQ, value);
         if (eq == NULL) {
-            return obj_status_create(root, "can't create child expression: out of memory", OBJ_CODE_EXPR_NOMEM);
+            return obj_status_with_create(root, "can't create child expression: out of memory", OBJ_CODE_EXPR_NOMEM);
         }
         if (!obj_expr_tree_add_child(root, eq)) {
-            return obj_status_create(root, "can't add child to expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
+            return obj_status_with_create(root, "can't add child to expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
         }
     }
     /* remove useless root $and */
@@ -193,24 +193,24 @@ obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_parse_leve
         obj_expr_base_t *new_root = (obj_expr_base_t *)obj_array_get_index_value(((obj_expr_tree_t *)root)->expr_list, 0, uintptr_t);
         /* free old root */
         obj_expr_tree_destroy(root);
-        return obj_status_create(new_root, "", 0);
+        return obj_status_with_create(new_root, "", 0);
     }
-    return obj_status_create(root, "", 0);
+    return obj_status_with_create(root, "", 0);
 }
 
 /* $not */
 static obj_status_with_t obj_expr_parse_not(const char *name, const obj_bson_value_t *value, obj_expr_parse_level_t current_level) {
     if (value->type != OBJ_BSON_TYPE_OBJECT) {
-        return obj_status_create(NULL, "$not need a object", OBJ_CODE_EXPR_BAD_VALUE);
+        return obj_status_with_create(NULL, "$not need a object", OBJ_CODE_EXPR_BAD_VALUE);
     }
     obj_bson_t bson;
     obj_bson_init_static_with_len(&bson, value->value.v_object.data, value->value.v_object.len);
     if (obj_bson_is_empty(&bson)) {
-        return obj_status_create(NULL, "$not can't be empty", OBJ_CODE_EXPR_BAD_VALUE);
+        return obj_status_with_create(NULL, "$not can't be empty", OBJ_CODE_EXPR_BAD_VALUE);
     }
     obj_expr_base_t *and_expr = obj_expr_tree_create(OBJ_EXPR_AND);
     if (and_expr == NULL) {
-        return obj_status_create(NULL, "can't create $not: out of memory", OBJ_CODE_EXPR_NOMEM);
+        return obj_status_with_create(NULL, "can't create $not: out of memory", OBJ_CODE_EXPR_NOMEM);
     }
     obj_status_with_t sub_status = obj_expr_parse_sub(name, &bson, and_expr, current_level);
     if (!obj_status_isok(&sub_status)) {
@@ -221,9 +221,9 @@ static obj_status_with_t obj_expr_parse_not(const char *name, const obj_bson_val
     obj_expr_base_t *not_expr = obj_expr_not_create(and_expr);
     if (not_expr == NULL) {
         obj_expr_tree_destroy(and_expr);
-        return obj_status_create(NULL, "can't create $not: out of memory", OBJ_CODE_EXPR_NOMEM);
+        return obj_status_with_create(NULL, "can't create $not: out of memory", OBJ_CODE_EXPR_NOMEM);
     }
-    return obj_status_create(not_expr, "", 0);
+    return obj_status_with_create(not_expr, "", 0);
 }
 
 /* $or */
@@ -245,7 +245,7 @@ static obj_status_with_t obj_expr_parse_nor(const char *key, const obj_bson_valu
 static obj_status_with_t obj_expr_parse_top_level(obj_expr_type_t expr_type, const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level) {
     if (value->type != OBJ_BSON_TYPE_ARRAY) {
         /* must be an array */
-        return obj_status_create(NULL, "$or/$and/$nor must have an array of expressions as condition", OBJ_CODE_EXPR_BAD_VALUE);
+        return obj_status_with_create(NULL, "$or/$and/$nor must have an array of expressions as condition", OBJ_CODE_EXPR_BAD_VALUE);
     }
     obj_expr_base_t *temp;
     obj_bson_iter_t iter;
@@ -256,13 +256,13 @@ static obj_status_with_t obj_expr_parse_top_level(obj_expr_type_t expr_type, con
     const char *child_key;
     temp = obj_expr_tree_create(expr_type);
     if (temp == NULL) {
-        return obj_status_create(NULL, "can't create expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
+        return obj_status_with_create(NULL, "can't create expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
     }
     obj_bson_init_static_with_len(&array_bson, value->value.v_array.data, value->value.v_array.len);
     obj_bson_iter_init(&iter, &array_bson);
     while (obj_bson_iter_next_internal(&iter, &child_key, &bson_type)) {
         if (bson_type != OBJ_BSON_TYPE_OBJECT) {
-            return obj_status_create(NULL, "$or/$and/$nor entries need to be full objects", OBJ_CODE_EXPR_BAD_VALUE);
+            return obj_status_with_create(NULL, "$or/$and/$nor entries need to be full objects", OBJ_CODE_EXPR_BAD_VALUE);
         }
         /* parse children */
         child_value = (obj_bson_value_t *)obj_bson_iter_value(&iter);
@@ -273,10 +273,10 @@ static obj_status_with_t obj_expr_parse_top_level(obj_expr_type_t expr_type, con
             return sub;
         }
         if (!obj_expr_tree_add_child(temp, (obj_expr_base_t *)sub.data)) {
-            return obj_status_create(temp, "can't add child to expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
+            return obj_status_with_create(temp, "can't add child to expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
         }
     }
-    return obj_status_create(temp, "", 0);
+    return obj_status_with_create(temp, "", 0);
 }
 
 /* example: {x: {$gt: 5, $lt: 8}} */
@@ -294,10 +294,10 @@ static obj_status_with_t obj_expr_parse_sub(const char *name, obj_bson_t *bson, 
         }
         /* add child */
         if (!obj_expr_tree_add_child(root, (obj_expr_base_t *)status.data)) {
-            return obj_status_create(root, "can't add child to expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
+            return obj_status_with_create(root, "can't add child to expression tree: out of memory", OBJ_CODE_EXPR_NOMEM);
         }
     }
-    return obj_status_create(root, "", 0);
+    return obj_status_with_create(root, "", 0);
 }
 
 /**
@@ -308,7 +308,7 @@ static obj_status_with_t obj_expr_parse_sub(const char *name, obj_bson_t *bson, 
 static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *name, const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level) {
     obj_expr_type_t expr_type = obj_expr_parse_get_type(key + 1);
     if (expr_type == -1) {
-        return obj_status_create(NULL, "", OBJ_CODE_EXPR_TYPE_NOT_FOUND);
+        return obj_status_with_create(NULL, "", OBJ_CODE_EXPR_TYPE_NOT_FOUND);
     }
     obj_expr_base_t *expr;
     switch (expr_type) {
@@ -317,73 +317,73 @@ static obj_status_with_t obj_expr_parse_sub_field(obj_bson_t *bson, const char *
         }
         case OBJ_EXPR_EQ: {
             if (!obj_expr_parse_is_legal_equal_value(value)) {
-                return obj_status_create(expr, "illegal type for $eq", OBJ_CODE_EXPR_BAD_VALUE);
+                return obj_status_with_create(expr, "illegal type for $eq", OBJ_CODE_EXPR_BAD_VALUE);
             }
             expr = obj_expr_compare_create(name, OBJ_EXPR_EQ, value);
             if (expr == NULL) {
-                return obj_status_create(NULL, "can't create $eq expression: out of memory", OBJ_CODE_EXPR_NOMEM);
+                return obj_status_with_create(NULL, "can't create $eq expression: out of memory", OBJ_CODE_EXPR_NOMEM);
             }
-            return obj_status_create(expr, "", 0);
+            return obj_status_with_create(expr, "", 0);
         }
         case OBJ_EXPR_NEQ: {
             if (!obj_expr_parse_is_legal_equal_value(value)) {
-                return obj_status_create(expr, "illegal type for $neq", OBJ_CODE_EXPR_BAD_VALUE);
+                return obj_status_with_create(expr, "illegal type for $neq", OBJ_CODE_EXPR_BAD_VALUE);
             }
             obj_expr_base_t *eq = obj_expr_compare_create(name, OBJ_EXPR_EQ, value);
             if (eq == NULL) {
-                return obj_status_create(NULL, "can't create $neq expression: out of memory", OBJ_CODE_EXPR_NOMEM);
+                return obj_status_with_create(NULL, "can't create $neq expression: out of memory", OBJ_CODE_EXPR_NOMEM);
             }
             expr = obj_expr_not_create(eq);
             if (expr == NULL) {
                 obj_expr_compare_destroy(eq);
-                return obj_status_create(NULL, "can't create $neq expression: out of memory", OBJ_CODE_EXPR_NOMEM);
+                return obj_status_with_create(NULL, "can't create $neq expression: out of memory", OBJ_CODE_EXPR_NOMEM);
             }
-            return obj_status_create(expr, "", 0);
+            return obj_status_with_create(expr, "", 0);
         }
         case OBJ_EXPR_LT: {
             if (!obj_expr_parse_is_legal_compare_value(value)) {
-                return obj_status_create(expr, "illegal type for $lt", OBJ_CODE_EXPR_BAD_VALUE);
+                return obj_status_with_create(expr, "illegal type for $lt", OBJ_CODE_EXPR_BAD_VALUE);
             }
             expr = obj_expr_compare_create(name, OBJ_EXPR_LT, value);
             if (expr == NULL) {
-                return obj_status_create(NULL, "can't create $lt expression: out of memory", OBJ_CODE_EXPR_NOMEM);
+                return obj_status_with_create(NULL, "can't create $lt expression: out of memory", OBJ_CODE_EXPR_NOMEM);
             }
-            return obj_status_create(expr, "", 0);
+            return obj_status_with_create(expr, "", 0);
         }
         case OBJ_EXPR_LTE: {
             if (!obj_expr_parse_is_legal_compare_value(value)) {
-                return obj_status_create(expr, "illegal type for $lte", OBJ_CODE_EXPR_BAD_VALUE);
+                return obj_status_with_create(expr, "illegal type for $lte", OBJ_CODE_EXPR_BAD_VALUE);
             }
             expr = obj_expr_compare_create(name, OBJ_EXPR_LTE, value);
             if (expr == NULL) {
-                return obj_status_create(NULL, "can't create $lte expression: out of memory", OBJ_CODE_EXPR_NOMEM);
+                return obj_status_with_create(NULL, "can't create $lte expression: out of memory", OBJ_CODE_EXPR_NOMEM);
             }
-            return obj_status_create(expr, "", 0);
+            return obj_status_with_create(expr, "", 0);
         }
         case OBJ_EXPR_GT: {
             if (!obj_expr_parse_is_legal_compare_value(value)) {
-                return obj_status_create(expr, "illegal type for $gte", OBJ_CODE_EXPR_BAD_VALUE);
+                return obj_status_with_create(expr, "illegal type for $gte", OBJ_CODE_EXPR_BAD_VALUE);
             }
             expr = obj_expr_compare_create(name, OBJ_EXPR_GT, value);
             if (expr == NULL) {
-                return obj_status_create(NULL, "can't create $gt expression: out of memory", OBJ_CODE_EXPR_NOMEM);
+                return obj_status_with_create(NULL, "can't create $gt expression: out of memory", OBJ_CODE_EXPR_NOMEM);
             }
-            return obj_status_create(expr, "", 0);
+            return obj_status_with_create(expr, "", 0);
         }
         case OBJ_EXPR_GTE: {
             if (!obj_expr_parse_is_legal_compare_value(value)) {
-                return obj_status_create(expr, "illegal type for $gte", OBJ_CODE_EXPR_BAD_VALUE);
+                return obj_status_with_create(expr, "illegal type for $gte", OBJ_CODE_EXPR_BAD_VALUE);
             }
             expr = obj_expr_compare_create(name, OBJ_EXPR_GTE, value);
             if (expr == NULL) {
-                return obj_status_create(NULL, "can't create $gte expression: out of memory", OBJ_CODE_EXPR_NOMEM);
+                return obj_status_with_create(NULL, "can't create $gte expression: out of memory", OBJ_CODE_EXPR_NOMEM);
             }
-            return obj_status_create(expr, "", 0);
+            return obj_status_with_create(expr, "", 0);
         }
         default: 
             break;
     }
     /* should not reach here */
     obj_assert(0);
-    return obj_status_create(NULL, "", -1);
+    return obj_status_with_create(NULL, "", -1);
 }

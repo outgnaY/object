@@ -44,7 +44,7 @@
 #include "util/obj_array.h"
 #include "util/obj_atomic.h"
 #include "util/obj_endian.h"
-#include "util/obj_hash.h"
+/* #include "util/obj_hash.h" */
 #include "util/obj_hashtable.h"
 #include "util/obj_list.h"
 #include "util/obj_math.h"
@@ -82,6 +82,7 @@
 /* storage */
 #include "storage/obj_catalog.h"
 #include "storage/obj_record_store.h"
+#include "storage/obj_engine.h"
 #include "storage/v1/obj_v1_record_store.h"
 #include "storage/v1/obj_v1_catalog.h"
 #include "storage/v1/obj_v1_engine.h"
