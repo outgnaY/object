@@ -21,7 +21,9 @@ obj_stringdata_t obj_stringdata_create(char *data) {
 
 /* destroy a copied stringdata */
 void obj_stringdata_destroy(obj_stringdata_t *stringdata) {
-    obj_free(stringdata->data);
+    if (stringdata->data) {
+        obj_free(stringdata->data);
+    }
 }
 
 obj_stringdata_t obj_stringdata_copy_with_size(char *data, int size) {
@@ -118,6 +120,12 @@ obj_namespace_string_t obj_namespace_string_create(obj_stringdata_t *stringdata)
     nss.str = *stringdata;
     nss.dot_index = obj_stringdata_find(stringdata, '.', 0);
     return nss;
+}
+
+void obj_namespace_string_destroy(obj_namespace_string_t *nss) {
+    if (nss->str.data) {
+        obj_free(nss->str.data);
+    }
 }
 
 obj_stringdata_t obj_namespace_string_get_coll(obj_namespace_string_t *nss) {

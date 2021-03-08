@@ -94,8 +94,7 @@ static void obj_collection_map_key_free(void *data) {
 
 static void obj_collection_map_value_free(void *data) {
     obj_collection_pair_t *pair = (obj_collection_pair_t *)data;
-    /* TODO destroy collection handler */
-
+    obj_collection_handler_destroy(pair->collection_handler);
 }
 
 static void *obj_collection_map_key_get(void *data) {
@@ -174,17 +173,19 @@ obj_status_with_t obj_db_manager_open_db(obj_conn_context_t *context, obj_db_man
     if (entry == NULL) {
         return obj_status_with_create(NULL, "database not exists", OBJ_CODE_DB_NOT_EXISTS);
     }
-    db_handler = obj_db_handler_create(db_name, entry);
-    if (db_handler == NULL) {
-        return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
-    }
-    /* register database handler */
     /* copy string */
     obj_stringdata_t db_name_copy = obj_stringdata_copy_stringdata(db_name);
     if (db_name_copy.data == NULL) {
         return obj_status_with_create(NULL, "out of memory", OBJ_CODE_DB_NOMEM);
     }
+    db_handler = obj_db_handler_create(&db_name_copy, entry);
+    if (db_handler == NULL) {
+        obj_stringdata_destroy(&db_name_copy);
+        return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
+    }
+    /* register database handler */
     if (obj_prealloc_map_add(&db_manager->dbs, &db_name_copy, &db_handler) != OBJ_PREALLOC_MAP_CODE_OK) {
+        obj_stringdata_destroy(&db_name_copy);
         obj_db_handler_destroy(db_handler);
         return obj_status_with_create(NULL, "out of memory, can't register database handler", OBJ_CODE_DB_NOMEM);
     }
@@ -206,17 +207,19 @@ obj_status_with_t obj_db_manager_open_db_create_if_not_exists(obj_conn_context_t
     if (entry == NULL) {
         return obj_status_with_create(db_handler, "out of memory, can't create database", OBJ_CODE_DB_NOMEM);
     }
-    db_handler = obj_db_handler_create(db_name, entry);
-    if (db_handler == NULL) {
-        return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
-    }
-    /* register database handler */
     /* copy string */
     obj_stringdata_t db_name_copy = obj_stringdata_copy_stringdata(db_name);
     if (db_name_copy.data == NULL) {
         return obj_status_with_create(NULL, "out of memory", OBJ_CODE_DB_NOMEM);
     }
+    db_handler = obj_db_handler_create(&db_name_copy, entry);
+    if (db_handler == NULL) {
+        obj_stringdata_destroy(&db_name_copy);
+        return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
+    }
+    /* register database handler */
     if (obj_prealloc_map_add(&db_manager->dbs, &db_name_copy, &db_handler) != OBJ_PREALLOC_MAP_CODE_OK) {
+        obj_stringdata_destroy(&db_name_copy);
         obj_db_handler_destroy(db_handler);
         return obj_status_with_create(NULL, "out of memory, can't register database handler", OBJ_CODE_DB_NOMEM);
     }
@@ -234,11 +237,13 @@ obj_status_t obj_db_manager_close_db(obj_conn_context_t *context, obj_db_manager
     if (db_handler == NULL) {
         return obj_status_create("database not opened", OBJ_CODE_DB_NOT_OPENED);
     }
-    /* TODO close database operations */
-
-    /* delete database handler */
+    /* 1. close with database handler */
+    obj_db_handler_close_db(db_handler);
+    /* 2. unregister database handler  */
     obj_prealloc_map_delete_entry(&db_manager->dbs, entry);
-    return obj_status_create("", OBJ_CODE_OK);
+    /* 3. storage engine close database */
+    return g_engine->methods->close_database(db_name);
+    /* return obj_status_create("", OBJ_CODE_OK); */
 }
 
 /* close all databases */
@@ -246,20 +251,23 @@ obj_status_t obj_db_manager_close_all_db(obj_conn_context_t *context, obj_db_man
     int i;
     obj_prealloc_map_entry_t *entry = NULL;
     obj_db_handler_t *db_handler = NULL;
+    obj_stringdata_t *db_name = NULL;
     for (i = 0; i < db_manager->dbs.bucket_size; i++) {
         entry = db_manager->dbs.bucket[i];
         while (entry != NULL) {
+            db_name = (obj_stringdata_t *)obj_prealloc_map_get_key(&db_manager->dbs, entry);
             db_handler = *(obj_db_handler_t **)obj_prealloc_map_get_value(&db_manager->dbs, entry);
-            /* TODO close database operations */
-
+            /* 1. close with database handler */
+            obj_db_handler_close_db(db_handler);
+            /* 2. storage engine close database */
+            g_engine->methods->close_database(db_name);
             entry = entry->next;
         }
     }
-    obj_prealloc_map_destroy_static(&db_manager->dbs);
+    /* 3. unregister all database handlers */
+    obj_prealloc_map_delete_all(&db_manager->dbs);
     return obj_status_create("", OBJ_CODE_OK);
 }
-
-
 
 
 /* ********** database methods ********** */
@@ -271,6 +279,7 @@ obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db_catalo
         return NULL;
     }
     db_handler->db_entry = db_entry;
+    /* don't need to copy */
     db_handler->name = *db_name;
     if (!obj_prealloc_map_init(&db_handler->collections, &db_map_methods, sizeof(obj_db_pair_t))) {
         obj_free(db_handler);
@@ -279,60 +288,39 @@ obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db_catalo
     return db_handler;
 }
 
+/* init database handler */
+obj_bool_t obj_db_handler_init(obj_db_handler_t *db_handler) {
+    obj_array_t collections;
+    obj_stringdata_t *full_name = NULL;
+    obj_array_init(&collections, sizeof(obj_stringdata_t));
+    obj_collection_handler_t *collection_handler = NULL;
+    /* get collections */
+    db_handler->db_entry->methods->get_collections(&collections);
+    int i;
+    for (i = 0; i < collections.size; i++) {
+        full_name = (obj_stringdata_t *)obj_array_get_index(&collections, i);
+        /* copy full name */
+        obj_stringdata_t full_name_copy = obj_stringdata_copy_stringdata(full_name);
+        if (full_name_copy.data == NULL) {
+            goto clean;
+        }
+        collection_handler = obj_collection_handler_create(&full_name_copy, db_handler->db_entry);
+        /* add to map */
+        if (obj_prealloc_map_add(&db_handler->collections, &full_name_copy, &collection_handler) != OBJ_PREALLOC_MAP_CODE_OK) {
+            goto clean;
+        }
+    }
+    return true;
+clean:
+    /* clean map */
+    obj_prealloc_map_delete_all(&db_handler->collections);
+    return false;
+}
+
 /* destroy database handler */
 void obj_db_handler_destroy(obj_db_handler_t *db_handler) {
     obj_assert(db_handler);
-    obj_stringdata_destroy(&db_handler->name);
     obj_prealloc_map_destroy_static(&db_handler->collections);
-}
-
-/* remove collection handler, clean up resources */
-obj_bool_t obj_db_handler_remove_collection_handler(obj_db_handler_t *db_handler, obj_stringdata_t *full_name) {
-    obj_prealloc_map_error_code_t code = obj_prealloc_map_delete(&db_handler->collections, full_name, false);
-    return code == OBJ_PREALLOC_MAP_CODE_OK;
-}
-
-/* drop database */
-void obj_db_handler_drop_database(obj_db_handler_t *db_handler) {
-    obj_assert(db_handler);
-    /* TODO check lock state */
-
-    /* storage engine drop database */
-    g_engine->methods->drop_database(&db_handler->name);
-    /* remove from global database manager */
-    obj_db_manager_remove_db_handler(g_db_manager, &db_handler->name);
-}
-
-/*
-obj_collection_handler_t *obj_db_handler_create_collection_handler(obj_stringdata_t *collection_name) {
-
-}
-*/
-
-/* create collection. if exists, return old */
-obj_collection_handler_t *obj_db_handler_create_collection(obj_db_handler_t *db_handler, obj_stringdata_t *full_name) {
-    obj_collection_handler_t *collection_handler = obj_db_handler_get_collection_handler(db_handler, full_name);
-    if (collection_handler != NULL) {
-        return collection_handler;
-    }
-}
-/*
-obj_collection_handler_t *obj_db_handler_get_or_create_collection() {
-
-}
-*/
-obj_status_t obj_db_handler_drop_collection(obj_db_handler_t *db_handler, obj_stringdata_t *full_name) {
-    /* TODO check lock state */
-    obj_collection_handler_t *collection_handler = NULL;
-    collection_handler = obj_db_handler_get_collection_handler(db_handler, full_name);
-    if (!collection_handler) {
-        return obj_status_create("", OBJ_CODE_OK);
-    }
-    /* TODO drop indexes of the collection */
-
-    db_handler->db_entry->methods->drop_collection(full_name);
-    /* remove from database handler */
-    obj_db_handler_remove_collection_handler(db_handler, full_name);
 }
 
 /* fullname: db.coll */
@@ -345,24 +333,99 @@ static obj_collection_handler_t *obj_db_handler_get_collection_handler(obj_db_ha
     return NULL;
 }
 
+/* remove collection handler, clean up resources */
+static obj_bool_t obj_db_handler_remove_collection_handler(obj_db_handler_t *db_handler, obj_stringdata_t *full_name) {
+    obj_prealloc_map_error_code_t code = obj_prealloc_map_delete(&db_handler->collections, full_name, false);
+    return code == OBJ_PREALLOC_MAP_CODE_OK;
+}
+
+/* close database */
+void obj_db_handler_close_db(obj_db_handler_t *db_handler) {
+    /* TODO close database operations */
+}
+
+/* drop database */
+void obj_db_handler_drop_db(obj_db_handler_t *db_handler) {
+    obj_assert(db_handler);
+    /* TODO check lock state */
+
+    /* storage engine drop database */
+    g_engine->methods->drop_database(&db_handler->name);
+    /* remove from global database manager */
+    obj_db_manager_remove_db_handler(g_db_manager, &db_handler->name);
+}
+
+/* create collection if not exists */
+obj_status_with_t obj_db_handler_create_collection_if_not_exists(obj_db_handler_t *db_handler, obj_stringdata_t *full_name, obj_bool_t *create) {
+    if (create) {
+        *create = false;
+    }
+    /* check if the collection already exists */
+    obj_collection_handler_t *collection_handler = obj_db_handler_get_collection_handler(db_handler, full_name);
+    if (collection_handler != NULL) {
+        return obj_status_with_create(collection_handler, "", OBJ_CODE_OK);
+    }
+    /* create collection catalog if not exists */
+    obj_collection_catalog_entry_t *collection_entry = db_handler->db_entry->methods->create_collection_if_not_exists(full_name);
+    if (collection_entry == NULL) {
+        return obj_status_with_create(NULL, "can't create collection catalog", OBJ_CODE_DB_NOMEM);
+    }
+    obj_stringdata_t full_name_copy = obj_stringdata_copy_stringdata(full_name);
+    if (full_name_copy.data == NULL) {
+        return obj_status_with_create(NULL, "out of memory", OBJ_CODE_DB_NOMEM);
+    }
+    collection_handler = obj_collection_handler_create(&full_name_copy, db_handler->db_entry);
+    if (collection_handler == NULL) {
+        obj_stringdata_destroy(&full_name_copy);
+        return obj_status_with_create(NULL, "out of memory, can't create collection handler", OBJ_CODE_DB_NOMEM);
+    }
+    /* add to map */
+    if (obj_prealloc_map_add(&db_handler->collections, &full_name_copy, &collection_handler) != OBJ_PREALLOC_MAP_CODE_OK) {
+        obj_stringdata_destroy(&full_name_copy);
+        obj_collection_handler_destroy(collection_handler);
+        return obj_status_with_create(NULL, "out of memory, can't register collection handler", OBJ_CODE_DB_NOMEM);
+    }
+    return obj_status_with_create(collection_handler, "", OBJ_CODE_OK);
+}
+
+/* drop collection */
+obj_status_t obj_db_handler_drop_collection(obj_db_handler_t *db_handler, obj_stringdata_t *full_name) {
+    /* TODO check lock state */
+    obj_collection_handler_t *collection_handler = NULL;
+    collection_handler = obj_db_handler_get_collection_handler(db_handler, full_name);
+    /* not exists */
+    if (!collection_handler) {
+        return obj_status_create("", OBJ_CODE_OK);
+    }
+    /* TODO drop indexes of the collection */
+
+    /* 1. drop collection catalog */
+    db_handler->db_entry->methods->drop_collection(full_name);
+    /* 2. remove from database handler */
+    obj_db_handler_remove_collection_handler(db_handler, full_name);
+}
+
 
 
 /* ********** collection methods ********** */
 
 /* create collection handler */
-obj_collection_handler_t *obj_collection_handler_create(obj_stringdata_t *full_name) {
+obj_collection_handler_t *obj_collection_handler_create(obj_stringdata_t *full_name, obj_db_catalog_entry_t *db_entry) {
     obj_collection_handler_t *collection_handler = obj_alloc(sizeof(obj_collection_handler_t));
     if (collection_handler == NULL) {
         return NULL;
     }
-
+    /* don't need to copy */
+    collection_handler->nss = obj_namespace_string_create(full_name);
+    collection_handler->db_entry = db_entry;
+    collection_handler->collection_entry = db_entry->methods->get_collection(full_name);
+    collection_handler->record_store = db_entry->methods->get_record_store(full_name);
     return collection_handler;
 }
 
 /* destroy collection handler */
 void obj_collection_handler_destroy(obj_collection_handler_t *collection_handler) {
     obj_assert(collection_handler);
-
     obj_free(collection_handler);
 }
 

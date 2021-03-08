@@ -96,7 +96,8 @@ enum obj_global_error_code {
     /* database operation error code */
     OBJ_CODE_DB_NOT_EXISTS = 30001,
     OBJ_CODE_DB_NOMEM = 30002,
-    OBJ_CODE_DB_NOT_OPENED = 30003
+    OBJ_CODE_DB_NOT_OPENED = 30003,
+    OBJ_CODE_DB_COLLECTION_ALREADY_EXISTS = 30004
 };
 
 
