@@ -1,6 +1,7 @@
 #include "obj_core.h"
 
-static obj_prealloc_map_methods_t db_catalog_entry_map_methods = {
+/* ********** database catalog entry map methods ********** */
+obj_prealloc_map_methods_t db_catalog_entry_map_methods = {
     obj_db_catalog_entry_map_hash_func,
     obj_db_catalog_entry_map_key_compare,
     obj_db_catalog_entry_map_key_free,
@@ -30,7 +31,8 @@ static void obj_db_catalog_entry_map_key_free(void *data) {
 }
 
 static void obj_db_catalog_entry_map_value_free(void *data) {
-    
+    obj_db_catalog_pair_t *pair = (obj_db_catalog_pair_t *)data;
+    obj_v1_db_catalog_entry_destroy(pair->entry);
 }
 
 static void *obj_db_catalog_entry_map_key_get(void *data) {
@@ -54,6 +56,9 @@ static void obj_db_catalog_entry_map_value_set(void *data, void *value) {
     obj_memcpy(&pair->entry, value, sizeof(obj_v1_db_catalog_entry_t *));
 }
 
+
+
+/* ********** collection catalog entry map methods ********** */
 static obj_prealloc_map_methods_t collection_catalog_entry_map_methods = {
     obj_collection_catalog_entry_map_hash_func,
     obj_collection_catalog_entry_map_key_compare,
@@ -86,9 +91,7 @@ static void obj_collection_catalog_entry_map_key_free(void *data) {
 
 static void obj_collection_catalog_entry_map_value_free(void *data) {
     obj_collection_catalog_pair_t *pair = (obj_collection_catalog_pair_t *)data;
-    obj_v1_collection_catalog_entry_t *entry = pair->entry;
-    obj_v1_record_store_t *record_store =entry->record_store;
-    obj_v1_record_store_destroy(record_store);
+    obj_v1_collection_catalog_entry_destroy(pair->entry);
 }
 
 static void *obj_collecton_catalog_entry_map_key_get(void *data) {
@@ -113,32 +116,140 @@ static void obj_collection_catalog_entry_map_value_set(void *data, void *value) 
 }
 
 /* ********** database catalog entry methods ********** */
+static obj_db_catalog_entry_methods_t db_catalog_entry_methods = {
+    obj_v1_db_catalog_entry_get_collection,
+    obj_v1_db_catalog_entry_create_collection_if_not_exists,
+    obj_v1_db_catalog_entry_get_record_store,
+    obj_v1_db_catalog_entry_drop_collection,
+    obj_v1_db_catalog_entry_get_collections
+};
+
 
 /* create database catalog entry */
-obj_v1_db_catalog_entry_t *obj_v1_catalog_db_catalog_entry_create() {
-    obj_v1_db_catalog_entry_t *entry = obj_alloc(sizeof(obj_v1_db_catalog_entry_t));
-    if (entry == NULL) {
+obj_v1_db_catalog_entry_t *obj_v1_db_catalog_entry_create() {
+    obj_v1_db_catalog_entry_t *db_entry = obj_alloc(sizeof(obj_v1_db_catalog_entry_t));
+    if (db_entry == NULL) {
         return NULL;
     }
-    obj_prealloc_map_init(&entry->collections, &db_catalog_entry_map_methods, sizeof(obj_collection_catalog_pair_t));
-    return entry;
-}
-
-obj_v1_db_catalog_entry_t *obj_v1_catalog_db_catalog_entry_get(obj_prealloc_map_t *map, obj_stringdata_t *db) {
-    obj_v1_db_catalog_entry_t *db_entry = NULL;
-    obj_prealloc_map_entry_t *entry = NULL;
-    entry = obj_prealloc_map_find(map, db);
-    if (entry == NULL) {
+    db_entry->base.methods = &db_catalog_entry_methods;
+    if (!obj_prealloc_map_init(&db_entry->collections, &db_catalog_entry_map_methods, sizeof(obj_collection_catalog_pair_t))) {
+        obj_free(db_entry);
         return NULL;
     }
-    db_entry = *(obj_v1_db_catalog_entry_t **)obj_db_catalog_entry_map_value_get(entry->data);
     return db_entry;
 }
 
-obj_status_t obj_v1_catalog_db_catalog_entry_create_collection() {
-    
+/* destroy database catalog entry */
+void obj_v1_db_catalog_entry_destroy(obj_v1_db_catalog_entry_t *db_entry) {
+    obj_assert(db_entry);
+    obj_prealloc_map_destroy_static(&db_entry->collections);
 }
 
+/* get collection catalog entry */
+obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_get_collection(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
+    obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
+    obj_prealloc_map_entry_t *entry = NULL;
+    obj_v1_collection_catalog_entry_t *v1_collection_entry = NULL;
+    entry = obj_prealloc_map_find(&v1_db_entry->collections, ns);
+    if (entry == NULL) {
+        return NULL;
+    }
+    v1_collection_entry = *(obj_v1_collection_catalog_entry_t **)obj_prealloc_map_get_value(&v1_db_entry->collections, entry);
+    return (obj_collection_catalog_entry_t *)v1_collection_entry;
+}
+
+/* create collection if not exists */
+obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_create_collection_if_not_exists(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
+    obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
+    obj_prealloc_map_entry_t *entry = NULL;
+    obj_v1_collection_catalog_entry_t *v1_collection_entry = NULL;
+    entry = obj_prealloc_map_find(&v1_db_entry->collections, ns);
+    if (entry != NULL) {
+        v1_collection_entry = *(obj_v1_collection_catalog_entry_t **)obj_prealloc_map_get_value(&v1_db_entry->collections, entry);
+        return (obj_collection_catalog_entry_t *)v1_collection_entry;
+    }
+    v1_collection_entry = obj_v1_collection_catalog_entry_create(v1_db_entry);
+    if (v1_collection_entry == NULL) {
+        return NULL;
+    }
+    obj_stringdata_t ns_copy = obj_stringdata_copy_stringdata(ns);
+    if (ns_copy.data == NULL) {
+        obj_v1_collection_catalog_entry_destroy(v1_collection_entry);
+        return NULL;
+    }
+    if (obj_prealloc_map_add(&v1_db_entry->collections, &ns_copy, &v1_collection_entry) != OBJ_PREALLOC_MAP_CODE_OK) {
+        obj_stringdata_destroy(&ns_copy);
+        obj_v1_collection_catalog_entry_destroy(v1_collection_entry);
+        return NULL;
+    }
+    return (obj_collection_catalog_entry_t *)v1_collection_entry;
+}
+
+/* get record store */
+obj_record_store_t *obj_v1_db_catalog_entry_get_record_store(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
+    obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
+    obj_prealloc_map_entry_t *entry = NULL;
+    obj_v1_collection_catalog_entry_t *v1_collection_entry = NULL;
+    entry = obj_prealloc_map_find(&v1_db_entry->collections, ns);
+    if (entry == NULL) {
+        return NULL;
+    }
+    v1_collection_entry = *(obj_v1_collection_catalog_entry_t **)obj_prealloc_map_get_value(&v1_db_entry->collections, entry);
+    return (obj_record_store_t *)v1_collection_entry->record_store;
+}
+
+/* drop collection */
+obj_status_t obj_v1_db_catalog_entry_drop_collection(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
+    obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
+    /* remove from map, clean resources */
+    obj_prealloc_map_delete(&v1_db_entry->collections, ns, false);
+    return obj_status_create("", OBJ_CODE_OK);
+}
+
+/* get collections */
+void obj_v1_db_catalog_entry_get_collections(obj_db_catalog_entry_t *db_entry, obj_array_t *array) {
+    obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
+    int i;
+    obj_prealloc_map_entry_t *entry = NULL;
+    obj_stringdata_t *ns = NULL;
+    for (i = 0; i < v1_db_entry->collections.bucket_size; i++) {
+        entry = v1_db_entry->collections.bucket[i];
+        while (entry != NULL) {
+            ns = (obj_stringdata_t *)obj_prealloc_map_get_key(&v1_db_entry->collections, entry);
+            if (!obj_array_push_back(array, ns)) {
+                obj_array_empty(array);
+                return;
+            }
+            entry = entry->next;
+        }
+    }
+}
 
 /* ********** collection catalog entry methods ********** */
 
+static obj_collection_catalog_entry_methods_t collection_catalog_entry_methods = {
+
+};
+
+/* create collection catalog entry */
+obj_v1_collection_catalog_entry_t *obj_v1_collection_catalog_entry_create(obj_v1_db_catalog_entry_t *db_entry) {
+    obj_v1_collection_catalog_entry_t *collection_entry = obj_alloc(sizeof(obj_v1_collection_catalog_entry_t));
+    if (collection_entry == NULL) {
+        return NULL;
+    }
+    collection_entry->base.methods = &collection_catalog_entry_methods;
+    collection_entry->db_entry = db_entry;
+    collection_entry->record_store = obj_v1_record_store_create();
+    if (collection_entry->record_store == NULL) {
+        obj_free(collection_entry);
+        return NULL;
+    }
+    return collection_entry;
+}
+
+/* destroy collection catalog entry */
+void obj_v1_collection_catalog_entry_destroy(obj_v1_collection_catalog_entry_t *collection_entry) {
+    obj_assert(collection_entry);
+    /* destroy record store */
+    obj_v1_record_store_destroy(collection_entry->record_store);
+}

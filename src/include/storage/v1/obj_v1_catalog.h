@@ -27,10 +27,11 @@ struct obj_v1_db_catalog_entry_s {
 
 /* collection catalog entry */
 struct obj_v1_collection_catalog_entry_s {
-    obj_v1_db_catalog_entry_t *db;
+    obj_collection_catalog_entry_t base;
+    obj_v1_db_catalog_entry_t *db_entry;
     obj_v1_record_store_t *record_store;
 };
 
-
+extern obj_prealloc_map_methods_t db_catalog_entry_map_methods;
 
 #endif  /* OBJ_V1_CATALOG_H */

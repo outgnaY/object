@@ -13,6 +13,7 @@ struct obj_db_catalog_pair_s {
 
 /* storage engine v1 */
 struct obj_v1_engine_s {
+    obj_engine_t base;
     /* database catalog entries */
     obj_prealloc_map_t map;
     /* pthread_mutex_t map_mutex; */

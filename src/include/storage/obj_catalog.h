@@ -6,6 +6,7 @@
 typedef struct obj_db_catalog_entry_s obj_db_catalog_entry_t;
 typedef struct obj_db_catalog_entry_methods_s obj_db_catalog_entry_methods_t;
 typedef struct obj_collection_catalog_entry_s obj_collection_catalog_entry_t;
+typedef struct obj_collection_catalog_entry_methods_s obj_collection_catalog_entry_methods_t;
 
 /* database catalog entry */
 struct obj_db_catalog_entry_s {
@@ -22,6 +23,10 @@ struct obj_db_catalog_entry_methods_s {
 
 /* collection catalog entry */
 struct obj_collection_catalog_entry_s {
+    obj_collection_catalog_entry_methods_t *methods;
+};
+
+struct obj_collection_catalog_entry_methods_s {
 
 };
 

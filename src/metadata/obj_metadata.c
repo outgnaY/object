@@ -129,8 +129,13 @@ void obj_global_db_manager_init() {
     }
 }
 
+/* destroy global database manager */
+void obj_global_db_manager_destroy() {
+    obj_db_manager_destroy(g_db_manager);
+}
+
 /* create database manager */
-obj_db_manager_t *obj_db_manager_create() {
+static obj_db_manager_t *obj_db_manager_create() {
     obj_db_manager_t *db_manager = NULL;
     db_manager = obj_alloc(sizeof(obj_db_manager_t));
     if (db_manager == NULL) {
@@ -141,6 +146,12 @@ obj_db_manager_t *obj_db_manager_create() {
         return NULL;
     }
     return db_manager;
+}
+
+/* destroy database manager */
+static void obj_db_manager_destroy(obj_db_manager_t *db_manager) {
+    obj_assert(db_manager);
+    obj_prealloc_map_destroy_static(&db_manager->dbs);
 }
 
 /* get database handler */
@@ -168,7 +179,7 @@ obj_status_with_t obj_db_manager_open_db(obj_conn_context_t *context, obj_db_man
     if (db_handler != NULL) {
         return obj_status_with_create(db_handler, "", OBJ_CODE_OK);
     }
-    obj_db_catalog_entry_t *entry = g_engine->methods->get_db_catalog_entry(db_name);
+    obj_db_catalog_entry_t *entry = g_engine->methods->get_db_catalog_entry(g_engine, db_name);
     /* database not exists */
     if (entry == NULL) {
         return obj_status_with_create(NULL, "database not exists", OBJ_CODE_DB_NOT_EXISTS);
@@ -203,7 +214,7 @@ obj_status_with_t obj_db_manager_open_db_create_if_not_exists(obj_conn_context_t
     if (db_handler != NULL) {
         return obj_status_with_create(db_handler, "", OBJ_CODE_OK);
     }
-    obj_db_catalog_entry_t *entry = g_engine->methods->get_or_create_db_catalog_entry(db_name, create);
+    obj_db_catalog_entry_t *entry = g_engine->methods->get_or_create_db_catalog_entry(g_engine, db_name, create);
     if (entry == NULL) {
         return obj_status_with_create(db_handler, "out of memory, can't create database", OBJ_CODE_DB_NOMEM);
     }
@@ -242,7 +253,7 @@ obj_status_t obj_db_manager_close_db(obj_conn_context_t *context, obj_db_manager
     /* 2. unregister database handler  */
     obj_prealloc_map_delete_entry(&db_manager->dbs, entry);
     /* 3. storage engine close database */
-    return g_engine->methods->close_database(db_name);
+    return g_engine->methods->close_db(g_engine, db_name);
     /* return obj_status_create("", OBJ_CODE_OK); */
 }
 
@@ -260,7 +271,7 @@ obj_status_t obj_db_manager_close_all_db(obj_conn_context_t *context, obj_db_man
             /* 1. close with database handler */
             obj_db_handler_close_db(db_handler);
             /* 2. storage engine close database */
-            g_engine->methods->close_database(db_name);
+            g_engine->methods->close_db(g_engine, db_name);
             entry = entry->next;
         }
     }
@@ -350,7 +361,7 @@ void obj_db_handler_drop_db(obj_db_handler_t *db_handler) {
     /* TODO check lock state */
 
     /* storage engine drop database */
-    g_engine->methods->drop_database(&db_handler->name);
+    g_engine->methods->drop_db(g_engine, &db_handler->name);
     /* remove from global database manager */
     obj_db_manager_remove_db_handler(g_db_manager, &db_handler->name);
 }
@@ -410,7 +421,7 @@ obj_status_t obj_db_handler_drop_collection(obj_db_handler_t *db_handler, obj_st
 /* ********** collection methods ********** */
 
 /* create collection handler */
-obj_collection_handler_t *obj_collection_handler_create(obj_stringdata_t *full_name, obj_db_catalog_entry_t *db_entry) {
+static obj_collection_handler_t *obj_collection_handler_create(obj_stringdata_t *full_name, obj_db_catalog_entry_t *db_entry) {
     obj_collection_handler_t *collection_handler = obj_alloc(sizeof(obj_collection_handler_t));
     if (collection_handler == NULL) {
         return NULL;
@@ -424,7 +435,7 @@ obj_collection_handler_t *obj_collection_handler_create(obj_stringdata_t *full_n
 }
 
 /* destroy collection handler */
-void obj_collection_handler_destroy(obj_collection_handler_t *collection_handler) {
+static void obj_collection_handler_destroy(obj_collection_handler_t *collection_handler) {
     obj_assert(collection_handler);
     obj_free(collection_handler);
 }
