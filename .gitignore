@@ -41,6 +41,8 @@ autom4te.cache
 /src/network/.dirstamp
 /src/storage/.deps
 /src/storage/.dirstamp
+/src/storage/v1/.deps
+/src/storage/v1/.dirstamp
 /src/test/.deps
 /src/test/.dirstamp
 /src/util/.deps
