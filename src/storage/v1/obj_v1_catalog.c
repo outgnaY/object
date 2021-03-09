@@ -1,5 +1,31 @@
 #include "obj_core.h"
 
+static obj_uint64_t obj_db_catalog_entry_map_hash_func(const void *key);
+static int obj_db_catalog_entry_map_key_compare(const void *key1, const void *key2);
+static void obj_db_catalog_entry_map_key_free(void *data);
+static void obj_db_catalog_entry_map_value_free(void *data);
+static void *obj_db_catalog_entry_map_key_get(void *data);
+static void *obj_db_catalog_entry_map_value_get(void *data);
+static void obj_db_catalog_entry_map_key_set(void *data, void *key);
+static void obj_db_catalog_entry_map_value_set(void *data, void *value);
+
+static obj_uint64_t obj_collection_catalog_entry_map_hash_func(const void *key);
+static int obj_collection_catalog_entry_map_key_compare(const void *key1, const void *key2);
+static void obj_collection_catalog_entry_map_key_free(void *data);
+static void obj_collection_catalog_entry_map_value_free(void *data);
+static void *obj_collecton_catalog_entry_map_key_get(void *data);
+static void *obj_collection_catalog_entry_map_value_get(void *data);
+static void obj_collection_catalog_entry_map_key_set(void *data, void *key);
+static void obj_collection_catalog_entry_map_value_set(void *data, void *value);
+
+static obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_get_collection(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns);
+static obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_create_collection_if_not_exists(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns);
+static obj_record_store_t *obj_v1_db_catalog_entry_get_record_store(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns);
+static obj_status_t obj_v1_db_catalog_entry_drop_collection(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns);
+static void obj_v1_db_catalog_entry_get_collections(obj_db_catalog_entry_t *db_entry, obj_array_t *array);
+
+
+
 /* ********** database catalog entry map methods ********** */
 obj_prealloc_map_methods_t db_catalog_entry_map_methods = {
     obj_db_catalog_entry_map_hash_func,
@@ -146,7 +172,7 @@ void obj_v1_db_catalog_entry_destroy(obj_v1_db_catalog_entry_t *db_entry) {
 }
 
 /* get collection catalog entry */
-obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_get_collection(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
+static obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_get_collection(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
     obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
     obj_prealloc_map_entry_t *entry = NULL;
     obj_v1_collection_catalog_entry_t *v1_collection_entry = NULL;
@@ -159,7 +185,7 @@ obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_get_collection(obj_db_ca
 }
 
 /* create collection if not exists */
-obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_create_collection_if_not_exists(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
+static obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_create_collection_if_not_exists(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
     obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
     obj_prealloc_map_entry_t *entry = NULL;
     obj_v1_collection_catalog_entry_t *v1_collection_entry = NULL;
@@ -186,7 +212,7 @@ obj_collection_catalog_entry_t *obj_v1_db_catalog_entry_create_collection_if_not
 }
 
 /* get record store */
-obj_record_store_t *obj_v1_db_catalog_entry_get_record_store(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
+static obj_record_store_t *obj_v1_db_catalog_entry_get_record_store(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
     obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
     obj_prealloc_map_entry_t *entry = NULL;
     obj_v1_collection_catalog_entry_t *v1_collection_entry = NULL;
@@ -199,7 +225,7 @@ obj_record_store_t *obj_v1_db_catalog_entry_get_record_store(obj_db_catalog_entr
 }
 
 /* drop collection */
-obj_status_t obj_v1_db_catalog_entry_drop_collection(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
+static obj_status_t obj_v1_db_catalog_entry_drop_collection(obj_db_catalog_entry_t *db_entry, obj_stringdata_t *ns) {
     obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
     /* remove from map, clean resources */
     obj_prealloc_map_delete(&v1_db_entry->collections, ns, false);
@@ -207,7 +233,7 @@ obj_status_t obj_v1_db_catalog_entry_drop_collection(obj_db_catalog_entry_t *db_
 }
 
 /* get collections */
-void obj_v1_db_catalog_entry_get_collections(obj_db_catalog_entry_t *db_entry, obj_array_t *array) {
+static void obj_v1_db_catalog_entry_get_collections(obj_db_catalog_entry_t *db_entry, obj_array_t *array) {
     obj_v1_db_catalog_entry_t *v1_db_entry = (obj_v1_db_catalog_entry_t *)db_entry;
     int i;
     obj_prealloc_map_entry_t *entry = NULL;
@@ -253,3 +279,4 @@ void obj_v1_collection_catalog_entry_destroy(obj_v1_collection_catalog_entry_t *
     /* destroy record store */
     obj_v1_record_store_destroy(collection_entry->record_store);
 }
+

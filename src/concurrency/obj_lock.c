@@ -180,6 +180,7 @@ static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager) {
 void obj_global_lock_manager_destroy() {
     obj_assert(g_lock_manager);
     obj_lock_manager_destroy(g_lock_manager);
+    g_lock_manager = NULL;
 }
 
 /* init a lock bucket */

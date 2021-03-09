@@ -32,6 +32,13 @@ struct obj_v1_collection_catalog_entry_s {
     obj_v1_record_store_t *record_store;
 };
 
+/* export */
 extern obj_prealloc_map_methods_t db_catalog_entry_map_methods;
+
+obj_v1_db_catalog_entry_t *obj_v1_db_catalog_entry_create();
+void obj_v1_db_catalog_entry_destroy(obj_v1_db_catalog_entry_t *db_entry);
+
+obj_v1_collection_catalog_entry_t *obj_v1_collection_catalog_entry_create(obj_v1_db_catalog_entry_t *db_entry);
+void obj_v1_collection_catalog_entry_destroy(obj_v1_collection_catalog_entry_t *collection_entry);
 
 #endif  /* OBJ_V1_CATALOG_H */

@@ -20,4 +20,7 @@ struct obj_engine_methods_s {
 /* global storage engine */
 extern obj_engine_t *g_engine;
 
+void obj_global_engine_init();
+void obj_global_engine_destroy();
+
 #endif  /* OBJ_ENGINE_H */

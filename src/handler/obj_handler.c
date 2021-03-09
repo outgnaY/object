@@ -3,117 +3,150 @@
 
 obj_db_manager_t *g_db_manager;
 
+static obj_uint64_t obj_db_handler_map_hash_func(const void *key);
+static int obj_db_handler_map_key_compare(const void *key1, const void *key2);
+static void obj_db_handler_map_key_free(void *data);
+static void obj_db_handler_map_value_free(void *data);
+static void *obj_db_handler_map_key_get(void *data);
+static void *obj_db_handler_map_value_get(void *data);
+static void obj_db_handler_map_key_set(void *data, void *key);
+static void obj_db_handler_map_value_set(void *data, void *value);
+
+static obj_uint64_t obj_collection_handler_map_hash_func(const void *key);
+static int obj_collection_handler_map_key_compare(const void *key1, const void *key2);
+static void obj_collection_handler_map_key_free(void *data);
+static void obj_collection_handler_map_value_free(void *data);
+static void *obj_collection_handler_map_key_get(void *data);
+static void *obj_collection_handler_map_value_get(void *data);
+static void obj_collection_handler_map_key_set(void *data, void *key);
+static void obj_collection_handler_map_value_set(void *data, void *value);
+
+static obj_db_manager_t *obj_db_manager_create();
+static void obj_db_manager_destroy(obj_db_manager_t *db_manager);
+static obj_db_handler_t *obj_db_manager_get_db_handler(obj_db_manager_t *db_manager, obj_stringdata_t *db_name);
+static obj_bool_t obj_db_manager_remove_db_handler(obj_db_manager_t *db_manager, obj_stringdata_t *db_name);
+
+static obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db_catalog_entry_t *db_entry);
+static obj_bool_t obj_db_handler_init(obj_db_handler_t *db_handler);
+static void obj_db_handler_destroy(obj_db_handler_t *db_handler);
+static obj_collection_handler_t *obj_db_handler_get_collection_handler(obj_db_handler_t *db_handler, obj_stringdata_t *full_name);
+static obj_bool_t obj_db_handler_remove_collection_handler(obj_db_handler_t *db_handler, obj_stringdata_t *full_name);
+
+static obj_collection_handler_t *obj_collection_handler_create(obj_stringdata_t *full_name, obj_db_catalog_entry_t *db_entry);
+static void obj_collection_handler_destroy(obj_collection_handler_t *collection_handler);
+
+
 /* ********** database map methods ********** */
 
-static obj_prealloc_map_methods_t db_map_methods = {
-    obj_db_map_hash_func,
-    obj_db_map_key_compare,
-    obj_db_map_key_free,
-    obj_db_map_value_free,
-    obj_db_map_key_get,
-    obj_db_map_value_get,
-    obj_db_map_key_set,
-    obj_db_map_value_set,
+static obj_prealloc_map_methods_t db_handler_map_methods = {
+    obj_db_handler_map_hash_func,
+    obj_db_handler_map_key_compare,
+    obj_db_handler_map_key_free,
+    obj_db_handler_map_value_free,
+    obj_db_handler_map_key_get,
+    obj_db_handler_map_value_get,
+    obj_db_handler_map_key_set,
+    obj_db_handler_map_value_set,
     NULL,
     NULL
 };
 
-static obj_uint64_t obj_db_map_hash_func(const void *key) {
+static obj_uint64_t obj_db_handler_map_hash_func(const void *key) {
     obj_stringdata_t *db = (obj_stringdata_t *)key;
     return obj_prealloc_map_hash_function(db->data, db->size);
 }
 
-static int obj_db_map_key_compare(const void *key1, const void *key2) {
+static int obj_db_handler_map_key_compare(const void *key1, const void *key2) {
     obj_stringdata_t *db1 = (obj_stringdata_t *)key1;
     obj_stringdata_t *db2 = (obj_stringdata_t *)key2;
     return obj_stringdata_compare(db1, db2);
 }
 
-static void obj_db_map_key_free(void *data) {
+static void obj_db_handler_map_key_free(void *data) {
     obj_db_pair_t *pair = (obj_db_pair_t *)data;
     obj_stringdata_destroy(&pair->db);
 }
 
-static void obj_db_map_value_free(void *data) {
+static void obj_db_handler_map_value_free(void *data) {
     obj_db_pair_t *pair = (obj_db_pair_t *)data;
     /* TODO destroy database handler */
     obj_db_handler_destroy(pair->db_handler);
 }
 
-static void *obj_db_map_key_get(void *data) {
+static void *obj_db_handler_map_key_get(void *data) {
     obj_db_pair_t *pair = (obj_db_pair_t *)data;
     return &pair->db;
 }
 
-static void *obj_db_map_value_get(void *data) {
+static void *obj_db_handler_map_value_get(void *data) {
     obj_db_pair_t *pair = (obj_db_pair_t *)data;
     return &pair->db_handler;
 }
 
 /* must copy string before set key */
-static void obj_db_map_key_set(void *data, void *key) {
+static void obj_db_handler_map_key_set(void *data, void *key) {
     obj_db_pair_t *pair = (obj_db_pair_t *)data;
     obj_memcpy(&pair->db, key, sizeof(obj_stringdata_t));
 }
 
-static void obj_db_map_value_set(void *data, void *value) {
+static void obj_db_handler_map_value_set(void *data, void *value) {
     obj_db_pair_t *pair = (obj_db_pair_t *)data;
     obj_memcpy(&pair->db_handler, value, sizeof(obj_db_handler_t *));
 }
 
 /* ********** collection map methods ********** */
 
-static obj_prealloc_map_methods_t collection_map_methods = {
-    obj_collection_map_hash_func,
-    obj_collection_map_key_compare,
-    obj_collection_map_key_free,
-    obj_collection_map_value_free,
-    obj_collection_map_key_get,
-    obj_collection_map_value_get,
-    obj_collection_map_key_set,
-    obj_collection_map_value_set,
+static obj_prealloc_map_methods_t collection_handler_map_methods = {
+    obj_collection_handler_map_hash_func,
+    obj_collection_handler_map_key_compare,
+    obj_collection_handler_map_key_free,
+    obj_collection_handler_map_value_free,
+    obj_collection_handler_map_key_get,
+    obj_collection_handler_map_value_get,
+    obj_collection_handler_map_key_set,
+    obj_collection_handler_map_value_set,
     NULL,
     NULL
 };
 
-static obj_uint64_t obj_collection_map_hash_func(const void *key) {
+static obj_uint64_t obj_collection_handler_map_hash_func(const void *key) {
     obj_stringdata_t *collection = (obj_stringdata_t *)key;
     return obj_prealloc_map_hash_function(collection->data, collection->size);
 }
 
-static int obj_collection_map_key_compare(const void *key1, const void *key2) {
+static int obj_collection_handler_map_key_compare(const void *key1, const void *key2) {
     obj_stringdata_t *collection1 = (obj_stringdata_t *)key1;
     obj_stringdata_t *collection2 = (obj_stringdata_t *)key2;
     return obj_stringdata_compare(collection1, collection2);
 }
 
-static void obj_collection_map_key_free(void *data) {
+static void obj_collection_handler_map_key_free(void *data) {
     obj_collection_pair_t *pair = (obj_collection_pair_t *)data;
     obj_stringdata_destroy(&pair->collection);
 }
 
-static void obj_collection_map_value_free(void *data) {
+static void obj_collection_handler_map_value_free(void *data) {
     obj_collection_pair_t *pair = (obj_collection_pair_t *)data;
     obj_collection_handler_destroy(pair->collection_handler);
 }
 
-static void *obj_collection_map_key_get(void *data) {
+static void *obj_collection_handler_map_key_get(void *data) {
     obj_collection_pair_t *pair = (obj_collection_pair_t *)data;
     return &pair->collection;
 }
 
-static void *obj_collection_map_value_get(void *data) {
+static void *obj_collection_handler_map_value_get(void *data) {
     obj_collection_pair_t *pair = (obj_collection_pair_t *)data;
     return &pair->collection_handler;
 }
 
 /* must copy string before set key */
-static void obj_collection_map_key_set(void *data, void *key) {
+static void obj_collection_handler_map_key_set(void *data, void *key) {
     obj_collection_pair_t *pair = (obj_collection_pair_t *)data;
     obj_memcpy(&pair->collection, key, sizeof(obj_stringdata_t));
 }
 
-static void obj_collection_map_value_set(void *data, void *value) {
+static void obj_collection_handler_map_value_set(void *data, void *value) {
     obj_collection_pair_t *pair = (obj_collection_pair_t *)data;
     obj_memcpy(&pair->collection_handler, value, sizeof(obj_collection_handler_t *));
 }
@@ -141,7 +174,7 @@ static obj_db_manager_t *obj_db_manager_create() {
     if (db_manager == NULL) {
         return NULL;
     }
-    if (!obj_prealloc_map_init(&db_manager->dbs, &db_map_methods, sizeof(obj_db_pair_t))) {
+    if (!obj_prealloc_map_init(&db_manager->dbs, &db_handler_map_methods, sizeof(obj_db_pair_t))) {
         obj_free(db_manager);
         return NULL;
     }
@@ -190,6 +223,7 @@ obj_status_with_t obj_db_manager_open_db(obj_conn_context_t *context, obj_db_man
         return obj_status_with_create(NULL, "out of memory", OBJ_CODE_DB_NOMEM);
     }
     db_handler = obj_db_handler_create(&db_name_copy, entry);
+    obj_db_handler_init(db_handler);
     if (db_handler == NULL) {
         obj_stringdata_destroy(&db_name_copy);
         return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
@@ -224,6 +258,7 @@ obj_status_with_t obj_db_manager_open_db_create_if_not_exists(obj_conn_context_t
         return obj_status_with_create(NULL, "out of memory", OBJ_CODE_DB_NOMEM);
     }
     db_handler = obj_db_handler_create(&db_name_copy, entry);
+    obj_db_handler_init(db_handler);
     if (db_handler == NULL) {
         obj_stringdata_destroy(&db_name_copy);
         return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
@@ -284,7 +319,7 @@ obj_status_t obj_db_manager_close_all_db(obj_conn_context_t *context, obj_db_man
 /* ********** database methods ********** */
 
 /* create database handler */
-obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db_catalog_entry_t *db_entry) {
+static obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db_catalog_entry_t *db_entry) {
     obj_db_handler_t *db_handler = obj_alloc(sizeof(obj_db_handler_t));
     if (db_handler == NULL) {
         return NULL;
@@ -292,7 +327,7 @@ obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db_catalo
     db_handler->db_entry = db_entry;
     /* don't need to copy */
     db_handler->name = *db_name;
-    if (!obj_prealloc_map_init(&db_handler->collections, &db_map_methods, sizeof(obj_db_pair_t))) {
+    if (!obj_prealloc_map_init(&db_handler->collections, &db_handler_map_methods, sizeof(obj_db_pair_t))) {
         obj_free(db_handler);
         return NULL;
     }
@@ -300,7 +335,7 @@ obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db_catalo
 }
 
 /* init database handler */
-obj_bool_t obj_db_handler_init(obj_db_handler_t *db_handler) {
+static obj_bool_t obj_db_handler_init(obj_db_handler_t *db_handler) {
     obj_array_t collections;
     obj_stringdata_t *full_name = NULL;
     obj_array_init(&collections, sizeof(obj_stringdata_t));
@@ -329,7 +364,7 @@ clean:
 }
 
 /* destroy database handler */
-void obj_db_handler_destroy(obj_db_handler_t *db_handler) {
+static void obj_db_handler_destroy(obj_db_handler_t *db_handler) {
     obj_assert(db_handler);
     obj_prealloc_map_destroy_static(&db_handler->collections);
 }
@@ -441,28 +476,37 @@ static void obj_collection_handler_destroy(obj_collection_handler_t *collection_
 }
 
 /* insert object */
+/*
 void obj_collection_handler_insert_object(obj_collection_handler_t *collection_handler) {
 
 }
+*/
 
 /* insert objects */
+/*
 void obj_collection_handler_insert_objects(obj_collection_handler_t *collection_handler) {
 
 }
+*/
 
 /* delete objects */
+/*
 void obj_collection_handler_delete_object(obj_collection_handler_t *collection_handler) {
 
 }
+*/
 
 /* update object */
+/*
 void obj_collection_handler_update_object(obj_collection_handler_t *collection_handler) {
 
 }
+*/
 
 /* number of records */
+/*
 int obj_collection_handler_num_records(obj_collection_handler_t *collection_handler) {
     obj_record_store_t *record_store = collection_handler->record_store;
     return record_store->methods->num_records(record_store);
 }
-
+*/

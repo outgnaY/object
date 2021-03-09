@@ -24,4 +24,7 @@ obj_v1_engine_t *obj_v1_engine_create();
 /* global v1 storage engine */
 extern obj_v1_engine_t *g_v1_engine;
 
+void obj_global_v1_engine_init();
+void obj_global_v1_engine_destroy();
+
 #endif  /* OBJ_V1_ENGINE_H */

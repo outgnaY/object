@@ -1,5 +1,5 @@
-#ifndef OBJ_PREALLOC_MAP
-#define OBJ_PREALLOC_MAP
+#ifndef OBJ_PREALLOC_MAP_H
+#define OBJ_PREALLOC_MAP_H
 
 #include "obj_core.h"
 
@@ -99,4 +99,4 @@ void obj_prealloc_map_dump(obj_prealloc_map_t *map);
 } while(0) \
 
 
-#endif  /* OBJ_PREALLOC_MAP */
+#endif  /* OBJ_PREALLOC_MAP_H */

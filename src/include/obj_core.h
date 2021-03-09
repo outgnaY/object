@@ -45,6 +45,7 @@
 #include "util/obj_atomic.h"
 #include "util/obj_endian.h"
 /* #include "util/obj_hash.h" */
+#include "util/obj_prealloc_map.h"
 #include "util/obj_hashtable.h"
 #include "util/obj_list.h"
 #include "util/obj_math.h"
@@ -67,7 +68,6 @@
 #include "expr/obj_expr_optimize.h"
 
 /* concurrency */
-#include "concurrency/obj_prealloc_map.h"
 #include "concurrency/obj_lock.h" 
 #include "concurrency/obj_locker.h"
 #include "concurrency/obj_concurrency.h"
@@ -87,8 +87,8 @@
 #include "storage/v1/obj_v1_catalog.h"
 #include "storage/v1/obj_v1_engine.h"
 
-/* metadata */
-#include "metadata/obj_metadata.h"
+/* database/collection operation handler */
+#include "handler/obj_handler.h"
 
 /* client library */
 #include "client/obj_client.h"
