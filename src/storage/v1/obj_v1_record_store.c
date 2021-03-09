@@ -1,7 +1,7 @@
 #include "obj_core.h"
 
-static obj_record_store_methods_t methods = {
-    obj_V1_record_store_record_num_records
+static obj_record_store_methods_t record_store_methods = {
+    obj_v1_record_store_num_records
 };
 
 /* create a record store */
@@ -16,6 +16,7 @@ obj_v1_record_store_t *obj_v1_record_store_create() {
 }
 
 void obj_v1_record_store_init(obj_v1_record_store_t *record_store) {
+    record_store->base.methods = &record_store_methods;
     OBJ_EMBEDDED_LIST_INIT(record_store->record_list);
     record_store->num_records = 0;
 }
@@ -47,7 +48,7 @@ void obj_v1_record_store_record_destroy(obj_v1_record_t *record) {
 }
 
 /* number of records */
-int obj_V1_record_store_record_num_records(obj_record_store_t *record_store) {
+int obj_v1_record_store_num_records(obj_record_store_t *record_store) {
     obj_v1_record_store_t *v1_record_store = (obj_v1_record_store_t *)record_store;
     return v1_record_store->num_records;
 }

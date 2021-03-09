@@ -13,7 +13,7 @@ static obj_uint64_t obj_collection_catalog_entry_map_hash_func(const void *key);
 static int obj_collection_catalog_entry_map_key_compare(const void *key1, const void *key2);
 static void obj_collection_catalog_entry_map_key_free(void *data);
 static void obj_collection_catalog_entry_map_value_free(void *data);
-static void *obj_collecton_catalog_entry_map_key_get(void *data);
+static void *obj_collection_catalog_entry_map_key_get(void *data);
 static void *obj_collection_catalog_entry_map_value_get(void *data);
 static void obj_collection_catalog_entry_map_key_set(void *data, void *key);
 static void obj_collection_catalog_entry_map_value_set(void *data, void *value);
@@ -90,7 +90,7 @@ static obj_prealloc_map_methods_t collection_catalog_entry_map_methods = {
     obj_collection_catalog_entry_map_key_compare,
     obj_collection_catalog_entry_map_key_free,
     obj_collection_catalog_entry_map_value_free,
-    obj_collecton_catalog_entry_map_key_get,
+    obj_collection_catalog_entry_map_key_get,
     obj_collection_catalog_entry_map_value_get,
     obj_collection_catalog_entry_map_key_set,
     obj_collection_catalog_entry_map_value_set,
@@ -120,7 +120,7 @@ static void obj_collection_catalog_entry_map_value_free(void *data) {
     obj_v1_collection_catalog_entry_destroy(pair->entry);
 }
 
-static void *obj_collecton_catalog_entry_map_key_get(void *data) {
+static void *obj_collection_catalog_entry_map_key_get(void *data) {
     obj_collection_catalog_pair_t *pair = (obj_collection_catalog_pair_t *)data;
     return &pair->collection;
 }
@@ -158,7 +158,7 @@ obj_v1_db_catalog_entry_t *obj_v1_db_catalog_entry_create() {
         return NULL;
     }
     db_entry->base.methods = &db_catalog_entry_methods;
-    if (!obj_prealloc_map_init(&db_entry->collections, &db_catalog_entry_map_methods, sizeof(obj_collection_catalog_pair_t))) {
+    if (!obj_prealloc_map_init(&db_entry->collections, &collection_catalog_entry_map_methods, sizeof(obj_collection_catalog_pair_t))) {
         obj_free(db_entry);
         return NULL;
     }

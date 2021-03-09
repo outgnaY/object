@@ -49,7 +49,7 @@ static obj_v1_engine_t *obj_v1_engine_create() {
 /* destroy storage engine v1 */
 static void obj_v1_engine_destroy(obj_v1_engine_t *engine) {
     obj_assert(engine);
-    obj_prealloc_map_destroy(&engine->map);
+    obj_prealloc_map_destroy_static(&engine->map);
     obj_free(engine);
 }
 

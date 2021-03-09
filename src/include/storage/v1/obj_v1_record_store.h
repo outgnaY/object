@@ -29,6 +29,7 @@ void obj_v1_record_store_init(obj_v1_record_store_t *record_store);
 void obj_v1_record_store_destroy(obj_v1_record_store_t *record_store);
 obj_v1_record_t *obj_v1_record_store_record_create(obj_bson_t *bson);
 void obj_v1_record_store_record_destroy(obj_v1_record_t *record);
+int obj_v1_record_store_num_records(obj_record_store_t *record_store);
 obj_v1_record_t *obj_v1_record_store_get_next_record(obj_v1_record_t *record);
 obj_v1_record_t *obj_v1_record_store_get_prev_record(obj_v1_record_t *record);
 void obj_v1_record_store_add_record_last(obj_v1_record_store_t *record_store, obj_v1_record_t *record);

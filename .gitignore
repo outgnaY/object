@@ -31,6 +31,8 @@ autom4te.cache
 /src/bson/.dirstamp
 /src/concurrency/.deps
 /src/concurrency/.dirstamp
+/src/handler/.deps
+/src/handler/.dirstamp
 /src/expr/.deps
 /src/expr/.dirstamp
 /src/mem/.deps

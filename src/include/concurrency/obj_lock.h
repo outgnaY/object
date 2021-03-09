@@ -128,6 +128,7 @@ struct obj_lock_head_s {
 #define OBJ_LOCK_RESOURCE_TYPE_BITS 3
 
 /* globals */
+extern obj_lock_manager_t *g_lock_manager;
 extern obj_lock_resource_id_t g_resource_id_global;
 
 /* forward declaration */
