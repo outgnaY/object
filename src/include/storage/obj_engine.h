@@ -11,7 +11,7 @@ struct obj_engine_s {
 };
 
 struct obj_engine_methods_s {
-    obj_status_t (*close_db)(obj_engine_t *engine, obj_stringdata_t *db);
+    /* obj_status_t (*close_db)(obj_engine_t *engine, obj_stringdata_t *db); */
     obj_status_t (*drop_db)(obj_engine_t *engine, obj_stringdata_t *db);
     obj_db_catalog_entry_t *(*get_db_catalog_entry)(obj_engine_t *engine, obj_stringdata_t *db);
     obj_db_catalog_entry_t *(*get_or_create_db_catalog_entry)(obj_engine_t *engine, obj_stringdata_t *db, obj_bool_t *create);

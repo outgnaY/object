@@ -14,6 +14,7 @@ typedef struct obj_collection_catalog_s obj_collection_catalog_t;
 /* manage databases */
 struct obj_db_manager_s {
     obj_prealloc_map_t dbs;
+    pthread_mutex_t mutex;
 };
 
 struct obj_db_pair_s {
@@ -50,16 +51,19 @@ extern obj_db_manager_t *g_db_manager;
 
 void obj_global_db_manager_init();
 void obj_global_db_manager_destroy();
+
+void obj_db_manager_dump(obj_db_manager_t *db_manager);
 obj_status_with_t obj_db_manager_open_db(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name);
 obj_status_with_t obj_db_manager_open_db_create_if_not_exists(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name, obj_bool_t *create);
 obj_status_t obj_db_manager_close_db(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name);
-obj_status_t obj_db_manager_close_all_db(obj_conn_context_t *context, obj_db_manager_t *db_manager);
+obj_status_t obj_db_manager_close_all_dbs(obj_conn_context_t *context, obj_db_manager_t *db_manager);
+obj_status_t obj_db_manager_drop_db(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name);
 
-void obj_db_handler_close_db(obj_db_handler_t *db_handler);
-void obj_db_handler_drop_db(obj_db_handler_t *db_handler);
+void obj_db_handler_dump(obj_db_handler_t *db_handler);
 obj_status_with_t obj_db_handler_create_collection_if_not_exists(obj_db_handler_t *db_handler, obj_stringdata_t *full_name, obj_bool_t *create);
 obj_status_t obj_db_handler_drop_collection(obj_db_handler_t *db_handler, obj_stringdata_t *full_name);
 
+void obj_collection_handler_dump(obj_collection_handler_t *collection_handler);
 /*
 void obj_collection_handler_insert_object(obj_collection_handler_t *collection_handler);
 void obj_collection_handler_insert_objects(obj_collection_handler_t *collection_handler);

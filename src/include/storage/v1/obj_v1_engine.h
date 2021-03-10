@@ -10,7 +10,7 @@ struct obj_v1_engine_s {
     obj_engine_t base;
     /* database catalog entries */
     obj_prealloc_map_t map;
-    /* pthread_mutex_t map_mutex; */
+    /* pthread_mutex_t mutex; */
 };
 
 /* global v1 storage engine */

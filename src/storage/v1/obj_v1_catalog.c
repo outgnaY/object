@@ -169,6 +169,7 @@ obj_v1_db_catalog_entry_t *obj_v1_db_catalog_entry_create() {
 void obj_v1_db_catalog_entry_destroy(obj_v1_db_catalog_entry_t *db_entry) {
     obj_assert(db_entry);
     obj_prealloc_map_destroy_static(&db_entry->collections);
+    obj_free(db_entry);
 }
 
 /* get collection catalog entry */
@@ -278,5 +279,6 @@ void obj_v1_collection_catalog_entry_destroy(obj_v1_collection_catalog_entry_t *
     obj_assert(collection_entry);
     /* destroy record store */
     obj_v1_record_store_destroy(collection_entry->record_store);
+    obj_free(collection_entry);
 }
 

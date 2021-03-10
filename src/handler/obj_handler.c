@@ -31,6 +31,7 @@ static obj_bool_t obj_db_handler_init(obj_db_handler_t *db_handler);
 static void obj_db_handler_destroy(obj_db_handler_t *db_handler);
 static obj_collection_handler_t *obj_db_handler_get_collection_handler(obj_db_handler_t *db_handler, obj_stringdata_t *full_name);
 static obj_bool_t obj_db_handler_remove_collection_handler(obj_db_handler_t *db_handler, obj_stringdata_t *full_name);
+static void obj_db_handler_close_db(obj_db_handler_t *db_handler);
 
 static obj_collection_handler_t *obj_collection_handler_create(obj_stringdata_t *full_name, obj_db_catalog_entry_t *db_entry);
 static void obj_collection_handler_destroy(obj_collection_handler_t *collection_handler);
@@ -168,6 +169,25 @@ void obj_global_db_manager_destroy() {
     g_db_manager = NULL;
 }
 
+/* dump database manager */
+void obj_db_manager_dump(obj_db_manager_t *db_manager) {
+    obj_assert(db_manager);
+    int i;
+    obj_prealloc_map_entry_t *entry = NULL;
+    obj_db_handler_t *db_handler = NULL;
+    int open_dbs = 0;
+    for (i = 0; i < db_manager->dbs.bucket_size; i++) {
+        entry = db_manager->dbs.bucket[i];
+        while (entry != NULL) {
+            open_dbs++;
+            db_handler = *(obj_db_handler_t **)obj_prealloc_map_get_value(&db_manager->dbs, entry);
+            printf("********** db[%d] **********\n", open_dbs);
+            obj_db_handler_dump(db_handler);
+            entry = entry->next;
+        }
+    }
+}
+
 /* create database manager */
 static obj_db_manager_t *obj_db_manager_create() {
     obj_db_manager_t *db_manager = NULL;
@@ -179,6 +199,7 @@ static obj_db_manager_t *obj_db_manager_create() {
         obj_free(db_manager);
         return NULL;
     }
+    pthread_mutex_init(&db_manager->mutex, NULL);
     return db_manager;
 }
 
@@ -186,6 +207,7 @@ static obj_db_manager_t *obj_db_manager_create() {
 static void obj_db_manager_destroy(obj_db_manager_t *db_manager) {
     obj_assert(db_manager);
     obj_prealloc_map_destroy_static(&db_manager->dbs);
+    pthread_mutex_destroy(&db_manager->mutex);
     obj_free(db_manager);
 }
 
@@ -208,35 +230,50 @@ static obj_bool_t obj_db_manager_remove_db_handler(obj_db_manager_t *db_manager,
 
 /* open database */
 obj_status_with_t obj_db_manager_open_db(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name) {
+    pthread_mutex_lock(&db_manager->mutex);
     /* TODO check lock state. must hold database X lock */
     obj_db_handler_t *db_handler =  obj_db_manager_get_db_handler(db_manager, db_name);
     /* already opened */
     if (db_handler != NULL) {
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(db_handler, "", OBJ_CODE_OK);
     }
-    obj_db_catalog_entry_t *entry = g_engine->methods->get_db_catalog_entry(g_engine, db_name);
+    obj_db_catalog_entry_t *db_entry = g_engine->methods->get_db_catalog_entry(g_engine, db_name);
     /* database not exists */
-    if (entry == NULL) {
+    if (db_entry == NULL) {
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(NULL, "database not exists", OBJ_CODE_DB_NOT_EXISTS);
     }
     /* copy string */
     obj_stringdata_t db_name_copy = obj_stringdata_copy_stringdata(db_name);
     if (db_name_copy.data == NULL) {
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(NULL, "out of memory", OBJ_CODE_DB_NOMEM);
     }
-    db_handler = obj_db_handler_create(&db_name_copy, entry);
-    obj_db_handler_init(db_handler);
-    if (db_handler == NULL) {
+    obj_prealloc_map_entry_t *entry = NULL;
+    if ((entry = obj_prealloc_map_add_key(&db_manager->dbs, &db_name_copy)) == NULL) {
         obj_stringdata_destroy(&db_name_copy);
-        return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
-    }
-    /* register database handler */
-    if (obj_prealloc_map_add(&db_manager->dbs, &db_name_copy, &db_handler) != OBJ_PREALLOC_MAP_CODE_OK) {
-        obj_stringdata_destroy(&db_name_copy);
-        obj_db_handler_destroy(db_handler);
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(NULL, "out of memory, can't register database handler", OBJ_CODE_DB_NOMEM);
     }
+    pthread_mutex_unlock(&db_manager->mutex);
+    db_handler = obj_db_handler_create(&db_name_copy, db_entry);
+    if (db_handler == NULL) {
+        goto clean_entry;
+    }
+    if (!obj_db_handler_init(db_handler)) {
+        goto clean_entry;
+    }
+    /* register */
+    obj_db_handler_t **ptr = (obj_db_handler_t **)obj_prealloc_map_get_value(&db_manager->dbs, entry);
+    *ptr = db_handler;
     return obj_status_with_create(db_handler, "", OBJ_CODE_OK);
+clean_entry:
+    obj_stringdata_destroy(&db_name_copy);
+    pthread_mutex_lock(&db_manager->mutex);
+    obj_prealloc_map_delete_entry(&db_manager->dbs, entry);
+    pthread_mutex_unlock(&db_manager->mutex);
+    return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
 }
 
 /* open database, if not exists, create a new one */
@@ -244,14 +281,17 @@ obj_status_with_t obj_db_manager_open_db_create_if_not_exists(obj_conn_context_t
     if (create) {
         *create = false;
     }
+    pthread_mutex_lock(&db_manager->mutex);
     /* TODO check lock state. must hold database X lock */
     obj_db_handler_t *db_handler = obj_db_manager_get_db_handler(db_manager, db_name);
     /* already opened */
     if (db_handler != NULL) {
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(db_handler, "", OBJ_CODE_OK);
     }
-    obj_db_catalog_entry_t *entry = g_engine->methods->get_or_create_db_catalog_entry(g_engine, db_name, create);
-    if (entry == NULL) {
+    obj_db_catalog_entry_t *db_entry = g_engine->methods->get_or_create_db_catalog_entry(g_engine, db_name, create);
+    if (db_entry == NULL) {
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(db_handler, "out of memory, can't create database", OBJ_CODE_DB_NOMEM);
     }
     if (create) {
@@ -260,49 +300,65 @@ obj_status_with_t obj_db_manager_open_db_create_if_not_exists(obj_conn_context_t
     /* copy string */
     obj_stringdata_t db_name_copy = obj_stringdata_copy_stringdata(db_name);
     if (db_name_copy.data == NULL) {
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(NULL, "out of memory", OBJ_CODE_DB_NOMEM);
     }
-    db_handler = obj_db_handler_create(&db_name_copy, entry);
-    obj_db_handler_init(db_handler);
-    if (db_handler == NULL) {
+    obj_prealloc_map_entry_t *entry = NULL;
+    if ((entry = obj_prealloc_map_add_key(&db_manager->dbs, &db_name_copy)) == NULL) {
         obj_stringdata_destroy(&db_name_copy);
-        return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
-    }
-    /* register database handler */
-    if (obj_prealloc_map_add(&db_manager->dbs, &db_name_copy, &db_handler) != OBJ_PREALLOC_MAP_CODE_OK) {
-        obj_stringdata_destroy(&db_name_copy);
-        obj_db_handler_destroy(db_handler);
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(NULL, "out of memory, can't register database handler", OBJ_CODE_DB_NOMEM);
     }
+    pthread_mutex_unlock(&db_manager->mutex);
+    db_handler = obj_db_handler_create(&db_name_copy, db_entry);
+    if (db_handler == NULL) {
+        goto clean_entry;
+    }
+    if (!obj_db_handler_init(db_handler)) {
+        goto clean_entry;
+    }
+    /* register */
+    obj_db_handler_t **ptr = (obj_db_handler_t **)obj_prealloc_map_get_value(&db_manager->dbs, entry);
+    *ptr = db_handler;
     return obj_status_with_create(db_handler, "", OBJ_CODE_OK);
+clean_entry:
+    obj_stringdata_destroy(&db_name_copy);
+    pthread_mutex_lock(&db_manager->mutex);
+    obj_prealloc_map_delete_entry(&db_manager->dbs, entry);
+    pthread_mutex_unlock(&db_manager->mutex);
+    return obj_status_with_create(NULL, "out of memory, can't create database handler", OBJ_CODE_DB_NOMEM);
 }
 
 /* close database */
 obj_status_t obj_db_manager_close_db(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name) {
     /* TODO check lock state. must hold global X lock */
     obj_db_handler_t *db_handler = NULL;
+    pthread_mutex_lock(&db_manager->mutex);
     obj_prealloc_map_entry_t *entry = obj_prealloc_map_find(&db_manager->dbs, db_name);
     if (entry != NULL) {
         db_handler = *(obj_db_handler_t **)obj_prealloc_map_get_value(&db_manager->dbs, entry);
     }
     if (db_handler == NULL) {
+        pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_create("database not opened", OBJ_CODE_DB_NOT_OPENED);
     }
     /* 1. close with database handler */
     obj_db_handler_close_db(db_handler);
     /* 2. unregister database handler  */
     obj_prealloc_map_delete_entry(&db_manager->dbs, entry);
+    pthread_mutex_unlock(&db_manager->mutex);
     /* 3. storage engine close database */
-    return g_engine->methods->close_db(g_engine, db_name);
-    /* return obj_status_create("", OBJ_CODE_OK); */
+    /* return g_engine->methods->close_db(g_engine, db_name); */
+    return obj_status_create("", OBJ_CODE_OK);
 }
 
 /* close all databases */
-obj_status_t obj_db_manager_close_all_db(obj_conn_context_t *context, obj_db_manager_t *db_manager) {
+obj_status_t obj_db_manager_close_all_dbs(obj_conn_context_t *context, obj_db_manager_t *db_manager) {
     int i;
     obj_prealloc_map_entry_t *entry = NULL;
     obj_db_handler_t *db_handler = NULL;
     obj_stringdata_t *db_name = NULL;
+    pthread_mutex_lock(&db_manager->mutex);
     for (i = 0; i < db_manager->dbs.bucket_size; i++) {
         entry = db_manager->dbs.bucket[i];
         while (entry != NULL) {
@@ -311,17 +367,58 @@ obj_status_t obj_db_manager_close_all_db(obj_conn_context_t *context, obj_db_man
             /* 1. close with database handler */
             obj_db_handler_close_db(db_handler);
             /* 2. storage engine close database */
-            g_engine->methods->close_db(g_engine, db_name);
+            /* g_engine->methods->close_db(g_engine, db_name); */
             entry = entry->next;
         }
     }
     /* 3. unregister all database handlers */
     obj_prealloc_map_delete_all(&db_manager->dbs);
+    pthread_mutex_unlock(&db_manager->mutex);
+    return obj_status_create("", OBJ_CODE_OK);
+}
+
+/* drop database */
+obj_status_t obj_db_manager_drop_db(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name) {
+    obj_db_handler_t *db_handler = NULL;
+    pthread_mutex_lock(&db_manager->mutex);
+    obj_prealloc_map_entry_t *entry = obj_prealloc_map_find(&db_manager->dbs, db_name);
+    if (entry != NULL) {
+        db_handler = *(obj_db_handler_t **)obj_prealloc_map_get_value(&db_manager->dbs, entry);
+    }
+    if (db_handler == NULL) {
+        pthread_mutex_unlock(&db_manager->mutex);
+        return obj_status_create("database not opened", OBJ_CODE_DB_NOT_OPENED);
+    }
+    /* unregister database handler */
+    obj_prealloc_map_delete_entry(&db_manager->dbs, entry);
+    pthread_mutex_unlock(&db_manager->mutex);
+    /* storage engine drop database */
+    g_engine->methods->drop_db(g_engine, db_name);
     return obj_status_create("", OBJ_CODE_OK);
 }
 
 
-/* ********** database methods ********** */
+/* ********** database handler methods ********** */
+
+/* dump database handler */
+void obj_db_handler_dump(obj_db_handler_t *db_handler) {
+    printf("db name: %s\n", db_handler->name.data);
+    obj_assert(db_handler);
+    int i;
+    obj_prealloc_map_entry_t *entry = NULL;
+    obj_collection_handler_t *collection_handler = NULL;
+    int collection_cnt = 0;
+    for (i = 0; i < db_handler->collections.bucket_size; i++) {
+        entry = db_handler->collections.bucket[i];
+        while (entry != NULL) {
+            collection_cnt++;
+            collection_handler = *(obj_collection_handler_t **)obj_prealloc_map_get_value(&db_handler->collections, entry);
+            printf("+++ collection[%d] +++\n", collection_cnt);
+            obj_collection_handler_dump(collection_handler);
+            entry = entry->next;
+        }
+    }
+}
 
 /* create database handler */
 static obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db_catalog_entry_t *db_entry) {
@@ -392,19 +489,8 @@ static obj_bool_t obj_db_handler_remove_collection_handler(obj_db_handler_t *db_
 }
 
 /* close database */
-void obj_db_handler_close_db(obj_db_handler_t *db_handler) {
+static void obj_db_handler_close_db(obj_db_handler_t *db_handler) {
     /* TODO close database operations. e.x.: invalidate cursors */
-}
-
-/* drop database */
-void obj_db_handler_drop_db(obj_db_handler_t *db_handler) {
-    obj_assert(db_handler);
-    /* TODO check lock state */
-
-    /* storage engine drop database */
-    g_engine->methods->drop_db(g_engine, &db_handler->name);
-    /* remove from global database manager */
-    obj_db_manager_remove_db_handler(g_db_manager, &db_handler->name);
 }
 
 /* create collection if not exists */
@@ -462,7 +548,13 @@ obj_status_t obj_db_handler_drop_collection(obj_db_handler_t *db_handler, obj_st
 
 
 
-/* ********** collection methods ********** */
+/* ********** collection handler methods ********** */
+
+/* dump collection handler */
+void obj_collection_handler_dump(obj_collection_handler_t *collection_handler) {
+    obj_assert(collection_handler);
+    printf("collection name: %s\n", collection_handler->nss.str.data);
+}
 
 /* create collection handler */
 static obj_collection_handler_t *obj_collection_handler_create(obj_stringdata_t *full_name, obj_db_catalog_entry_t *db_entry) {

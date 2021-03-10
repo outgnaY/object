@@ -12,7 +12,7 @@ static obj_db_catalog_entry_t *obj_v1_engine_get_or_create_db_catalog_entry(obj_
 
 
 static obj_engine_methods_t engine_methods = {
-    obj_v1_engine_close_db,
+    /* obj_v1_engine_close_db, */
     obj_v1_engine_drop_db,
     obj_v1_engine_get_db_catalog_entry,
     obj_v1_engine_get_or_create_db_catalog_entry
@@ -43,6 +43,7 @@ static obj_v1_engine_t *obj_v1_engine_create() {
         obj_free(engine);
         return NULL;
     }
+    /* pthread_mutex_init(&engine->mutex, NULL); */
     return engine;
 }
 
@@ -50,30 +51,38 @@ static obj_v1_engine_t *obj_v1_engine_create() {
 static void obj_v1_engine_destroy(obj_v1_engine_t *engine) {
     obj_assert(engine);
     obj_prealloc_map_destroy_static(&engine->map);
+    /* pthread_mutex_destroy(&engine->mutex); */
     obj_free(engine);
 }
 
-/* close database */
+/* close database, do nothing for now */
+/*
 static obj_status_t obj_v1_engine_close_db(obj_engine_t *engine, obj_stringdata_t *db) {
     obj_v1_engine_t *v1_engine = (obj_v1_engine_t *)engine;
-
+    return obj_status_create("", OBJ_CODE_OK);
 }
+*/
 
 /* drop database */
 static obj_status_t obj_v1_engine_drop_db(obj_engine_t *engine, obj_stringdata_t *db) {
     obj_v1_engine_t *v1_engine = (obj_v1_engine_t *)engine;
+    /* pthread_mutex_lock(&v1_engine->mutex); */
     /* delete from map */
     obj_prealloc_map_delete(&v1_engine->map, db, false);
+    /* pthread_mutex_unlock(&v1_engine->mutex); */
     return obj_status_create("", OBJ_CODE_OK);
 }
 
 /* get database catalog entry */
 static obj_db_catalog_entry_t *obj_v1_engine_get_db_catalog_entry(obj_engine_t *engine, obj_stringdata_t *db) {
     obj_v1_engine_t *v1_engine = (obj_v1_engine_t *)engine;
+    /* pthread_mutex_lock(&v1_engine->mutex); */
     obj_prealloc_map_entry_t *entry = obj_prealloc_map_find(&v1_engine->map, db);
     if (entry == NULL) {
+        /* pthread_mutex_unlock(&v1_engine->mutex); */
         return NULL;
     }
+    /* pthread_mutex_unlock(&v1_engine->mutex); */
     obj_v1_db_catalog_entry_t *v1_db_catalog_entry = *(obj_v1_db_catalog_entry_t **)obj_prealloc_map_get_value(&v1_engine->map, entry);
     return (obj_db_catalog_entry_t *)v1_db_catalog_entry;
 }
@@ -81,25 +90,31 @@ static obj_db_catalog_entry_t *obj_v1_engine_get_db_catalog_entry(obj_engine_t *
 /* get or create database catalog entry */
 static obj_db_catalog_entry_t *obj_v1_engine_get_or_create_db_catalog_entry(obj_engine_t *engine, obj_stringdata_t *db, obj_bool_t *create) {
     obj_v1_engine_t *v1_engine = (obj_v1_engine_t *)engine;
+    /* pthread_mutex_lock(&v1_engine->mutex); */
     obj_prealloc_map_entry_t *entry = obj_prealloc_map_find(&v1_engine->map, db);
     obj_v1_db_catalog_entry_t *v1_db_catalog_entry = NULL;
     if (entry != NULL) {
+        /* pthread_mutex_unlock(&v1_engine->mutex); */
         v1_db_catalog_entry = *(obj_v1_db_catalog_entry_t **)obj_prealloc_map_get_value(&v1_engine->map, entry);
         return (obj_db_catalog_entry_t *)v1_db_catalog_entry;
     }
     v1_db_catalog_entry = obj_v1_db_catalog_entry_create();
     if (v1_db_catalog_entry == NULL) {
+        /* pthread_mutex_unlock(&v1_engine->mutex); */
         return NULL;
     }
     obj_stringdata_t db_copy = obj_stringdata_copy_stringdata(db);
     if (db_copy.data == NULL) {
+        /* pthread_mutex_unlock(&v1_engine->mutex); */
         obj_v1_db_catalog_entry_destroy(v1_db_catalog_entry);
         return NULL;
     }
     if (obj_prealloc_map_add(&v1_engine->map, &db_copy, &v1_db_catalog_entry) != OBJ_PREALLOC_MAP_CODE_OK) {
+        /* pthread_mutex_unlock(&v1_engine->mutex); */
         obj_stringdata_destroy(&db_copy);
         obj_v1_db_catalog_entry_destroy(v1_db_catalog_entry);
         return NULL;
     }
+    /* pthread_mutex_unlock(&v1_engine->mutex); */
     return (obj_db_catalog_entry_t *)v1_db_catalog_entry;
 }
