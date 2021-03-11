@@ -20,6 +20,12 @@ void *fn1(void *arg) {
     obj_db_lock_lock(&db_lock);
     obj_status_with_t status_with1 = obj_db_manager_open_db_create_if_not_exists(context, g_db_manager, &db_name, &just_create);
     printf("open db if not exists %s, result %d, just create %d\n", db_name.data, status_with1.code, just_create);
+    /* printf("thread1 dump1:\n"); */
+    obj_db_manager_dump(g_db_manager);
+    obj_status_t status1 = obj_db_manager_close_db(context, g_db_manager, &db_name);
+    printf("close db %s, result %d\n", db_name.data, status1.code);
+    /* printf("thread1 dump2\n"); */
+    obj_db_manager_dump(g_db_manager);
     obj_db_lock_unlock(&db_lock);
     obj_global_lock_unlock(&global_lock);
 }
@@ -28,7 +34,7 @@ void *fn2(void *arg) {
     obj_conn_context_t *context = (obj_conn_context_t *)arg;
     obj_global_lock_t global_lock;
     obj_db_lock_t db_lock;
-    obj_stringdata_t db_name = {"db1", 3};
+    obj_stringdata_t db_name = {"db2", 3};
     obj_bool_t just_create;
     int i;
     obj_global_lock_init(&global_lock, context->locker, OBJ_LOCK_MODE_IX);
@@ -37,6 +43,12 @@ void *fn2(void *arg) {
     obj_db_lock_lock(&db_lock);
     obj_status_with_t status_with1 = obj_db_manager_open_db_create_if_not_exists(context, g_db_manager, &db_name, &just_create);
     printf("open db if not exists %s, result %d, just create %d\n", db_name.data, status_with1.code, just_create);
+    /* printf("thread2 dump1:\n"); */
+    obj_db_manager_dump(g_db_manager);
+    obj_status_t status1 = obj_db_manager_close_db(context, g_db_manager, &db_name);
+    printf("close db %s, result %d\n", db_name.data, status1.code);
+    /* printf("thread2 dump2:\n"); */
+    obj_db_manager_dump(g_db_manager);
     obj_db_lock_unlock(&db_lock);
     obj_global_lock_unlock(&global_lock);
 }

@@ -172,6 +172,16 @@ void obj_global_db_manager_destroy() {
 /* dump database manager */
 void obj_db_manager_dump(obj_db_manager_t *db_manager) {
     obj_assert(db_manager);
+    pthread_mutex_lock(&db_manager->mutex);
+    printf("<< dump database manager, start >>\n");
+    if (db_manager->dbs.size == 0) {
+        printf("empty!\n");
+        printf("<< dump database manager, end >>\n");
+        pthread_mutex_unlock(&db_manager->mutex);
+        return;
+    } else {
+        printf("open dbs: %d\n", db_manager->dbs.size);
+    }
     int i;
     obj_prealloc_map_entry_t *entry = NULL;
     obj_db_handler_t *db_handler = NULL;
@@ -186,6 +196,8 @@ void obj_db_manager_dump(obj_db_manager_t *db_manager) {
             entry = entry->next;
         }
     }
+    printf("<< dump database manager, end >>\n");
+    pthread_mutex_unlock(&db_manager->mutex);
 }
 
 /* create database manager */
@@ -278,11 +290,11 @@ clean_entry:
 
 /* open database, if not exists, create a new one */
 obj_status_with_t obj_db_manager_open_db_create_if_not_exists(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name, obj_bool_t *create) {
+    /* TODO check lock state. must hold database X lock */
     if (create) {
         *create = false;
     }
     pthread_mutex_lock(&db_manager->mutex);
-    /* TODO check lock state. must hold database X lock */
     obj_db_handler_t *db_handler = obj_db_manager_get_db_handler(db_manager, db_name);
     /* already opened */
     if (db_handler != NULL) {
@@ -293,9 +305,6 @@ obj_status_with_t obj_db_manager_open_db_create_if_not_exists(obj_conn_context_t
     if (db_entry == NULL) {
         pthread_mutex_unlock(&db_manager->mutex);
         return obj_status_with_create(db_handler, "out of memory, can't create database", OBJ_CODE_DB_NOMEM);
-    }
-    if (create) {
-        *create = true;
     }
     /* copy string */
     obj_stringdata_t db_name_copy = obj_stringdata_copy_stringdata(db_name);
@@ -331,7 +340,7 @@ clean_entry:
 
 /* close database */
 obj_status_t obj_db_manager_close_db(obj_conn_context_t *context, obj_db_manager_t *db_manager, obj_stringdata_t *db_name) {
-    /* TODO check lock state. must hold global X lock */
+    /* TODO check lock state. must hold database X lock */
     obj_db_handler_t *db_handler = NULL;
     pthread_mutex_lock(&db_manager->mutex);
     obj_prealloc_map_entry_t *entry = obj_prealloc_map_find(&db_manager->dbs, db_name);
@@ -354,6 +363,7 @@ obj_status_t obj_db_manager_close_db(obj_conn_context_t *context, obj_db_manager
 
 /* close all databases */
 obj_status_t obj_db_manager_close_all_dbs(obj_conn_context_t *context, obj_db_manager_t *db_manager) {
+    /* TODO check lock state. must hold global X lock */
     int i;
     obj_prealloc_map_entry_t *entry = NULL;
     obj_db_handler_t *db_handler = NULL;

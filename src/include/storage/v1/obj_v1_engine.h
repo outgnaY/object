@@ -10,7 +10,12 @@ struct obj_v1_engine_s {
     obj_engine_t base;
     /* database catalog entries */
     obj_prealloc_map_t map;
-    /* pthread_mutex_t mutex; */
+    /* 
+     * protect map from concurrent update. 
+     * e.x.: thread1 calls open_db_create_if_not_exists, thread2 also calls open_db_create_if_not_exists.
+     * thread1 and thread2 both hold database X lock. this can't prevent thread1 and thread2 modify map concurrently
+     */
+    pthread_mutex_t mutex;
 };
 
 /* global v1 storage engine */
