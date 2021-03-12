@@ -174,7 +174,7 @@ fill_data_fields:
                 iter->off_err = off;
                 goto mark_invalid;
             }
-            iter->off_next = iter->off + 4 + bin_len;
+            iter->off_next = off + 4 + bin_len;
             break;
         }
         case OBJ_BSON_TYPE_BOOL: {

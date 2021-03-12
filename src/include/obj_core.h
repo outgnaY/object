@@ -86,6 +86,8 @@
 #include "storage/v1/obj_v1_record_store.h"
 #include "storage/v1/obj_v1_catalog.h"
 #include "storage/v1/obj_v1_engine.h"
+#include "storage/v1/index/obj_index_key.h"
+/* #include "storage/v1/index/obj_skiplist.h" */
 
 /* database/collection operation handler */
 #include "handler/obj_handler.h"

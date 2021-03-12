@@ -189,6 +189,8 @@ int main(int argc, char **argv) {
     signal(SIGINT, obj_sig_handler);
     signal(SIGTERM, obj_sig_handler);
     signal(SIGHUP, obj_sighup_handler);
+    /* set random seed */
+    srand(time(NULL));
     /* init settings */
     obj_settings_init();
     /* process arguments */

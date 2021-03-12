@@ -122,7 +122,8 @@ expr/obj_expr.o: expr/obj_expr.c /usr/include/stdc-predef.h \
  include/storage/obj_record_store.h include/storage/obj_catalog.h \
  include/storage/obj_engine.h include/storage/v1/obj_v1_record_store.h \
  include/storage/v1/obj_v1_catalog.h include/storage/v1/obj_v1_engine.h \
- include/handler/obj_handler.h include/client/obj_client.h include/obj.h
+ include/storage/v1/index/obj_index_key.h include/handler/obj_handler.h \
+ include/client/obj_client.h include/obj.h
 
 /usr/include/stdc-predef.h:
 
@@ -475,6 +476,8 @@ include/storage/v1/obj_v1_record_store.h:
 include/storage/v1/obj_v1_catalog.h:
 
 include/storage/v1/obj_v1_engine.h:
+
+include/storage/v1/index/obj_index_key.h:
 
 include/handler/obj_handler.h:
 

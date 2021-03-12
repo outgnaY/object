@@ -37,6 +37,7 @@ void obj_bson_print(obj_bson_t *bson) {
     printf("cap: %d\n", bson->cap);
     printf("depth: %d\n", bson->depth);
     printf("len: %d\n", bson->len);
+    printf("offset: %d\n", bson->offset);
 }
 
 /* init a empty bson */
