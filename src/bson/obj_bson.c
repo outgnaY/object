@@ -128,6 +128,11 @@ void obj_bson_destroy(obj_bson_t *bson) {
     }
 }
 
+/* compare bson1 and bson2 using pattern */
+int obj_bson_compare(obj_bson_t *bson1, obj_bson_t *bson2, obj_bson_t *pattern) {
+    
+}
+
 static void obj_bson_encode_length(obj_bson_t *bson) {
     obj_int32_t len = (obj_int32_t)bson->len;
 #ifdef ENDIAN_LITTLE

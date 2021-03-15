@@ -36,6 +36,7 @@ obj_bool_t obj_prealloc_map_init(obj_prealloc_map_t *map, obj_prealloc_map_metho
         return false;
     }
     obj_memset(map->bucket, 0, sizeof(obj_prealloc_map_entry_t *) * map->bucket_size);
+    printf("success\n");
     return true;
 }
 
@@ -170,7 +171,7 @@ obj_prealloc_map_error_code_t obj_prealloc_map_add(obj_prealloc_map_t *map, void
     */
     map->bucket[index] = entry;
     /* set key and value */
-    obj_prealloc_map_set_key(map, entry, key);
+    obj_prealloc_map_set_key(map, entry, key); 
     obj_prealloc_map_set_value(map, entry, value);
     ++map->size;
     return OBJ_PREALLOC_MAP_CODE_OK;

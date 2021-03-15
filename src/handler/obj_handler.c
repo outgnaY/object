@@ -450,7 +450,9 @@ static obj_db_handler_t *obj_db_handler_create(obj_stringdata_t *db_name, obj_db
 static obj_bool_t obj_db_handler_init(obj_db_handler_t *db_handler) {
     obj_array_t collections;
     obj_stringdata_t *full_name = NULL;
-    obj_array_init(&collections, sizeof(obj_stringdata_t));
+    if (!obj_array_init(&collections, sizeof(obj_stringdata_t))) {
+        return false;
+    }
     obj_collection_handler_t *collection_handler = NULL;
     /* get collections */
     db_handler->db_entry->methods->get_collections(db_handler->db_entry, &collections);

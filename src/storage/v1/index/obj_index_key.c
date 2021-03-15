@@ -5,6 +5,12 @@ static int obj_index_key_element_compare(obj_uint8_t **p1, obj_uint8_t **p2);
 
 
 /* 
+ * index key
+ * support index key element type: double, utf-8 string, binary data, int32, int64 
+ */
+
+
+/* 
  * for key pattern {a: 1, b: -1} 
  * get(0) == 1; get(1) == -1
  */

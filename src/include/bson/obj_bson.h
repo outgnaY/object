@@ -96,6 +96,8 @@ obj_bool_t obj_bson_is_empty(obj_bson_t *bson);
 
 void obj_bson_destroy(obj_bson_t *bson);
 
+int obj_bson_compare(obj_bson_t *bson1, obj_bson_t *bson2, obj_bson_t *pattern);
+
 const char *obj_bson_type_to_name(obj_bson_type_t type);
 
 obj_uint8_t *obj_bson_data(const obj_bson_t *bson);

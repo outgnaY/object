@@ -77,7 +77,11 @@ void obj_prealloc_map_dump(obj_prealloc_map_t *map);
     (key1) == (key2))
 
 #define obj_prealloc_map_set_key(map, entry, key) ((map)->methods->key_set(entry->data, key))
-#define obj_prealloc_map_set_value(map, entry, value) ((map)->methods->value_set(entry->data, value))
+#define obj_prealloc_map_set_value(map, entry, value) do { \
+    if ((map)->methods->value_set) \
+        (map)->methods->value_set(entry->data, value); \
+} while(0) \
+
 #define obj_prealloc_map_get_key(map, entry) ((map)->methods->key_get(entry->data))
 #define obj_prealloc_map_get_value(map, entry) ((map)->methods->value_get(entry->data))
 #define obj_prealloc_map_free_key(map, entry) \

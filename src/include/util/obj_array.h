@@ -34,8 +34,8 @@ struct obj_array_s {
 
 obj_array_t *obj_array_create(int element_size);
 obj_array_t *obj_array_create_size(int element_size, int size);
-obj_array_t *obj_array_init(obj_array_t *array, int element_size);
-obj_array_t *obj_array_init_size(obj_array_t *array, int element_size, int size);
+obj_bool_t obj_array_init(obj_array_t *array, int element_size);
+obj_bool_t obj_array_init_size(obj_array_t *array, int element_size, int size);
 void obj_array_destroy_static(obj_array_t *array);
 void obj_array_destroy(obj_array_t *array);
 void obj_array_empty(obj_array_t *array);
@@ -46,6 +46,6 @@ void obj_array_pop_back(obj_array_t *array);
 obj_bool_t obj_array_insert(obj_array_t *array, int index, void *element_ptr);
 void obj_array_remove(obj_array_t *array, int index);
 void obj_array_dump(obj_array_t *array, void (*cb)(obj_array_t *array));
-
+void obj_array_sort(obj_array_t *array, int (*compare)(const void *a, const void *b));
 
 #endif  /* OBJ_ARRAY_H */

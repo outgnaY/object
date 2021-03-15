@@ -55,6 +55,7 @@
 #include "util/obj_rbtree.h"
 #include "util/obj_object_pool.h"
 #include "util/obj_stringdata.h"
+#include "util/obj_set.h"
 /* bson */
 #include "bson/obj_bson.h"
 #include "bson/obj_bson_iter.h"
@@ -87,11 +88,22 @@
 #include "storage/v1/obj_v1_catalog.h"
 #include "storage/v1/obj_v1_engine.h"
 #include "storage/v1/index/obj_index_key.h"
-/* #include "storage/v1/index/obj_skiplist.h" */
+#include "storage/v1/index/obj_skiplist.h"
+#include "storage/v1/index/obj_v1_index.h"
 
-/* database/collection operation handler */
+/* operation handler */
 #include "handler/obj_handler.h"
 
+/* query */
+/*
+#include "query/obj_query_planner.h"
+*/
+/* exec */
+/*
+#include "exec/obj_plan_working_set.h"
+#include "exec/obj_plan_tree.h"
+#include "exec/obj_plan_executor.h"
+*/
 /* client library */
 #include "client/obj_client.h"
 

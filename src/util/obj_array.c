@@ -27,23 +27,23 @@ obj_array_t *obj_array_create_size(int element_size, int init_size) {
 }
 
 /* init */
-obj_array_t *obj_array_init(obj_array_t *array, int element_size) {
+obj_bool_t obj_array_init(obj_array_t *array, int element_size) {
     obj_assert(array);
     return obj_array_init_size(array, element_size, OBJ_ARRAY_INIT_SIZE_DEFAULT);
 }
 
 /* init with size */
-obj_array_t *obj_array_init_size(obj_array_t *array, int element_size, int init_size) {
+obj_bool_t obj_array_init_size(obj_array_t *array, int element_size, int init_size) {
     array->data = obj_alloc(element_size * init_size);
     if (array->data == NULL) {
-        return NULL;
+        return false;
     }
     /* array->flag = OBJ_ARRAY_FLAG_STATIC; */
     array->element_size = element_size;
     array->free = NULL;
     array->size = 0;
     array->capacity = init_size;
-    return array;
+    return true;
 }
 
 void obj_array_destroy_static(obj_array_t *array) {
@@ -161,3 +161,14 @@ void obj_array_dump(obj_array_t *array, void (*cb)(obj_array_t *array)) {
         cb(array);
     }
 }
+
+/* sort the array with given compare function */
+void obj_array_sort(obj_array_t *array, int (*compare)(const void *a, const void *b)) {
+    qsort(array->data, array->size, array->element_size, compare);
+}
+
+/*
+void obj_array_sort1(obj_array_t *array) {
+
+}
+*/
