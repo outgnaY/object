@@ -126,7 +126,7 @@ expr/obj_expr_parse.o: expr/obj_expr_parse.c /usr/include/stdc-predef.h \
  include/storage/v1/index/obj_index_key.h \
  include/storage/v1/index/obj_skiplist.h \
  include/storage/v1/index/obj_v1_index.h include/handler/obj_handler.h \
- include/client/obj_client.h include/obj.h
+ include/query/obj_query.h include/client/obj_client.h include/obj.h
 
 /usr/include/stdc-predef.h:
 
@@ -489,6 +489,8 @@ include/storage/v1/index/obj_skiplist.h:
 include/storage/v1/index/obj_v1_index.h:
 
 include/handler/obj_handler.h:
+
+include/query/obj_query.h:
 
 include/client/obj_client.h:
 

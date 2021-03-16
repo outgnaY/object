@@ -95,6 +95,7 @@
 #include "handler/obj_handler.h"
 
 /* query */
+#include "query/obj_query.h"
 /*
 #include "query/obj_query_planner.h"
 */
