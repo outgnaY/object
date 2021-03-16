@@ -27,7 +27,6 @@ struct obj_expr_parse_type_pair_s {
 };
 
 obj_status_with_t obj_expr_parse(const obj_bson_t *bson);
-obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_parse_level_t current_level);
 
 
 #endif  /* OBJ_EXPR_PARSE_H */

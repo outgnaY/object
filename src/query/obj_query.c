@@ -8,8 +8,10 @@ static const char *skip_field = "skip";
 static const char *limit_field = "limit";
 /* static const char *hint_field = "hint"; */
 
-
+/* query request methods */
 static void obj_query_request_init(obj_query_request_t *qr);
+/* standard query methods */
+static void obj_query_expression_tree_sort(obj_expr_base_expr_t *root);
 
 /* ********** query request methods ********** */
 
@@ -18,7 +20,7 @@ obj_status_with_t obj_query_parse_from_find_cmd(obj_bson_t *cmd) {
     obj_assert(cmd);
     obj_query_request_t *qr = obj_alloc(sizeof(obj_query_request_t));
     if (qr == NULL) {
-        return obj_status_with_create(NULL, "out of memory, can't make query request", OBJ_CODE_QUERY_NOMEM);
+        return obj_status_with_create(NULL, "out of memory, can't build query request", OBJ_CODE_QUERY_NOMEM);
     }
     obj_query_request_init(qr);
     obj_bson_iter_t iter;
@@ -118,3 +120,53 @@ static inline void obj_query_request_init(obj_query_request_t *qr) {
     obj_memset(qr, 0, sizeof(obj_query_request_t));
     qr->skip = qr->limit = -1;
 }
+
+/* ********** standard query methods ********** */
+
+/* transform query request to standard query */
+obj_status_with_t obj_query_standardize(obj_query_request_t *qr) {
+    obj_assert(qr);
+    obj_standard_query_t *sq = obj_alloc(sizeof(obj_standard_query_t));
+    if (sq == NULL) {
+        return obj_status_with_create(NULL, "out of memory, can't build standard query", OBJ_CODE_QUERY_NOMEM);
+    }
+    obj_expr_base_expr_t *root = NULL;
+    /* has filter expression */
+    if (!obj_bson_is_empty(&qr->filter)) {
+        obj_status_with_t parse_status = obj_expr_parse(&qr->filter);
+        /* parse error occurred */
+        if (parse_status.code != OBJ_CODE_OK) {
+            obj_free(sq);
+            return obj_status_with_create(NULL, "parse expression tree error", parse_status.code);
+        }
+        obj_assert(parse_status.data != NULL);
+        root = (obj_expr_base_expr_t *)parse_status.data;
+        
+    }
+    /* init standard query */
+    obj_standard_query_init(sq, qr, root);
+    return obj_status_with_create(sq, "", OBJ_CODE_OK);
+}
+
+/* sort expression tree */
+static void obj_query_expression_tree_sort(obj_expr_base_expr_t *root) {
+
+}
+
+/* init standard query */
+inline void obj_standard_query_init(obj_standard_query_t *sq, obj_query_request_t *qr, obj_expr_base_expr_t *root) {
+    obj_assert(sq);
+    obj_assert(qr);
+    /* optimize expression tree */
+    root = obj_expr_optimize_tree(root);
+    /* sort expression tree */
+    obj_query_expression_tree_sort(root);
+    sq->qr = qr;
+    sq->root = root;
+}
+
+/* dump standard query */
+void obj_standard_query_dump(obj_standard_query_t *sq) {
+
+}
+

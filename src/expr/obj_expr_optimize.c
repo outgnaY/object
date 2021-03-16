@@ -1,3 +1,6 @@
 #include "obj_core.h"
 
-obj_expr_base_t *obj_expr_optimize_tree()
+/* optimize expression tree */
+obj_expr_base_expr_t *obj_expr_optimize_tree(obj_expr_base_expr_t *expr) {
+    return expr;
+}

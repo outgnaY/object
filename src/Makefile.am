@@ -17,7 +17,7 @@ test_req_SOURCES = test/test_req.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_b
 test_sds_SOURCES = test/test_sds.c util/obj_sds.c mem/obj_mem_simple.c mem/obj_mem.c
 test_string_SOURCES = test/test_string.c util/obj_string.c
 test_array_SOURCES = test/test_array.c util/obj_array.c util/obj_list.c mem/obj_mem_simple.c mem/obj_mem.c
-test_expr_SOURCES = test/test_expr.c  bson/obj_bson_iter.c bson/obj_bson_visit.c bson/obj_bson.c expr/obj_expr_parse.c expr/obj_expr.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_array.c util/obj_math.c util/obj_status_with.c util/obj_string.c
+test_expr_SOURCES = test/test_expr.c bson/obj_bson_iter.c bson/obj_bson_visit.c bson/obj_bson.c expr/obj_expr_parse.c expr/obj_expr.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_array.c util/obj_math.c util/obj_status_with.c util/obj_string.c
 test_bcon_SOURCES = test/test_bcon.c bson/obj_bson_iter.c bson/obj_bson_visit.c bson/obj_bson.c bson/obj_bson_bcon.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_math.c util/obj_string.c
 test_rbtree_SOURCES = test/test_rbtree.c  util/obj_rbtree.c mem/obj_mem_simple.c mem/obj_mem.c
 test_object_pool_SOURCES = test/test_object_pool.c util/obj_object_pool.c util/obj_array.c util/obj_list.c mem/obj_mem_simple.c mem/obj_mem.c 
@@ -27,7 +27,7 @@ test_stringdata_SOURCES = test/test_stringdata.c util/obj_stringdata.c mem/obj_m
 test_engine_SOURCES = test/test_engine.c util/obj_stringdata.c util/obj_math.c util/obj_array.c util/obj_siphash.c util/obj_prealloc_map.c util/obj_status_with.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson.c concurrency/obj_concurrency.c concurrency/obj_lock.c concurrency/obj_locker.c storage/v1/obj_v1_catalog.c storage/v1/obj_v1_engine.c storage/v1/obj_v1_record_store.c storage/obj_engine.c handler/obj_handler.c
 test_index_key_SOURCES = test/test_index_key.c storage/v1/index/obj_index_key.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_string.c util/obj_math.c bson/obj_bson.c bson/obj_bson_iter.c bson/obj_bson_visit.c bson/obj_bson_bcon.c
 test_set_SOURCES = test/test_set.c util/obj_set.c util/obj_prealloc_map.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_siphash.c
-test_query_SOURCES = test/test_query.c query/obj_query.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson_iter.c bson/obj_bson.c bson/obj_bson_visit.c bson/obj_bson_bcon.c util/obj_math.c util/obj_string.c util/obj_status_with.c util/obj_stringdata.c
+test_query_SOURCES = test/test_query.c query/obj_query.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson_iter.c bson/obj_bson.c bson/obj_bson_visit.c bson/obj_bson_bcon.c util/obj_array.c util/obj_math.c util/obj_string.c util/obj_status_with.c util/obj_stringdata.c expr/obj_expr_parse.c expr/obj_expr.c expr/obj_expr_optimize.c
 
 all:
 	mv -f object ../bin/object

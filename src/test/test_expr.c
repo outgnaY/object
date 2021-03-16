@@ -10,7 +10,7 @@ int main() {
     obj_status_with_t status1 = obj_expr_parse(query1);
     obj_assert(obj_status_isok(&status1));
     printf("**********query 1:**********\n");
-    obj_expr_dump((obj_expr_base_t *)status1.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status1.data);
     /* simple query2 */
     /* {"x1": 5, "x2": 89} */
     obj_bson_t *query2 = obj_bson_init();
@@ -19,7 +19,7 @@ int main() {
     obj_status_with_t status2 = obj_expr_parse(query2);
     obj_assert(obj_status_isok(&status2));
     printf("**********query 2:**********\n");
-    obj_expr_dump((obj_expr_base_t *)status2.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status2.data);
     /* simple query3 */
     /* {"x": {"$lt": 8}} */
     obj_bson_t *query3 = obj_bson_init();
@@ -29,7 +29,7 @@ int main() {
     obj_status_with_t status3 = obj_expr_parse(query3);
     obj_assert(obj_status_isok(&status3));
     printf("**********query 3:**********\n");
-    obj_expr_dump((obj_expr_base_t *)status3.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status3.data);
     /* simple query4 */
     /* {"x": {"$lt": 8, "$gt": 5}} */
     obj_bson_t *query4 = obj_bson_init();
@@ -40,7 +40,7 @@ int main() {
     obj_status_with_t status4 = obj_expr_parse(query4);
     obj_assert(obj_status_isok(&status4));
     printf("**********query 4:**********\n");
-    obj_expr_dump((obj_expr_base_t *)status4.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status4.data);
     /* simple query5 */
     /* {"x": {"$neq": 9}} */
     obj_bson_t *query5 = obj_bson_init();
@@ -50,7 +50,7 @@ int main() {
     obj_status_with_t status5 = obj_expr_parse(query5);
     obj_assert(obj_status_isok(&status5));
     printf("**********query 5 **********\n");
-    obj_expr_dump((obj_expr_base_t *)status5.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status5.data);
     /* simple query6 */
     /* {"x": {"$not": {"$lte": 5, "$gt": 4}}} */
     obj_bson_t *query6 = obj_bson_init();
@@ -63,7 +63,7 @@ int main() {
     obj_status_with_t status6 = obj_expr_parse(query6);
     obj_assert(obj_status_isok(&status6));
     printf("**********query 6 **********\n");
-    obj_expr_dump((obj_expr_base_t *)status6.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status6.data);
     /* complicated query7 */
     /* {"$and": [{"x": 4}, {"y": 5}]} */
     obj_bson_t *query7 = obj_bson_init();
@@ -78,7 +78,7 @@ int main() {
     obj_status_with_t status7 = obj_expr_parse(query7);
     obj_assert(obj_status_isok(&status7));
     printf("**********query 7 **********\n");
-    obj_expr_dump((obj_expr_base_t *)status7.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status7.data);
     /* complicated query8 */
     /* {"$or": [{"x": 4}, {"y": 5}]} */
     obj_bson_t *query8 = obj_bson_init();
@@ -93,7 +93,7 @@ int main() {
     obj_status_with_t status8 = obj_expr_parse(query8);
     obj_assert(obj_status_isok(&status8));
     printf("**********query 8 **********\n");
-    obj_expr_dump((obj_expr_base_t *)status8.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status8.data);
     /* complicated query9 */
     /* {"$and": [{"x": 4}, {"$or": [{"y": 5}, {"z": {"$lte": 7}}]}]} */
     obj_bson_t *query9 = obj_bson_init();
@@ -117,7 +117,7 @@ int main() {
     obj_status_with_t status9 = obj_expr_parse(query9);
     obj_assert(obj_status_isok(&status9));
     printf("**********query 9 **********\n");
-    obj_expr_dump((obj_expr_base_t *)status9.data);
+    obj_expr_dump((obj_expr_base_expr_t *)status9.data);
     /* **********wrong format query ********** */
     /* wrong format query10 */
     /* {"x": {"$lt": true}} */
