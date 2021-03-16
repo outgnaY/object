@@ -108,7 +108,8 @@ obj_expr_base_expr_t *obj_expr_compare_expr_create(const char *path, obj_expr_ty
     obj_memcpy(expr->path, path, len);
     expr->path[len] = '\0';
     */
-    expr->path = (char *)path;
+
+    expr->path = obj_stringdata_create((char *)path);
     expr->value = *value;
     return (obj_expr_base_expr_t *)expr;
 }
@@ -225,7 +226,7 @@ static void obj_expr_print_compare(int skip, obj_expr_base_expr_t *expr) {
     for (i = 0; i < skip; i++) {
         printf(" ");
     }
-    printf("%s", ((obj_expr_compare_expr_t *)expr)->path);
+    printf("%s", ((obj_expr_compare_expr_t *)expr)->path.data);
     printf("%s", obj_expr_type_str_map[expr->type]);
     obj_expr_print_value(&((obj_expr_compare_expr_t *)expr)->value);
     printf("\n");

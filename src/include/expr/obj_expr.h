@@ -49,7 +49,8 @@ struct obj_expr_tree_expr_s {
 /* EQ LTE LT GT GTE */
 struct obj_expr_compare_expr_s {
     obj_expr_base_expr_t base;
-    char *path;
+    /* char *path; */
+    obj_stringdata_t path;
     obj_bson_value_t value;
 };
 

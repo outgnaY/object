@@ -11,6 +11,7 @@ static const char *limit_field = "limit";
 /* query request methods */
 static void obj_query_request_init(obj_query_request_t *qr);
 /* standard query methods */
+static int obj_query_expression_compare(const void *a, const void *b);
 static void obj_query_expression_tree_sort(obj_expr_base_expr_t *root);
 
 /* ********** query request methods ********** */
@@ -148,9 +149,58 @@ obj_status_with_t obj_query_standardize(obj_query_request_t *qr) {
     return obj_status_with_create(sq, "", OBJ_CODE_OK);
 }
 
+static int obj_query_expression_compare(const void *a, const void *b) {
+    obj_expr_base_expr_t *expr1 = (obj_expr_base_expr_t *)a;
+    obj_expr_base_expr_t *expr2 = (obj_expr_base_expr_t *)b;
+    /* compare type */
+    if (expr1->type != expr2->type) {
+        return expr1->type - expr2->type;
+    }
+    /* same type */
+    /* if have path, compare path */
+    int path_compare;
+    if (expr1->type >= OBJ_EXPR_TYPE_EQ && expr1->type <= OBJ_EXPR_TYPE_GTE) {
+        path_compare = obj_stringdata_compare(&((obj_expr_compare_expr_t *)expr1)->path, &((obj_expr_compare_expr_t *)expr2)->path);
+        if (path_compare != 0) {
+            return path_compare;
+        }
+    }
+    int num_child1 = expr1->methods->num_child(expr1);
+    int num_child2 = expr2->methods->num_child(expr2);
+    int num_child = (num_child1 < num_child2 ? num_child1 : num_child2);
+    obj_expr_base_expr_t *child1 = NULL;
+    obj_expr_base_expr_t *child2 = NULL;
+    int i, child_compare;
+    for (i = 0; i < num_child; i++) {
+        child1 = expr1->methods->get_child(expr1, i);
+        child2 = expr2->methods->get_child(expr2, i);
+        child_compare = obj_query_expression_compare(child1, child2);
+        if (child_compare != 0) {
+            return child_compare;
+        }
+    }
+    if (num_child1 != num_child2) {
+        return num_child1 < num_child2 ? -1 : 1;
+    }
+    /* equal */
+    return 0;
+}
+
 /* sort expression tree */
 static void obj_query_expression_tree_sort(obj_expr_base_expr_t *root) {
-
+    int i;
+    obj_expr_base_expr_t *child = NULL;
+    /* sort every child recursively */
+    for (i = 0; i < root->methods->num_child(root); i++) {
+        child = root->methods->get_child(root, i);
+        obj_query_expression_tree_sort(child);
+    }
+    /* sort children */
+    if (root->methods->num_child(root) > 1) {
+        /* array sort */
+        obj_array_sort(&((obj_expr_tree_expr_t *)root)->expr_list, obj_query_expression_compare);
+    }
+    
 }
 
 /* init standard query */
@@ -167,6 +217,11 @@ inline void obj_standard_query_init(obj_standard_query_t *sq, obj_query_request_
 
 /* dump standard query */
 void obj_standard_query_dump(obj_standard_query_t *sq) {
-
+    printf("++++++++++ query request: ++++++++++\n");
+    obj_query_request_dump(sq->qr);
+    printf("\n");
+    printf("++++++++++ query expression: ++++++++++\n");
+    obj_expr_dump(sq->root);
+    printf("\n");
 }
 
