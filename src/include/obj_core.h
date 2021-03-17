@@ -81,24 +81,32 @@
 
 
 /* storage */
+#include "storage/index/obj_index_key.h"
+#include "storage/index/obj_index.h"
 #include "storage/obj_record_store.h"
 #include "storage/obj_catalog.h"
 #include "storage/obj_engine.h"
+
+#include "storage/v1/index/obj_v1_index_key.h"
+/*
+#include "storage/v1/index/obj_skiplist.h"
+#include "storage/v1/index/obj_v1_index.h"
+*/
 #include "storage/v1/obj_v1_record_store.h"
 #include "storage/v1/obj_v1_catalog.h"
 #include "storage/v1/obj_v1_engine.h"
-#include "storage/v1/index/obj_index_key.h"
-#include "storage/v1/index/obj_skiplist.h"
-#include "storage/v1/index/obj_v1_index.h"
+
 
 /* operation handler */
+/*
 #include "handler/obj_handler.h"
-
+*/
 /* query */
 #include "query/obj_query.h"
-/*
+#include "query/obj_query_plan_tree.h"
+#include "query/obj_query_index.h"
 #include "query/obj_query_planner.h"
-*/
+
 /* exec */
 /*
 #include "exec/obj_plan_working_set.h"

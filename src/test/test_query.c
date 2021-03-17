@@ -4,6 +4,7 @@
 int main() {
     obj_global_mem_context_init();
     /* ********** query request test ********** */
+    /*
     obj_bson_t *cmd1 = OBJ_BSON_BCON_NEW(
         "find", OBJ_BSON_BCON_UTF8("db.coll"),
         "skip", OBJ_BSON_BCON_INT32(4),
@@ -35,9 +36,9 @@ int main() {
     obj_status_with_t status_with_qr2 = obj_query_parse_from_find_cmd(cmd2);
     obj_assert(status_with_qr2.code == OBJ_CODE_OK);
     obj_query_request_dump((obj_query_request_t *)status_with_qr2.data);
-    
+    */
     /* ********** standard query test ********** */
-
+    /*
     obj_status_with_t status_with_sq1 = obj_query_standardize((obj_query_request_t *)status_with_qr2.data);
     obj_assert(status_with_sq1.code == OBJ_CODE_OK);
     obj_standard_query_dump((obj_standard_query_t *)status_with_sq1.data);
@@ -72,5 +73,33 @@ int main() {
     obj_status_with_t status_with_sq3 = obj_query_standardize((obj_query_request_t *)status_with_qr4.data);
     obj_assert(status_with_sq3.code == OBJ_CODE_OK);
     obj_standard_query_dump((obj_standard_query_t *)status_with_sq3.data);
+    */
+    obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
+        "find", OBJ_BSON_BCON_UTF8("db.coll"),
+        "filter", "{",
+            "$and", "[",
+                "{", "x", OBJ_BSON_BCON_INT32(4), "}",
+                "{", "y", OBJ_BSON_BCON_INT32(5), "}",
+            "]",
+        "}"
+    );
+    obj_status_with_t status_with_qr1 = obj_query_parse_from_find_cmd(cmd);
+    obj_status_with_t status_with_sq1 = obj_query_standardize((obj_query_request_t *)status_with_qr1.data);
+    obj_bson_t *kp1 = OBJ_BSON_BCON_NEW(
+        "x", OBJ_BSON_BCON_INT32(1),
+        "y", OBJ_BSON_BCON_INT32(-1)
+    );
+    obj_bson_t *kp2 = OBJ_BSON_BCON_NEW(
+        "x", OBJ_BSON_BCON_INT32(1)
+    );
+    obj_bson_t *kp3 = OBJ_BSON_BCON_NEW(
+        "z", OBJ_BSON_BCON_INT32(1)
+    );
+    obj_array_t all_indexes;
+    obj_array_init(&all_indexes, sizeof(obj_bson_t *));
+    obj_array_push_back(&all_indexes, &kp1);
+    obj_array_push_back(&all_indexes, &kp2);
+    obj_array_push_back(&all_indexes, &kp3);
+    obj_query_planner_plan((obj_standard_query_t *)status_with_sq1.data, &all_indexes);
     return 0;
 }

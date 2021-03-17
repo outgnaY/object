@@ -10,6 +10,9 @@ typedef struct obj_db_handler_s obj_db_handler_t;
 typedef struct obj_collection_handler_s obj_collection_handler_t;
 typedef struct obj_db_catalog_entry_s obj_db_catalog_entry_t;
 typedef struct obj_collection_catalog_s obj_collection_catalog_t;
+typedef struct obj_index_descriptor_s obj_index_descriptor_t;
+typedef struct obj_index_catalog_entry_s obj_index_catalog_entry_t;
+typedef struct obj_index_catalog_s obj_index_catalog_t;
 
 /* manage databases */
 struct obj_db_manager_s {
@@ -44,6 +47,19 @@ struct obj_collection_handler_s {
     obj_record_store_t *record_store;
     /* index catalog */
 
+};
+
+struct obj_index_descriptor_s {
+
+};
+
+struct obj_index_catalog_entry_s {
+
+};
+
+struct obj_index_catalog_s {
+    /* index catalog entry container */
+    obj_array_t entries;
 };
 
 /* global database manager */

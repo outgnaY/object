@@ -52,14 +52,14 @@ int main() {
     printf("\n");
     printf("print_res = %d\n", print_res);
     */
-    obj_index_key_t *index_key5 = obj_index_key_create(bson5);
-    obj_index_key_t *index_key6 = obj_index_key_create(bson6);
+    obj_v1_index_key_t *index_key5 = obj_v1_index_key_create(bson5);
+    obj_v1_index_key_t *index_key6 = obj_v1_index_key_create(bson6);
     obj_index_key_order_t o5 = (1 | 2);
     obj_index_key_order_t o6 = (1 | 4);
-    obj_index_key_dump(index_key5);
-    obj_index_key_dump(index_key6);
-    int res5 = obj_index_key_compare(index_key5, index_key6, o5);
-    int res6 = obj_index_key_compare(index_key5, index_key6, o6);
+    obj_v1_index_key_dump(index_key5);
+    obj_v1_index_key_dump(index_key6);
+    int res5 = obj_v1_index_key_compare(index_key5, index_key6, o5);
+    int res6 = obj_v1_index_key_compare(index_key5, index_key6, o6);
     printf("res5 = %d\n", res5);
     printf("res6 = %d\n", res6);
     

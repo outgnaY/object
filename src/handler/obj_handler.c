@@ -3,6 +3,7 @@
 
 obj_db_manager_t *g_db_manager;
 
+/* database handler */
 static obj_uint64_t obj_db_handler_map_hash_func(const void *key);
 static int obj_db_handler_map_key_compare(const void *key1, const void *key2);
 static void obj_db_handler_map_key_free(void *data);
@@ -12,6 +13,7 @@ static void *obj_db_handler_map_value_get(void *data);
 static void obj_db_handler_map_key_set(void *data, void *key);
 static void obj_db_handler_map_value_set(void *data, void *value);
 
+/* collection handler */
 static obj_uint64_t obj_collection_handler_map_hash_func(const void *key);
 static int obj_collection_handler_map_key_compare(const void *key1, const void *key2);
 static void obj_collection_handler_map_key_free(void *data);
@@ -623,3 +625,10 @@ int obj_collection_handler_num_records(obj_collection_handler_t *collection_hand
     return record_store->methods->num_records(record_store);
 }
 */
+
+/* ********** index catalog methods ********** */
+
+/* there is only 1 index catalog per collection */
+obj_index_catalog_t *obj_index_catalog_create() {
+    obj_index_catalog_t 
+}

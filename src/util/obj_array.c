@@ -71,6 +71,10 @@ void obj_array_empty(obj_array_t *array) {
     array->size = 0;
 }
 
+obj_bool_t obj_array_reserve(obj_array_t *array, int capacity) {
+    return obj_array_ensure_capacity(array, capacity);
+}
+
 /* ensure capacity */
 static obj_bool_t obj_array_ensure_capacity(obj_array_t *array, int capacity) {
     if (array->capacity >= capacity) {

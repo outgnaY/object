@@ -39,6 +39,7 @@ obj_bool_t obj_array_init_size(obj_array_t *array, int element_size, int size);
 void obj_array_destroy_static(obj_array_t *array);
 void obj_array_destroy(obj_array_t *array);
 void obj_array_empty(obj_array_t *array);
+obj_bool_t obj_array_reserve(obj_array_t *array, int capacity);
 void *obj_array_get_index(obj_array_t *array, int index);
 void obj_array_set_index(obj_array_t *array, int index, void *element_ptr);
 obj_bool_t obj_array_push_back(obj_array_t *array, void *element_ptr);

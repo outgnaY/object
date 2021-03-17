@@ -1,7 +1,7 @@
 #include "obj_core.h"
 
-static obj_bool_t obj_index_key_init(obj_index_key_t *index_key, obj_bson_t *bson);
-static int obj_index_key_element_compare(obj_uint8_t **p1, obj_uint8_t **p2);
+static obj_bool_t obj_v1_index_key_init(obj_v1_index_key_t *index_key, obj_bson_t *bson);
+static int obj_v1_index_key_element_compare(obj_uint8_t **p1, obj_uint8_t **p2);
 
 
 /* 
@@ -10,26 +10,14 @@ static int obj_index_key_element_compare(obj_uint8_t **p1, obj_uint8_t **p2);
  */
 
 
-/* 
- * for key pattern {a: 1, b: -1} 
- * get(0) == 1; get(1) == -1
- */
-int obj_index_key_order_get(obj_index_key_order_t key_order, int i) {
-    return ((1 << i) & key_order) ? -1 : 1;
-}
-
-unsigned obj_index_key_order_descending(obj_index_key_order_t key_order, unsigned mask) {
-    return key_order & mask;
-}
-
 /* create index key */
-obj_index_key_t *obj_index_key_create(obj_bson_t *bson) {
-    obj_index_key_t *index_key = obj_alloc(sizeof(obj_index_key_t));
+obj_v1_index_key_t *obj_v1_index_key_create(obj_bson_t *bson) {
+    obj_v1_index_key_t *index_key = obj_alloc(sizeof(obj_v1_index_key_t));
     if (index_key == NULL) {
         return NULL;
     }
     index_key->data = NULL;
-    if (!obj_index_key_init(index_key, bson)) {
+    if (!obj_v1_index_key_init(index_key, bson)) {
         obj_free(index_key);
         return NULL;
     }
@@ -37,7 +25,7 @@ obj_index_key_t *obj_index_key_create(obj_bson_t *bson) {
 }
 
 /* init index key */
-static obj_bool_t obj_index_key_init(obj_index_key_t *index_key, obj_bson_t *bson) {
+static obj_bool_t obj_v1_index_key_init(obj_v1_index_key_t *index_key, obj_bson_t *bson) {
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, bson);
     obj_bson_value_t *value = NULL;
@@ -160,14 +148,14 @@ static obj_bool_t obj_index_key_init(obj_index_key_t *index_key, obj_bson_t *bso
 }
 
 /* destroy index key */
-void obj_index_key_destroy(obj_index_key_t *index_key) {
+void obj_v1_index_key_destroy(obj_v1_index_key_t *index_key) {
     obj_assert(index_key);
     obj_free(index_key->data);
     obj_free(index_key);
 }
 
 /* compare index key elements */
-static int obj_index_key_element_compare(obj_uint8_t **p1, obj_uint8_t **p2) {
+static int obj_v1_index_key_element_compare(obj_uint8_t **p1, obj_uint8_t **p2) {
     int type1 = (**p1 & OBJ_INDEX_KEY_TYPE_MASK);
     int type2 = (**p2 & OBJ_INDEX_KEY_TYPE_MASK);
     obj_assert(type1 == type2);
@@ -274,14 +262,14 @@ static int obj_index_key_element_compare(obj_uint8_t **p1, obj_uint8_t **p2) {
 }
 
 /* compare index keys */
-int obj_index_key_compare(obj_index_key_t *index_key1, obj_index_key_t *index_key2, obj_index_key_order_t key_order) {
+int obj_v1_index_key_compare(obj_v1_index_key_t *index_key1, obj_v1_index_key_t *index_key2, obj_index_key_order_t key_order) {
     obj_uint8_t *p1 = index_key1->data;
     obj_uint8_t *p2 = index_key2->data;
     unsigned mask = 1;
     while (true) {
         obj_uint8_t val1 = *p1;
         obj_uint8_t val2 = *p2;
-        int res = obj_index_key_element_compare(&p1, &p2);
+        int res = obj_v1_index_key_element_compare(&p1, &p2);
         if (res) {
             if (obj_index_key_order_descending(key_order, mask)) {
                 res = -res;
@@ -301,7 +289,7 @@ int obj_index_key_compare(obj_index_key_t *index_key1, obj_index_key_t *index_ke
 }
 
 /* dump index key */
-void obj_index_key_dump(obj_index_key_t *index_key) {
+void obj_v1_index_key_dump(obj_v1_index_key_t *index_key) {
     obj_uint8_t *data = index_key->data;
     unsigned mask = 1;
     while (true) {

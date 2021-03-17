@@ -76,6 +76,7 @@ typedef long obj_duration_nsecond;
 
 /* error code */
 enum obj_global_error_code {
+    /* common error code */
     OBJ_CODE_OK = 0,
     /* bson error code */
     OBJ_CODE_BSON_VALIDATE_EXCEED_MAX_DEPTH = 10001,
@@ -101,7 +102,9 @@ enum obj_global_error_code {
     /* query error code */
     OBJ_CODE_QUERY_NOMEM = 40001,
     OBJ_CODE_QUERY_WRONG_TYPE = 40002,
-    OBJ_CODE_QUERY_MISSING_FIELD = 40003
+    OBJ_CODE_QUERY_MISSING_FIELD = 40003,
+    /* query planner error code */
+    OBJ_CODE_QUERY_PLAN_NOMEM = 50001,
 };
 
 
