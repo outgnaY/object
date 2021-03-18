@@ -96,7 +96,7 @@ static obj_query_plan_tree_node_methods_t obj_query_plan_tree_index_scan_node_me
     obj_query_plan_tree_index_scan_node_get_type
 };
 
-obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_create() {
+obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_create(obj_query_index_entry_t *index_entry) {
     obj_query_plan_tree_index_scan_node_t *index_scan_node = (obj_query_plan_tree_index_scan_node_t *)obj_alloc(sizeof(obj_query_plan_tree_index_scan_node_t));
     if (index_scan_node == NULL) {
         return NULL;
@@ -105,6 +105,9 @@ obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_creat
         obj_free(index_scan_node);
         return NULL;
     }
+    index_scan_node->direction = 1;
+    index_scan_node->index_entry = *index_entry;
+    /* TODO init index bounds */
     return index_scan_node;
 }
 

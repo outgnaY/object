@@ -108,4 +108,5 @@ enum obj_global_error_code {
 };
 
 
+
 #endif  /* OBJ_COMMON_H */

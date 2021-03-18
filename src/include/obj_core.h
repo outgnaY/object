@@ -102,10 +102,13 @@
 #include "handler/obj_handler.h"
 */
 /* query */
+#include "query/obj_interval.h"
+#include "query/obj_index_bounds.h"
 #include "query/obj_query.h"
 #include "query/obj_query_plan_tree.h"
 #include "query/obj_query_index.h"
 #include "query/obj_query_planner.h"
+
 
 /* exec */
 /*

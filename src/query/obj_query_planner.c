@@ -42,6 +42,11 @@ static void obj_stringdata_set_key_set(void *data, void *key) {
     obj_memcpy(data, key, sizeof(obj_stringdata_t));
 }
 
+/* build collection scan plan */
+obj_query_plan_tree_base_node_t *obj_query_planner_build_collection_scan() {
+    
+}
+
 
 /* 
  * generate query plan for a query 

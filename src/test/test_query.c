@@ -74,6 +74,9 @@ int main() {
     obj_assert(status_with_sq3.code == OBJ_CODE_OK);
     obj_standard_query_dump((obj_standard_query_t *)status_with_sq3.data);
     */
+
+    /* ********** find index test ********** */
+    /*
     obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
         "find", OBJ_BSON_BCON_UTF8("db.coll"),
         "filter", "{",
@@ -101,5 +104,9 @@ int main() {
     obj_array_push_back(&all_indexes, &kp2);
     obj_array_push_back(&all_indexes, &kp3);
     obj_query_planner_plan((obj_standard_query_t *)status_with_sq1.data, &all_indexes);
+    */
+    /* build query plan tree test */
+    
+
     return 0;
 }

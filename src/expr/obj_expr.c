@@ -1,24 +1,30 @@
 #include "obj_core.h"
 
 /* not expression */
+/*
 static int obj_expr_not_expr_num_child(obj_expr_base_expr_t *expr);
 static obj_expr_base_expr_t *obj_expr_not_expr_get_child(obj_expr_base_expr_t *expr, int i);
 static void obj_expr_not_expr_destroy(obj_expr_base_expr_t *expr);
+*/
 /* compare expression */
 static int obj_expr_compare_expr_num_child(obj_expr_base_expr_t *expr);
 static void obj_expr_compare_expr_destroy(obj_expr_base_expr_t *expr);
+static obj_stringdata_t obj_expr_compare_expr_get_path(obj_expr_base_expr_t *expr);
 /* tree expression */
 static int obj_expr_tree_expr_num_child(obj_expr_base_expr_t *expr);
 static obj_expr_base_expr_t *obj_expr_tree_expr_get_child(obj_expr_base_expr_t *expr, int i);
 static void obj_expr_tree_expr_free_child(void *ptr);
 static void obj_expr_tree_expr_destroy(obj_expr_base_expr_t *expr);
+static obj_stringdata_t obj_expr_tree_expr_get_path(obj_expr_base_expr_t *expr);
 
 
 /* debug methods */
 static void obj_expr_print(obj_expr_base_expr_t *expr, int skip);
 static void obj_expr_print_compare(int skip, obj_expr_base_expr_t *expr);
 static void obj_expr_print_tree(int skip, obj_expr_base_expr_t *expr);
+/*
 static void obj_expr_print_not(int skip, obj_expr_base_expr_t *expr);
+*/
 static void obj_expr_print_value(obj_bson_value_t *value);
 
 
@@ -178,7 +184,7 @@ static void obj_expr_compare_expr_destroy(obj_expr_base_expr_t *expr) {
     obj_free(expr);
 }
 
-obj_stringdata_t obj_expr_compare_expr_get_path(obj_expr_base_expr_t *expr) {
+static obj_stringdata_t obj_expr_compare_expr_get_path(obj_expr_base_expr_t *expr) {
     obj_expr_compare_expr_t *compare_expr = (obj_expr_compare_expr_t *)expr;
     return compare_expr->path;
 }
@@ -245,7 +251,7 @@ obj_bool_t obj_expr_tree_expr_add_child(obj_expr_base_expr_t *expr, obj_expr_bas
     return obj_array_push_back(&tree_expr->expr_list, &child);
 }
 
-obj_stringdata_t obj_expr_tree_expr_get_path(obj_expr_base_expr_t *expr) {
+static obj_stringdata_t obj_expr_tree_expr_get_path(obj_expr_base_expr_t *expr) {
     obj_stringdata_t empty = {NULL, 0};
     return empty;
 }

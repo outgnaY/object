@@ -50,7 +50,6 @@ void obj_array_destroy_static(obj_array_t *array) {
     obj_assert(array);
     obj_array_empty(array);
     obj_free(array->data);
-
 }
 
 /* destroy */
@@ -74,6 +73,19 @@ void obj_array_empty(obj_array_t *array) {
 obj_bool_t obj_array_reserve(obj_array_t *array, int capacity) {
     return obj_array_ensure_capacity(array, capacity);
 }
+
+obj_bool_t obj_array_resize(obj_array_t *array, int size) {
+    if (array->capacity >= size) {
+        array->size = size;
+        return true;
+    }
+    if (!obj_array_ensure_capacity(array, size)) {
+        return false;
+    }
+    array->size = size;
+    return true;
+}
+
 
 /* ensure capacity */
 static obj_bool_t obj_array_ensure_capacity(obj_array_t *array, int capacity) {

@@ -67,8 +67,9 @@ struct obj_query_plan_tree_index_scan_node_s {
     /* index scan direction */
     int direction;
     /* index key pattern */
-    obj_bson_t *key_pattern;
-    /* TODO index bounds */
+    obj_query_index_entry_t index_entry;
+    /* index bounds */
+    obj_index_bounds_t bounds;
 };
 
 
@@ -107,7 +108,7 @@ obj_query_plan_tree_or_node_t *obj_query_plan_tree_or_node_create();
 /* collection scan node */
 obj_query_plan_tree_collection_scan_node_t *obj_query_plan_tree_collection_scan_node_create();
 /* index scan node */
-obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_create();
+obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_create(obj_query_index_entry_t *index_entry);
 /* projection node */
 obj_query_plan_tree_projection_node_t *obj_query_plan_tree_projection_node_create();
 /* sort node */

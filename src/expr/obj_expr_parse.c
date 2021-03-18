@@ -206,6 +206,7 @@ static obj_status_with_t obj_expr_parse_all(const obj_bson_t *bson, obj_expr_par
 }
 
 /* $not */
+/*
 static obj_status_with_t obj_expr_parse_not(const char *name, const obj_bson_value_t *value, obj_expr_parse_level_t current_level) {
     if (value->type != OBJ_BSON_TYPE_OBJECT) {
         return obj_status_with_create(NULL, "$not need a object", OBJ_CODE_EXPR_BAD_VALUE);
@@ -221,18 +222,15 @@ static obj_status_with_t obj_expr_parse_not(const char *name, const obj_bson_val
     }
     obj_status_with_t sub_status = obj_expr_parse_sub(name, &bson, and_expr, current_level);
     if (!obj_status_isok(&sub_status)) {
-        /* obj_expr_tree_destroy(and_expr); */
         return sub_status;
     }
-    /* create not */
     obj_expr_base_expr_t *not_expr = obj_expr_not_expr_create(and_expr);
     if (not_expr == NULL) {
-        /* obj_expr_tree_destroy(and_expr); */
         return obj_status_with_create(NULL, "can't create $not: out of memory", OBJ_CODE_EXPR_NOMEM);
     }
     return obj_status_with_create(not_expr, "", 0);
 }
-
+*/
 /* $or */
 static obj_status_with_t obj_expr_parse_or(const char *key, const obj_bson_value_t *value, obj_expr_parse_level_t current_level) {
     return obj_expr_parse_top_level(OBJ_EXPR_TYPE_OR, key, value, current_level);
