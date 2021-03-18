@@ -36,6 +36,7 @@ enum obj_bson_type {
     OBJ_BSON_TYPE_NULL = 0x0A,              /* null */
     OBJ_BSON_TYPE_INT32 = 0x10,             /* 32 bit integer */
     OBJ_BSON_TYPE_INT64 = 0x12,             /* 64 bit integer */
+    /* only used internal */
     OBJ_BSON_TYPE_MIN = 0x13,               /* for special use */
     OBJ_BSON_TYPE_MAX = 0x14                /* for special use */
 };

@@ -31,5 +31,10 @@ struct obj_query_index_scan_build_state_s {
 
 void obj_query_index_get_fields(obj_expr_base_expr_t *root, obj_set_t *out);
 void obj_query_index_find_relevant_indexes(obj_set_t *fields, obj_array_t *all_indexes, obj_array_t *out);
+void obj_query_index_rate_indexes(obj_expr_base_expr_t *root, obj_array_t *indexes);
+/* methods for indexed plan building */
+obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_data_access(obj_expr_base_expr_t *root, obj_array_t *indexes);
+
+
 
 #endif  /* OBJ_QUERY_INDEX_H */

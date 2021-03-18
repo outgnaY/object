@@ -106,7 +106,17 @@ int main() {
     obj_query_planner_plan((obj_standard_query_t *)status_with_sq1.data, &all_indexes);
     */
     /* build query plan tree test */
+    obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
+        "find", OBJ_BSON_BCON_UTF8("db.coll"),
+        "filter", "{",
+            "$and", "[",
+                "{", "x", OBJ_BSON_BCON_INT32(4), "}",
+                "{", "y", OBJ_BSON_BCON_INT32(5), "}",
+            "]",
+        "}"
+    );
+    obj_status_with_t status_with_qr1 = obj_query_parse_from_find_cmd(cmd);
+    obj_status_with_t status_with_sq1 = obj_query_standardize((obj_query_request_t *)status_with_qr1.data);
     
-
     return 0;
 }

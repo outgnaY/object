@@ -43,6 +43,9 @@ struct obj_ordered_interval_list_s {
     obj_stringdata_t name;
 };
 
+extern obj_bson_value_t g_interval_value_min;
+extern obj_bson_value_t g_interval_value_max;
+
 /* interval methods */
 void obj_interval_init(obj_interval_t *interval, obj_bson_t *base, obj_bool_t si, obj_bool_t ei);
 obj_bool_t obj_interval_is_empty(obj_interval_t *interval);
@@ -53,9 +56,11 @@ obj_interval_compare_result_t obj_interval_compare(obj_interval_t *interval1, ob
 void obj_interval_intersect(obj_interval_t *interval1, obj_interval_t *interval2, obj_interval_compare_result_t cmp);
 void obj_interval_dump(obj_interval_t *interval);
 void obj_interval_make_interval(obj_bson_value_t *value, obj_interval_t *interval, obj_expr_type_t expr_type);
+void obj_interval_reverse(obj_interval_t *interval);
 /*  ordered interval list methods*/
 void obj_ordered_interval_list_intersect(obj_ordered_interval_list_t *oil1, obj_ordered_interval_list_t *oil2);
 void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_ordered_interval_list_t *oil2);
-/* obj_bool_t obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil); */
+obj_bool_t obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil);
+void obj_ordered_interval_list_reverse(obj_ordered_interval_list_t *oil);
 
 #endif  /* OBJ_INTERVAL_H */

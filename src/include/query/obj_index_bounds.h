@@ -22,6 +22,6 @@ struct obj_index_bounds_s {
 void obj_index_bounds_translate(obj_expr_base_expr_t *expr, const char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
 void obj_index_bounds_translate_and_intersect(obj_expr_base_expr_t *expr, const char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
 void obj_index_bounds_translate_and_union(obj_expr_base_expr_t *expr, const char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
-
+void obj_index_bounds_align_bounds(obj_index_bounds_t *bounds, obj_bson_t *key_pattern);
 
 #endif  /* OBJ_INDEX_BOUNDS_H */

@@ -1,7 +1,7 @@
 #include "obj_core.h"
 
-static obj_bson_value_t s_interval_value_min = {OBJ_BSON_TYPE_MIN};
-static obj_bson_value_t s_interval_value_max = {OBJ_BSON_TYPE_MAX};
+obj_bson_value_t g_interval_value_min = {OBJ_BSON_TYPE_MIN};
+obj_bson_value_t g_interval_value_max = {OBJ_BSON_TYPE_MAX};
 
 static int obj_interval_value_compare(obj_bson_value_t *value1, obj_bson_value_t *value2);
 static obj_bool_t obj_interval_intersects(obj_interval_t *interval1, obj_interval_t *interval2);
@@ -358,14 +358,14 @@ void obj_interval_make_interval(obj_bson_value_t *value, obj_interval_t *interva
             /* (MIN, value) */
             interval->start_inclusive = false;
             interval->end_inclusive = false;
-            interval->start = s_interval_value_min;
+            interval->start = g_interval_value_min;
             interval->end = *value;
             break;
         case OBJ_EXPR_TYPE_LTE:
             /* (MIN, value] */
             interval->start_inclusive = false;
             interval->end_inclusive = true;
-            interval->start = s_interval_value_min;
+            interval->start = g_interval_value_min;
             interval->end = *value;
             break;
         case OBJ_EXPR_TYPE_GT:
@@ -373,18 +373,28 @@ void obj_interval_make_interval(obj_bson_value_t *value, obj_interval_t *interva
             interval->start_inclusive = false;
             interval->end_inclusive = false;
             interval->start = *value;
-            interval->end = s_interval_value_max;
+            interval->end = g_interval_value_max;
             break;
         case OBJ_EXPR_TYPE_GTE:
             /* [value, MAX) */
             interval->start_inclusive = true;
             interval->end_inclusive = false;
             interval->start = *value;
-            interval->end = s_interval_value_max;
+            interval->end = g_interval_value_max;
             break;
         default:
             obj_assert(0);
     }
+}
+
+/* reverse interval */
+void obj_interval_reverse(obj_interval_t *interval) {
+    obj_bool_t temp_inclusive = interval->start_inclusive;
+    interval->start_inclusive = interval->end_inclusive;
+    interval->end_inclusive = temp_inclusive;
+    obj_bson_value_t temp_value = interval->start;
+    interval->start = interval->end;
+    interval->end = temp_value;
 }
 
 
@@ -479,12 +489,13 @@ void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_orde
         }
         next = (obj_interval_t *)obj_array_get_index(oil1_intervals, i + 1);
         obj_interval_compare_result_t cmp = obj_interval_compare(cur, next);
+        /* printf("%d %d %d\n", i, cmp, result.size); */
         if (cmp == OBJ_INTERVAL_COMPARE_RESULT_PRECEDES) {
             obj_array_push_back(&result, cur);
-            cur = NULL;
+            cur = next;
         } else if (cmp == OBJ_INTERVAL_COMPARE_RESULT_EQUALS || cmp == OBJ_INTERVAL_COMAPRE_RESULT_WITHIN) {
             /* current invalid */
-            cur = NULL;
+            cur = next;
         } else if (cmp == OBJ_INTERVAL_COMAPRE_RESULT_CONTAINS) {
             /* next invalid */
         } else if (cmp == OBJ_INTERVAL_COMPARE_RESULT_OVERLAP_BEFORE || cmp == OBJ_INTERVAL_COMPARE_RESULT_PRECEDES_COULD_UNION) {
@@ -506,8 +517,31 @@ void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_orde
     obj_free(oil1_intervals->data);
     obj_memcpy(oil1_intervals, &result, sizeof(obj_array_t));
 }
-/*
+
 obj_bool_t obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil) {
+    oil->name.data = NULL;
+    oil->name.size = 0;
     return obj_array_init(&oil->intervals, sizeof(obj_interval_t));
 }
-*/
+
+/* reverse interval list */
+void obj_ordered_interval_list_reverse(obj_ordered_interval_list_t *oil) {
+    obj_array_t *intervals = &oil->intervals;
+    int lo = 0;
+    int hi = intervals->size - 1;
+    obj_interval_t *lo_interval = NULL;
+    obj_interval_t *hi_interval = NULL;
+    obj_interval_t temp_interval;
+    obj_interval_t *ptemp_interval = &temp_interval;
+    while (lo < hi) {
+        lo_interval = (obj_interval_t *)obj_array_get_index(intervals, lo);
+        hi_interval = (obj_interval_t *)obj_array_get_index(intervals, hi);
+        *ptemp_interval = *lo_interval;
+        *lo_interval = *hi_interval;
+        *hi_interval = *ptemp_interval;
+        lo++;
+        hi--;
+    }
+}
+
+
