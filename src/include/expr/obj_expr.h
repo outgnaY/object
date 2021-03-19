@@ -97,7 +97,10 @@ struct obj_expr_not_expr_s {
 };
 */
 
+/* tags */
 void obj_expr_set_tag(obj_expr_base_expr_t *expr, obj_expr_tag_t *tag);
+void obj_expr_tag_destroy(obj_expr_tag_t *tag);
+void obj_expr_reset_tag(obj_expr_base_expr_t *expr);
 obj_expr_relevant_tag_t *obj_expr_relevant_tag_create();
 obj_expr_index_tag_t *obj_expr_index_tag_create(int i);
 obj_expr_index_tag_t *obj_expr_index_tag_compound_create(int i, int p);

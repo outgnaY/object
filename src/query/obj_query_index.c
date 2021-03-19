@@ -1,8 +1,7 @@
 #include "obj_core.h"
 
 
-static obj_bool_t obj_query_index_expr_can_use_index(obj_expr_base_expr_t *expr);
-static obj_bool_t obj_query_index_expr_is_bounds_generating(obj_expr_base_expr_t *expr);
+
 
 /* methods for indexed plan building */
 static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_and(obj_expr_base_expr_t *root, obj_array_t *indexes);
@@ -19,7 +18,7 @@ static void obj_query_index_scan_build_state_reset(obj_query_index_scan_build_st
 
 
 
-static inline obj_bool_t obj_query_index_expr_can_use_index(obj_expr_base_expr_t *expr) {
+inline obj_bool_t obj_query_index_expr_can_use_index(obj_expr_base_expr_t *expr) {
     obj_expr_type_t expr_type = expr->type;
     return expr_type >= OBJ_EXPR_TYPE_EQ && expr_type <= OBJ_EXPR_TYPE_GTE;
 }
@@ -28,7 +27,7 @@ static inline obj_bool_t obj_query_index_expr_is_bounds_generating_not(obj_expr_
     return expr->type == OBJ_EXPR_TYPE_NOT && obj_query_index_expr_can_use_index(expr->methods->get_child(expr, 0));
 }
 */
-static inline obj_bool_t obj_query_index_expr_is_bounds_generating(obj_expr_base_expr_t *expr) {
+inline obj_bool_t obj_query_index_expr_is_bounds_generating(obj_expr_base_expr_t *expr) {
     return /* obj_query_index_expr_is_bounds_generating_not(expr) || */obj_query_index_expr_can_use_index(expr);
 }
 
@@ -149,7 +148,6 @@ void obj_query_index_rate_indexes(obj_expr_base_expr_t *root, obj_array_t *index
 }
 
 
-/* ********** enumerate plan ********** */
 
 
 

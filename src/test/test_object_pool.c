@@ -38,7 +38,7 @@ void *fn_alloc(void *arg) {
     return NULL;
 }
 
-void time_interval(struct timeval t1, struct timeval t2) {
+static void time_interval(struct timeval t1, struct timeval t2) {
     int us = (t2.tv_sec - t1.tv_sec) * 1000000 + t2.tv_usec - t1.tv_usec;
     printf("total time: %ds %dus\n", us / 1000000, us - (us / 1000000) * 1000000);
 }

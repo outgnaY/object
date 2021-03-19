@@ -41,11 +41,37 @@ static const char *obj_expr_type_str_map[] = {
     "!="        /* NEQ */
 };
 
+
+
 /* ********** tag data ********** */
 
 /* set tag data for expression */
 inline void obj_expr_set_tag(obj_expr_base_expr_t *expr, obj_expr_tag_t *tag) {
     expr->tag = tag;
+}
+
+/* destroy tag */
+void obj_expr_tag_destroy(obj_expr_tag_t *tag) {
+    if (tag->type == OBJ_EXPR_TAG_TYPE_INDEX) {
+        obj_free(tag);
+    } else {
+        obj_expr_relevant_tag_t *rt = (obj_expr_relevant_tag_t *)tag;
+        obj_array_destroy_static(&rt->first);
+        obj_array_destroy_static(&rt->not_first);
+        obj_free(tag);
+    }
+}
+
+/* reset tag */
+void obj_expr_reset_tag(obj_expr_base_expr_t *expr) {
+    int i;
+    obj_expr_base_expr_t *child = NULL;
+    obj_expr_tag_destroy(expr->tag);
+    for (i = 0; i < expr->methods->num_child(expr); i++) {
+        child = expr->methods->get_child(expr, i);
+        /* reset children tag recursively */
+        obj_expr_reset_tag(child);
+    }
 }
 
 /* create relevant tag */

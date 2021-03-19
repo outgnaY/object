@@ -1,6 +1,11 @@
 #include "obj_core.h"
 
 
+void time_interval(struct timeval t1, struct timeval t2) {
+    int us = (t2.tv_sec - t1.tv_sec) * 1000000 + t2.tv_usec - t1.tv_usec;
+    printf("total time: %ds %dus\n", us / 1000000, us - (us / 1000000) * 1000000);
+}
+
 int main() {
     obj_global_mem_context_init();
     /* ********** query request test ********** */
@@ -148,6 +153,10 @@ int main() {
     obj_query_plan_tree_dump(plan_root, 0);
     */
     /* {"$and": [{"x": 4}, {"z", {"$lte": 7}}]} */
+    /*
+    struct timeval start;
+    struct timeval end;
+    gettimeofday(&start, NULL);
     obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
         "find", OBJ_BSON_BCON_UTF8("db.coll"),
         "filter", "{",
@@ -160,7 +169,6 @@ int main() {
     obj_status_with_t status_with_qr1 = obj_query_parse_from_find_cmd(cmd);
     obj_status_with_t status_with_sq1 = obj_query_standardize((obj_query_request_t *)status_with_qr1.data);
     obj_standard_query_t *sq = (obj_standard_query_t *)status_with_sq1.data;
-    /* obj_expr_dump(sq->root); */
     obj_bson_t *kp1 = OBJ_BSON_BCON_NEW(
         "x", OBJ_BSON_BCON_INT32(1),
         "y", OBJ_BSON_BCON_INT32(-1)
@@ -187,6 +195,8 @@ int main() {
     right->tag = (obj_expr_tag_t *)obj_expr_index_tag_create(2);
     plan_root = obj_query_index_build_indexed_data_access(root, &indexes);
     obj_query_plan_tree_dump(plan_root, 0);
-    
+    gettimeofday(&end, NULL);
+    time_interval(start, end);
+    */
     return 0;
 }

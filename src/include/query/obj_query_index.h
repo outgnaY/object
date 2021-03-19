@@ -32,6 +32,9 @@ struct obj_query_index_scan_build_state_s {
     /* obj_expr_base_expr_t *cur_or; */
 };
 
+
+obj_bool_t obj_query_index_expr_can_use_index(obj_expr_base_expr_t *expr);
+obj_bool_t obj_query_index_expr_is_bounds_generating(obj_expr_base_expr_t *expr);
 void obj_query_index_get_fields(obj_expr_base_expr_t *root, obj_set_t *out);
 void obj_query_index_find_relevant_indexes(obj_set_t *fields, obj_array_t *all_indexes, obj_array_t *out);
 void obj_query_index_rate_indexes(obj_expr_base_expr_t *root, obj_array_t *indexes);
