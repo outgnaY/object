@@ -102,7 +102,7 @@ void obj_query_index_rate_indexes(obj_expr_base_expr_t *root, obj_array_t *index
         /* haven't tagged */
         obj_assert(root->tag == NULL);
         /* set relevant tag */
-        root->tag = obj_expr_relevant_tag_create();
+        root->tag = (obj_expr_tag_t *)obj_expr_relevant_tag_create();
         if (root->tag == NULL) {
             return;
         }
@@ -165,8 +165,10 @@ void obj_query_index_rate_indexes(obj_expr_base_expr_t *root, obj_array_t *index
  */
 obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_data_access(obj_expr_base_expr_t *root, obj_array_t *indexes) {
     if (root->type == OBJ_EXPR_TYPE_AND) {
+        printf("build and\n");
         return obj_query_index_build_indexed_and(root, indexes);
     } else if (root->type == OBJ_EXPR_TYPE_OR) {
+        printf("build or\n");
         return obj_query_index_build_indexed_or(root, indexes);
     } else {
         /* not use an index */
@@ -212,10 +214,10 @@ static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_and(obj_ex
             return NULL;
         }
         /* add */
-        if (!obj_query_plan_tree_add_children(and_node, &index_scan_nodes)) {
+        if (!obj_query_plan_tree_add_children((obj_query_plan_tree_base_node_t *)and_node, &index_scan_nodes)) {
             return NULL;
         }
-        and_result = and_node;
+        and_result = (obj_query_plan_tree_base_node_t *)and_node;
     }
 
     return and_result;
@@ -241,15 +243,15 @@ static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_or(obj_exp
     if (index_scan_nodes.size == 1) {
         or_result = (obj_query_plan_tree_base_node_t *)obj_array_get_index_value(&index_scan_nodes, 0, uintptr_t);
     } else {
-        obj_query_plan_tree_base_node_t *or_node = obj_query_plan_tree_or_node_create();
+        obj_query_plan_tree_or_node_t *or_node = obj_query_plan_tree_or_node_create();
         if (or_node == NULL) {
             return NULL;
         }
         /* add */
-        if (!obj_query_plan_tree_add_children(or_node, &index_scan_nodes)) {
+        if (!obj_query_plan_tree_add_children((obj_query_plan_tree_base_node_t *)or_node, &index_scan_nodes)) {
             return NULL;
         }
-        or_result = or_node;
+        or_result = (obj_query_plan_tree_base_node_t *)or_node;
     }
 
     return or_result;
@@ -290,7 +292,7 @@ static void obj_query_index_merge_with_leaf(obj_expr_base_expr_t *expr, obj_quer
     /* index bounds to fill */
     bounds_to_fill = &index_scan_node->bounds;
     int i;
-    obj_bson_t iter;
+    obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, index_entry->key_pattern);
     const char *key = NULL;
     obj_bson_type_t bson_type;
@@ -298,7 +300,7 @@ static void obj_query_index_merge_with_leaf(obj_expr_base_expr_t *expr, obj_quer
     for (i = 0; i < pos; i++) {
         obj_assert(obj_bson_iter_next_internal(&iter, &key, &bson_type));
     }
-    obj_bson_t *value = NULL;
+    obj_bson_value_t *value = NULL;
     value = (obj_bson_value_t *)obj_bson_iter_value(&iter);
     obj_ordered_interval_list_t *oil = (obj_ordered_interval_list_t *)obj_array_get_index(&bounds_to_fill->fields, pos);
     if (oil->name.data == NULL) {
@@ -357,19 +359,17 @@ static obj_query_plan_tree_base_node_t *obj_query_index_make_leaf_node(obj_query
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, index_entry->key_pattern);
     const char *key = NULL;
-    obj_bson_value_t *value = NULL;
+    const obj_bson_value_t *value = NULL;
     obj_bson_type_t bson_type;
-    obj_ordered_interval_list_t *oil = (obj_ordered_interval_list_t *)obj_array_get_index(&index_scan_node->bounds.fields, pos);
-    
-    obj_bson_iter_next_internal(&iter, &key, bson_type);
-    int i;
+    oil = (obj_ordered_interval_list_t *)obj_array_get_index(&index_scan_node->bounds.fields, pos);
+    obj_bson_iter_next_internal(&iter, &key, &bson_type);
     for (i = 0; i < pos; i++) {
         /* safe check */
-        obj_assert(obj_bson_iter_next_internal(&iter, &key, bson_type));
+        obj_assert(obj_bson_iter_next_internal(&iter, &key, &bson_type));
     }
     value = obj_bson_iter_value(&iter);
     obj_index_bounds_translate(expr, key, value, index_entry, oil);
-    return index_scan_node;
+    return (obj_query_plan_tree_base_node_t *)index_scan_node;
 }
 
 static void obj_query_index_finish_leaf_node(obj_query_plan_tree_base_node_t *node, obj_query_index_entry_t *index_entry) {
@@ -403,6 +403,7 @@ static void obj_query_index_finish_leaf_node(obj_query_plan_tree_base_node_t *no
         if (oil->name.data == NULL) {
             obj_assert(oil->intervals.size == 0);
             /* set interval */
+            /* (MIN, MAX) */
             obj_interval_t interval;
             interval.empty = false;
             interval.start_inclusive = false;

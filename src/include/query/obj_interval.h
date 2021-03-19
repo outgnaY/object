@@ -62,5 +62,6 @@ void obj_ordered_interval_list_intersect(obj_ordered_interval_list_t *oil1, obj_
 void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_ordered_interval_list_t *oil2);
 obj_bool_t obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil);
 void obj_ordered_interval_list_reverse(obj_ordered_interval_list_t *oil);
+void obj_ordered_interval_list_dump(obj_ordered_interval_list_t *oil);
 
 #endif  /* OBJ_INTERVAL_H */

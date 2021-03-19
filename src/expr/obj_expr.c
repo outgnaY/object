@@ -281,6 +281,8 @@ static void obj_expr_print(obj_expr_base_expr_t *expr, int skip) {
         /* $and/$or/$nor */
         case OBJ_EXPR_TYPE_AND:
         case OBJ_EXPR_TYPE_OR:
+            obj_expr_print_tree(skip, expr);
+            break;
         /*
         case OBJ_EXPR_TYPE_NOR:
             obj_expr_print_tree(skip, expr);

@@ -3,6 +3,8 @@
 
 #include "obj_core.h"
 
+typedef struct obj_query_index_entry_s obj_query_index_entry_t;
+
 typedef enum obj_index_bound_inclusion obj_index_bound_inclusion_t;
 typedef struct obj_index_bounds_s obj_index_bounds_t;
 
@@ -19,9 +21,10 @@ struct obj_index_bounds_s {
 };
 
 
-void obj_index_bounds_translate(obj_expr_base_expr_t *expr, const char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
-void obj_index_bounds_translate_and_intersect(obj_expr_base_expr_t *expr, const char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
-void obj_index_bounds_translate_and_union(obj_expr_base_expr_t *expr, const char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
+void obj_index_bounds_translate(obj_expr_base_expr_t *expr, const char *key, const obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
+void obj_index_bounds_translate_and_intersect(obj_expr_base_expr_t *expr, const char *key, const obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
+void obj_index_bounds_translate_and_union(obj_expr_base_expr_t *expr, const char *key, const obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out);
 void obj_index_bounds_align_bounds(obj_index_bounds_t *bounds, obj_bson_t *key_pattern);
+void obj_index_bounds_dump(obj_index_bounds_t *bounds);
 
 #endif  /* OBJ_INDEX_BOUNDS_H */

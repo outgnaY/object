@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
-noinst_PROGRAMS = object test_bson test_req test_sds test_string test_array test_expr test_bcon test_rbtree test_object_pool test_prealloc_map test_lock test_stringdata test_index_key test_set test_interval
+noinst_PROGRAMS = object test_bson test_req test_sds test_string test_array test_expr test_bcon test_rbtree test_object_pool test_prealloc_map test_lock test_stringdata test_index_key test_set test_query test_interval
 
 AM_CPPFLAGS = -I$(srcdir)/include
 
@@ -28,7 +28,7 @@ test_stringdata_SOURCES = test/test_stringdata.c util/obj_stringdata.c mem/obj_m
 # test_engine_SOURCES = test/test_engine.c util/obj_stringdata.c util/obj_math.c util/obj_array.c util/obj_siphash.c util/obj_prealloc_map.c util/obj_status_with.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson.c concurrency/obj_concurrency.c concurrency/obj_lock.c concurrency/obj_locker.c storage/v1/obj_v1_catalog.c storage/v1/obj_v1_engine.c storage/v1/obj_v1_record_store.c storage/obj_engine.c handler/obj_handler.c
 test_index_key_SOURCES = test/test_index_key.c storage/index/obj_index_key.c storage/v1/index/obj_v1_index_key.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_string.c util/obj_math.c bson/obj_bson.c bson/obj_bson_iter.c bson/obj_bson_visit.c bson/obj_bson_bcon.c
 test_set_SOURCES = test/test_set.c util/obj_set.c util/obj_prealloc_map.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_siphash.c
-# test_query_SOURCES = test/test_query.c query/obj_query.c query/obj_query_index.c query/obj_query_planner.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson_iter.c bson/obj_bson.c bson/obj_bson_visit.c bson/obj_bson_bcon.c util/obj_array.c util/obj_siphash.c util/obj_prealloc_map.c util/obj_set.c util/obj_math.c util/obj_string.c util/obj_status_with.c util/obj_stringdata.c expr/obj_expr_parse.c expr/obj_expr.c expr/obj_expr_optimize.c
+test_query_SOURCES = test/test_query.c query/obj_query.c query/obj_query_index.c query/obj_query_planner.c query/obj_query_plan_tree.c query/obj_interval.c query/obj_index_bounds.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson_iter.c bson/obj_bson.c bson/obj_bson_visit.c bson/obj_bson_bcon.c util/obj_array.c util/obj_siphash.c util/obj_prealloc_map.c util/obj_set.c util/obj_math.c util/obj_string.c util/obj_status_with.c util/obj_stringdata.c expr/obj_expr_parse.c expr/obj_expr.c expr/obj_expr_optimize.c
 test_interval_SOURCES = test/test_interval.c query/obj_interval.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson_iter.c bson/obj_bson.c bson/obj_bson_visit.c bson/obj_bson_bcon.c util/obj_array.c util/obj_math.c util/obj_string.c
 
 all:
@@ -47,6 +47,7 @@ all:
 	mv -f test_stringdata ../bin/test_stringdata
 	mv -f test_index_key ../bin/test_index_key
 	mv -f test_set ../bin/test_set
+	mv -f test_query ../bin/test_query
 	mv -f test_interval ../bin/test_interval
 	mv -f obj_daemon.o obj_thread.o obj.o bson/*.o concurrency/*.o expr/*.o mem/*.o network/*.o query/*.o storage/v1/index/*.o storage/v1/*.o storage/index/*.o storage/*.o test/*.o util/*.o ../obj
 clean:
@@ -65,6 +66,7 @@ clean:
 	rm -f ../bin/test_stringdata
 	rm -f ../bin/test_index_key
 	rm -f ../bin/test_set
+	rm -f ../bin/test_query
 	rm -f ../bin/test_interval
 	rm -f ../obj/*
 clean-local:

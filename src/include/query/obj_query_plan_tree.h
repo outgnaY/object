@@ -35,6 +35,7 @@ enum obj_query_plan_tree_node_type {
 /* methods of query plan tree node */
 struct obj_query_plan_tree_node_methods_s {
     obj_query_plan_tree_node_type_t (*get_type)();
+    void (*dump)(obj_query_plan_tree_base_node_t *node);
 };
 
 struct obj_query_plan_tree_base_node_s {
@@ -99,6 +100,7 @@ struct obj_query_plan_tree_limit_node_s {
     int limit;
 };
 
+void obj_query_plan_tree_dump(obj_query_plan_tree_base_node_t *root, int skip);
 obj_bool_t obj_query_plan_tree_add_children(obj_query_plan_tree_base_node_t *root, obj_array_t *children);
 
 /* and node */

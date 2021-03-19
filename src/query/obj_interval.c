@@ -301,47 +301,67 @@ static int obj_interval_compare_for_sort(const void *a, const void *b) {
 
 /* dump interval */
 void obj_interval_dump(obj_interval_t *interval) {
-    printf("start:\n");
+    if (interval->start_inclusive) {
+        printf("[ ");
+    } else {
+        printf("( ");
+    }
     switch (interval->start.type) {
         case OBJ_BSON_TYPE_DOUBLE:
-            printf("%lf\n", interval->start.value.v_double);
+            printf("%lf, ", interval->start.value.v_double);
             break;
         case OBJ_BSON_TYPE_UTF8:
-            printf("%s\n", interval->start.value.v_utf8.str);
+            printf("%s, ", interval->start.value.v_utf8.str);
             break;
         case OBJ_BSON_TYPE_BINARY:
             break;
         case OBJ_BSON_TYPE_INT32:
-            printf("%d\n", interval->start.value.v_int32);
+            printf("%d, ", interval->start.value.v_int32);
             break;
         case OBJ_BSON_TYPE_INT64:
-            printf("%ld\n", interval->start.value.v_int64);
+            printf("%ld, ", interval->start.value.v_int64);
+            break;
+        case OBJ_BSON_TYPE_MIN:
+            printf("MIN, ");
+            break;
+        case OBJ_BSON_TYPE_MAX:
+            printf("MAX, ");
             break;
         default:
+            printf("unexpected type %d, ", interval->start.type);
             obj_assert(0);
     }
-    printf("start inclusive: %d\n", interval->start_inclusive);
     
-    printf("end\n");
     switch (interval->end.type) {
         case OBJ_BSON_TYPE_DOUBLE:
-            printf("%lf\n", interval->end.value.v_double);
+            printf("%lf", interval->end.value.v_double);
             break;
         case OBJ_BSON_TYPE_UTF8:
-            printf("%s\n", interval->end.value.v_utf8.str);
+            printf("%s", interval->end.value.v_utf8.str);
             break;
         case OBJ_BSON_TYPE_BINARY:
             break;
         case OBJ_BSON_TYPE_INT32:
-            printf("%d\n", interval->end.value.v_int32);
+            printf("%d", interval->end.value.v_int32);
             break;
         case OBJ_BSON_TYPE_INT64:
-            printf("%ld\n", interval->end.value.v_int64);
+            printf("%ld", interval->end.value.v_int64);
+            break;
+        case OBJ_BSON_TYPE_MIN:
+            printf("MIN");
+            break;
+        case OBJ_BSON_TYPE_MAX:
+            printf("MAX");
             break;
         default:
+            printf("unexpected type %d", interval->end.type);
             obj_assert(0);
     }
-    printf("end inclusive: %d\n", interval->end_inclusive);
+    if (interval->end_inclusive) {
+        printf(" ]");
+    } else {
+        printf(" )");
+    }
 }
 
 /* for translate */
@@ -465,13 +485,6 @@ void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_orde
     }
     /* sort */
     qsort(oil1_intervals->data, oil1_intervals->size, sizeof(obj_interval_t), obj_interval_compare_for_sort);
-    /*
-    printf("total size: %d\n", oil1_intervals->size);
-    for (i = 0; i < oil1_intervals->size; i++) {
-        obj_interval_t *interval = (obj_interval_t *)obj_array_get_index(oil1_intervals, i);
-        obj_interval_dump(interval);
-    }
-    */
     /* merge */
     obj_array_t result;
     if (!obj_array_init(&result, sizeof(obj_interval_t))) {
@@ -541,6 +554,18 @@ void obj_ordered_interval_list_reverse(obj_ordered_interval_list_t *oil) {
         *hi_interval = *ptemp_interval;
         lo++;
         hi--;
+    }
+}
+
+/* dump interval list */
+void obj_ordered_interval_list_dump(obj_ordered_interval_list_t *oil) {
+    int i;
+    obj_interval_t *interval;
+    for (i = 0; i < oil->intervals.size; i++) {
+        interval = (obj_interval_t *)obj_array_get_index(&oil->intervals, i);
+        printf("%d th interval:\n", i);
+        obj_interval_dump(interval);
+        printf("\n");
     }
 }
 
