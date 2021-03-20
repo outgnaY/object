@@ -8,7 +8,7 @@ typedef enum obj_query_plan_iter_node_type obj_query_plan_iter_node_type_t;
 typedef struct obj_expr_id_pair_s obj_expr_id_pair_t;
 typedef struct obj_index_expr_list_pair_s obj_index_expr_list_pair_t;
 typedef struct obj_query_plan_iter_s obj_query_plan_iter_t;
-typedef union obj_query_plan_iter_base_node obj_query_plan_iter_base_node_t;
+typedef struct obj_query_plan_iter_base_node_s obj_query_plan_iter_base_node_t;
 typedef struct obj_query_plan_iter_and_node_s obj_query_plan_iter_and_node_t;
 typedef struct obj_query_plan_iter_or_node_s obj_query_plan_iter_or_node_t;
 typedef struct obj_query_plan_iter_index_assignment_s obj_query_plan_iter_index_assignment_t;
@@ -46,13 +46,6 @@ struct obj_query_plan_iter_s {
     obj_array_t id_to_node;
 };
 
-/* tree to enumerate plan */
-union obj_query_plan_iter_base_node {
-    obj_query_plan_iter_node_type_t node_type;
-    obj_query_plan_iter_and_node_t and_node;
-    obj_query_plan_iter_or_node_t or_node;
-};
-
 
 /* corresponding to and expression node */
 struct obj_query_plan_iter_and_node_s {
@@ -67,6 +60,17 @@ struct obj_query_plan_iter_or_node_s {
     /* [id] */
     obj_array_t subnodes;
 };
+
+/* tree to enumerate plan */
+struct obj_query_plan_iter_base_node_s {
+    obj_query_plan_iter_node_type_t node_type;
+    union {
+        obj_query_plan_iter_and_node_t and_node;
+        obj_query_plan_iter_or_node_t or_node;
+    };
+};
+
+
 
 /* used by and */
 struct obj_query_plan_iter_index_assignment_s {
@@ -83,8 +87,14 @@ struct obj_query_plan_iter_and_iter_state_s {
     /* [index_assignment] */
     obj_array_t assignments;
     /* [id] */
-    obj_array_t subnodes
+    obj_array_t subnodes;
 };
+
+
+void obj_query_plan_iter_init(obj_query_plan_iter_t *pi, obj_array_t *indexes, obj_expr_base_expr_t *root);
+void obj_query_plan_iter_destroy_static(obj_query_plan_iter_t *pi);
+obj_expr_base_expr_t *obj_query_plan_iter_get_next(obj_query_plan_iter_t *pi);
+
 
 
 #endif  /* OBJ_QUERY_PLAN_ITER_H */

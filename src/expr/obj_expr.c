@@ -45,6 +45,31 @@ static const char *obj_expr_type_str_map[] = {
 
 /* ********** tag data ********** */
 
+void obj_expr_tag_dump(obj_expr_tag_t *tag) {
+    printf("(");
+    if (tag->type == OBJ_EXPR_TAG_TYPE_INDEX) {
+        obj_expr_index_tag_t *index_tag = (obj_expr_index_tag_t *)tag;
+        printf("index tag, index %d position %d", index_tag->index, index_tag->pos);
+    } else {
+        obj_expr_relevant_tag_t *rt = (obj_expr_relevant_tag_t *)tag;
+        printf("relevant tag, path: %s, ", rt->path.data);
+        printf("first: [");
+        int i;
+        int index;
+        for (i = 0; i < rt->first.size; i++) {
+            index = obj_array_get_index_value(&rt->first, i, int);
+            printf("%d ", index);
+        }
+        printf("], not first: [");
+        for (i = 0; i < rt->not_first.size; i++) {
+            index = obj_array_get_index_value(&rt->not_first, i, int);
+            printf("%d ", index);
+        }
+        printf("]");
+    }
+    printf(")\n");
+}
+
 /* set tag data for expression */
 inline void obj_expr_set_tag(obj_expr_base_expr_t *expr, obj_expr_tag_t *tag) {
     expr->tag = tag;
@@ -64,9 +89,12 @@ void obj_expr_tag_destroy(obj_expr_tag_t *tag) {
 
 /* reset tag */
 void obj_expr_reset_tag(obj_expr_base_expr_t *expr) {
+    if (expr->tag != NULL) {
+        obj_expr_tag_destroy(expr->tag);
+        expr->tag = NULL;
+    }
     int i;
     obj_expr_base_expr_t *child = NULL;
-    obj_expr_tag_destroy(expr->tag);
     for (i = 0; i < expr->methods->num_child(expr); i++) {
         child = expr->methods->get_child(expr, i);
         /* reset children tag recursively */
@@ -324,6 +352,9 @@ static void obj_expr_print(obj_expr_base_expr_t *expr, int skip) {
 
 static void obj_expr_print_compare(int skip, obj_expr_base_expr_t *expr) {
     int i;
+    if (expr->tag != NULL) {
+        obj_expr_tag_dump(expr->tag);
+    }
     for (i = 0; i < skip; i++) {
         printf(" ");
     }
@@ -335,6 +366,9 @@ static void obj_expr_print_compare(int skip, obj_expr_base_expr_t *expr) {
 
 static void obj_expr_print_tree(int skip, obj_expr_base_expr_t *expr) {
     int i;
+    if (expr->tag != NULL) {
+        obj_expr_tag_dump(expr->tag);
+    }
     for (i = 0; i < skip; i++) {
         printf(" ");
     }
