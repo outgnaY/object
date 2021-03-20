@@ -163,10 +163,8 @@ void obj_query_index_rate_indexes(obj_expr_base_expr_t *root, obj_array_t *index
  */
 obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_data_access(obj_expr_base_expr_t *root, obj_array_t *indexes) {
     if (root->type == OBJ_EXPR_TYPE_AND) {
-        printf("build and\n");
         return obj_query_index_build_indexed_and(root, indexes);
     } else if (root->type == OBJ_EXPR_TYPE_OR) {
-        printf("build or\n");
         return obj_query_index_build_indexed_or(root, indexes);
     } else {
         /* not use an index */

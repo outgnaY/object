@@ -1,5 +1,9 @@
 #include "obj_core.h"
 
+
+/* tag */
+static int obj_expr_tag_compare(const void *a, const void *b);
+
 /* not expression */
 /*
 static int obj_expr_not_expr_num_child(obj_expr_base_expr_t *expr);
@@ -44,6 +48,44 @@ static const char *obj_expr_type_str_map[] = {
 
 
 /* ********** tag data ********** */
+
+/* tags must be index tag */
+void obj_expr_sort_using_tags(obj_expr_base_expr_t *expr) {
+    obj_expr_base_expr_t *child = NULL;
+    int num_child = expr->methods->num_child(expr);
+    int i;
+    for (i = 0; i < num_child; i++) {
+        child = expr->methods->get_child(expr, i);
+        obj_expr_sort_using_tags(child);
+    }
+    if (num_child <= 1) {
+        return;
+    }
+    obj_assert(expr->type == OBJ_EXPR_TYPE_OR || expr->type == OBJ_EXPR_TYPE_AND);
+    obj_expr_tree_expr_t *tree_expr = (obj_expr_tree_expr_t *)expr;
+    obj_array_sort(&tree_expr->expr_list, obj_expr_tag_compare); 
+}
+
+static int obj_expr_tag_compare(const void *a, const void *b) {
+    obj_expr_base_expr_t *expr1 = *(obj_expr_base_expr_t **)a;
+    obj_expr_base_expr_t *expr2 = *(obj_expr_base_expr_t **)b;
+    obj_expr_index_tag_t *index_tag1 = (obj_expr_index_tag_t *)(expr1->tag);
+    obj_expr_index_tag_t *index_tag2 = (obj_expr_index_tag_t *)(expr2->tag);
+    if (index_tag1 == NULL) {
+        if (index_tag2 == NULL) {
+            return 0;
+        }
+        return 1;
+    }
+    /* index_tag1 != NULL */
+    if (index_tag2 == NULL) {  
+        return -1;
+    }
+    if (index_tag1->index != index_tag2->index) {
+        return index_tag1->index - index_tag2->index;
+    }
+    return index_tag1->pos - index_tag2->pos;
+}
 
 void obj_expr_tag_dump(obj_expr_tag_t *tag) {
     printf("(");

@@ -285,7 +285,7 @@ static obj_bool_t obj_query_plan_iter_prep_memo(obj_query_plan_iter_t *pi, obj_e
         obj_query_plan_iter_or_node_init(new_node);
         for (i = 0; i < expr->methods->num_child(expr); i++) {
             child = expr->methods->get_child(expr, i);
-            int child_id = obj_query_plan_iter_memo_id_for_expr(pi, expr);
+            int child_id = obj_query_plan_iter_memo_id_for_expr(pi, child);
             /* add */
             obj_array_push_back(&new_node->or_node.subnodes, &child_id);
         }

@@ -98,6 +98,8 @@ struct obj_expr_not_expr_s {
 */
 
 /* tags */
+void obj_expr_sort_using_tags(obj_expr_base_expr_t *expr);
+void obj_expr_tag_dump(obj_expr_tag_t *tag);
 void obj_expr_set_tag(obj_expr_base_expr_t *expr, obj_expr_tag_t *tag);
 void obj_expr_tag_destroy(obj_expr_tag_t *tag);
 void obj_expr_reset_tag(obj_expr_base_expr_t *expr);
