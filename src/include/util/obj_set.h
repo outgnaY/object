@@ -17,11 +17,12 @@ struct obj_set_s {
 
 obj_uint64_t obj_set_hash_function(const void *key, int len);
 obj_set_t *obj_set_create(obj_prealloc_map_methods_t *methods, int element_size);
-obj_bool_t obj_set_init(obj_set_t *set, obj_prealloc_map_methods_t *methods, int element_size);
+void obj_set_init(obj_set_t *set, obj_prealloc_map_methods_t *methods, int element_size);
 void obj_set_destroy_static(obj_set_t *set);
 void obj_set_destroy(obj_set_t *set);
 obj_bool_t obj_set_find(obj_set_t *set, void *key);
 void obj_set_add(obj_set_t *set, void *key);
+void obj_set_delete_all(obj_set_t *set);
 
 
 #endif  /* OBJ_SET_H */

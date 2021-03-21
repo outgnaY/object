@@ -7,7 +7,7 @@ void time_interval(struct timeval t1, struct timeval t2) {
 }
 
 int main() {
-    obj_global_mem_context_init();
+    /* obj_global_mem_context_init(); */
     /* query planner test */
     struct timeval start;
     struct timeval end;

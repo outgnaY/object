@@ -15,10 +15,9 @@ obj_set_t *obj_set_create(obj_prealloc_map_methods_t *methods, int element_size)
 }
 
 /* init set */
-obj_bool_t obj_set_init(obj_set_t *set, obj_prealloc_map_methods_t *methods, int element_size) {
+void obj_set_init(obj_set_t *set, obj_prealloc_map_methods_t *methods, int element_size) {
     obj_assert(set);
     obj_prealloc_map_init(&set->map, methods, element_size);
-    return true;
 }
 
 void obj_set_destroy_static(obj_set_t *set) {
@@ -42,6 +41,10 @@ obj_bool_t obj_set_find(obj_set_t *set, void *key) {
 /* add to set */
 void obj_set_add(obj_set_t *set, void *key) {
     obj_prealloc_map_add(&set->map, key, NULL);
+}
+
+void obj_set_delete_all(obj_set_t *set) {
+    obj_prealloc_map_delete_all(&set->map);
 }
 
 

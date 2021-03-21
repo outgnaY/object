@@ -12,7 +12,6 @@ typedef struct obj_expr_index_tag_s obj_expr_index_tag_t;
 typedef struct obj_expr_base_expr_s obj_expr_base_expr_t;
 typedef struct obj_expr_tree_expr_s obj_expr_tree_expr_t;
 typedef struct obj_expr_compare_expr_s obj_expr_compare_expr_t;
-typedef struct obj_expr_not_expr_s obj_expr_not_expr_t;
 
 enum obj_expr_type {
     /* logical */
@@ -24,12 +23,6 @@ enum obj_expr_type {
     OBJ_EXPR_TYPE_LT,
     OBJ_EXPR_TYPE_GT,
     OBJ_EXPR_TYPE_GTE,
-    /* negation */
-    /*
-    OBJ_EXPR_TYPE_NOT,
-    OBJ_EXPR_TYPE_NOR,
-    OBJ_EXPR_TYPE_NEQ
-    */
 };
 
 struct obj_expr_methods_s {

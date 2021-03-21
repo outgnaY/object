@@ -1,7 +1,7 @@
 #include "obj_core.h"
 
 int main() {
-    obj_global_mem_context_init();
+    /* obj_global_mem_context_init(); */
     /* ********** correct query format ********** */
     /* simple query1 */
     /* {"a": 45} */

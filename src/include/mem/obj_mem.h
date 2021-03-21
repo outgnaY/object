@@ -18,10 +18,15 @@ void *obj_lib_calloc(obj_size_t size);
 #define obj_lib_free free
 
 /* wrapper of alloc methods */
+/*
 #define obj_alloc(size) obj_mem_context_alloc(g_context, size)
 #define obj_free(ptr) obj_mem_context_free(g_context, ptr)
 #define obj_realloc(ptr, size) obj_mem_context_realloc(g_context, ptr, size)
+*/
 
+#define obj_alloc(size) malloc(size)
+#define obj_free(ptr) free(ptr)
+#define obj_realloc(ptr, size) realloc(ptr, size)
 
 
 

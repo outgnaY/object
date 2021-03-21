@@ -27,15 +27,16 @@ struct obj_exec_working_set_member_holder_s {
 };
 
 enum obj_exec_working_set_member_state {
-    OBJ_exec_WORKING_SET_MEMBER_STATE_INVALID,
+    OBJ_EXEC_WORKING_SET_MEMBER_STATE_INVALID,
 
 };
 
 /* member of working set */
 struct obj_exec_working_set_member_s {
-
+    /* record */
+    obj_record_t *record;
 };
 
-#define OBJ_exec_WORKING_SET_INVALID_ID -1
+#define OBJ_EXEC_WORKING_SET_INVALID_ID -1
 
 #endif  /* OBJ_EXEC_WORKING_SET_H */

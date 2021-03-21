@@ -125,9 +125,7 @@ obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_array_t *
      */
     /* get fields */
     obj_set_t fields;
-    if (!obj_set_init(&fields, &string_set_methods, sizeof(char *))) {
-        return obj_status_with_create(NULL, "out of memory", OBJ_CODE_QUERY_PLAN_NOMEM);
-    }
+    obj_set_init(&fields, &string_set_methods, sizeof(char *));
     obj_query_index_get_fields(sq->root, &fields);
     /* find relevant indexes */
     obj_array_t relevant_indexes;
@@ -146,7 +144,6 @@ obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_array_t *
         while ((tag_tree = obj_query_plan_iter_get_next(&pi)) != NULL) {
             /* sort by index tag */
             obj_expr_sort_using_tags(tag_tree);
-            /* obj_expr_dump(tag_tree); */
             obj_query_plan_tree_base_node_t *plan_root = NULL;
             plan_root = obj_query_index_build_indexed_data_access(tag_tree, &relevant_indexes);
             if (plan_root == NULL) {
@@ -234,3 +231,4 @@ static void obj_query_planner_dump_relevant_indexes(obj_array_t *relevant_indexe
         printf("\n");
     }
 }
+

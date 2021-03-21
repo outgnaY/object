@@ -153,6 +153,7 @@ obj_expr_index_tag_t *obj_expr_index_tag_create(int i) {
     index_tag->base.type = OBJ_EXPR_TAG_TYPE_INDEX;
     index_tag->index = i;
     index_tag->pos = 0;
+    return index_tag;
 }
 
 /* create compound index tag */
@@ -161,6 +162,7 @@ obj_expr_index_tag_t *obj_expr_index_tag_compound_create(int i, int p) {
     index_tag->base.type = OBJ_EXPR_TAG_TYPE_INDEX;
     index_tag->index = i;
     index_tag->pos = p;
+    return index_tag;
 }
 
 
@@ -278,7 +280,6 @@ static void obj_expr_print(obj_expr_base_expr_t *expr, int skip) {
     switch (expr->type) {
         /* compare */
         case OBJ_EXPR_TYPE_EQ: 
-        /* case OBJ_EXPR_TYPE_NEQ: */
         case OBJ_EXPR_TYPE_LT:
         case OBJ_EXPR_TYPE_LTE:
         case OBJ_EXPR_TYPE_GT:

@@ -236,6 +236,7 @@ obj_expr_base_expr_t *obj_query_plan_iter_get_next(obj_query_plan_iter_t *pi) {
     /* move to next */
     pi->done = obj_query_plan_iter_next_memo(pi, memo_id);
     obj_query_plan_iter_tag_for_sort(pi->root);
+    
     return pi->root;
 }
 
@@ -257,7 +258,8 @@ static void obj_query_plan_iter_tag_for_sort(obj_expr_base_expr_t *expr) {
             }
         }
         if (my_index_tag) {
-            obj_expr_set_tag(expr, (obj_expr_tag_t *)obj_expr_index_tag_compound_create(my_index_tag->index, my_index_tag->pos));
+            expr->tag = (obj_expr_tag_t *)obj_expr_index_tag_compound_create(my_index_tag->index, my_index_tag->pos);
+            obj_assert(expr->tag);
         }
     }
 }
@@ -406,6 +408,7 @@ static void obj_query_plan_iter_tag_memo(obj_query_plan_iter_t *pi, int id) {
                 obj_assert(pred->tag == NULL);
                 /* set tag */
                 pred->tag = (obj_expr_tag_t *)obj_expr_index_tag_compound_create(assign->index, position);
+                obj_assert(pred->tag);
             }
         }
     }

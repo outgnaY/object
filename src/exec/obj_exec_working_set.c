@@ -6,13 +6,7 @@
 /* create working set */
 obj_exec_working_set_create() {
     obj_exec_working_set_t *working_set = (obj_exec_working_set_t *)obj_alloc(sizeof(obj_exec_working_set_t));
-    if (working_set == NULL) {
-        return NULL;
-    }
-    if (!obj_array_init(&working_set->data, sizeof(obj_exec_working_set_member_holder_t))) {
-        obj_free(working_set);
-        return NULL;
-    }
+    obj_array_init(&working_set->data, sizeof(obj_exec_working_set_member_holder_t));
     obj_array_set_free(&working_set->data, );
     working_set->freelist = OBJ_EXEC_WORKING_SET_INVALID_ID;
     return working_set;
