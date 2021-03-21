@@ -2,10 +2,7 @@
 
 /* create list */
 obj_list_t *obj_list_create() {
-    obj_list_t *list;
-    if ((list = obj_alloc(sizeof(obj_list_t))) == NULL) {
-        return NULL;
-    }
+    obj_list_t *list = obj_alloc(sizeof(obj_list_t));
     list->head = list->tail = NULL;
     list->len = 0;
     list->free = NULL;
@@ -42,13 +39,10 @@ void obj_list_destroy(obj_list_t *list) {
 }
 
 /* add a new node to the head of the list */
-obj_bool_t obj_list_add_node_head(obj_list_t *list, void *value) {
+void obj_list_add_node_head(obj_list_t *list, void *value) {
     obj_assert(list);
     obj_assert(value);
-    obj_list_node_t *node;
-    if ((node = obj_alloc(sizeof(obj_list_node_t))) == NULL) {
-        return false;
-    }
+    obj_list_node_t *node = obj_alloc(sizeof(obj_list_node_t));
     node->value = value;
     if (list->len == 0) {
         list->head = list->tail = node;
@@ -59,19 +53,14 @@ obj_bool_t obj_list_add_node_head(obj_list_t *list, void *value) {
         list->head->prev = node;
         list->head = node;
     }
-
     list->len++;
-    return true;
 }
 
 /* add a new node to the tail of the list */
-obj_bool_t obj_list_add_node_tail(obj_list_t *list, void *value) {
+void obj_list_add_node_tail(obj_list_t *list, void *value) {
     obj_assert(list);
     obj_assert(value);
-    obj_list_node_t *node;
-    if ((node = obj_alloc(sizeof(obj_list_node_t))) == NULL) {
-        return false;
-    }
+    obj_list_node_t *node = obj_alloc(sizeof(obj_list_node_t));
     node->value = value;
     if (list->len == 0) {
         list->head = list->tail = node;
@@ -83,7 +72,6 @@ obj_bool_t obj_list_add_node_tail(obj_list_t *list, void *value) {
         list->tail = node;
     }
     list->len++;
-    return true;
 }
 
 

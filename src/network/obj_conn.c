@@ -130,16 +130,7 @@ static obj_conn_read_result_t obj_conn_read(obj_conn_t *c) {
     /* read */
     while (true) {
         /* try to read into input buffer */
-        res = obj_buffer_read_fd(c->inbuf, c->sfd, &saved_errno, &n);
-        if (!res) {
-            /* memory error occurred */
-            if (obj_settings.verbose > 0) {
-                fprintf(stderr, "can't allocate input buffer\n");
-            }
-            c->close_after_write = true;
-            /* TODO send out of memory error to client */
-            return OBJ_CONN_READ_MEMORY_ERROR;
-        }
+        obj_buffer_read_fd(c->inbuf, c->sfd, &saved_errno, &n);
         if (n > 0) {
             ret = OBJ_CONN_READ_DATA_RECEIVED;
             break;
@@ -221,13 +212,13 @@ new_block:
     if (size < OBJ_BUFFER_INIT_SIZE) {
         size = OBJ_BUFFER_INIT_SIZE;
     }
-    buf = obj_buffer_init_with_size(size);
+    buf = obj_buffer_create_with_size(size);
     if (buf == NULL) {
         goto clean;
     }
     tail->buf = buf;
     /* link to last */
-    res = obj_list_add_node_tail(c->reply_list, tail);
+    obj_list_add_node_tail(c->reply_list, tail);
 add:
     /* have enough space, add reply */
     /* header */
@@ -585,13 +576,13 @@ obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short
     /* set for idle kicker */
     c->last_cmd_time = g_rel_current_time;
     c->close_after_write = false;
-    inbuf = obj_buffer_init();
+    inbuf = obj_buffer_create();
     if (inbuf == NULL) {
         fprintf(stderr, "failed to allocate memory for input buffer\n");
         goto clean;
     }
     c->inbuf = inbuf;
-    outbuf = obj_buffer_init();
+    outbuf = obj_buffer_create();
     if (outbuf == NULL) {
         fprintf(stderr, "failed to allocate memory for output buffer\n");
         goto clean;

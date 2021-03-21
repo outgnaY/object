@@ -77,7 +77,7 @@ struct obj_query_plan_tree_index_scan_node_s {
 /* projection node */
 struct obj_query_plan_tree_projection_node_s {
     obj_query_plan_tree_base_node_t base;
-
+    obj_bson_t *projection;
 };
 
 /* sort node */
@@ -100,8 +100,12 @@ struct obj_query_plan_tree_limit_node_s {
     int limit;
 };
 
+
+int obj_query_plan_tree_count_nodes(obj_query_plan_tree_base_node_t *root);
+void obj_query_plan_tree_destroy(obj_query_plan_tree_base_node_t *root);
 void obj_query_plan_tree_dump(obj_query_plan_tree_base_node_t *root, int skip);
-obj_bool_t obj_query_plan_tree_add_children(obj_query_plan_tree_base_node_t *root, obj_array_t *children);
+void obj_query_plan_tree_add_child(obj_query_plan_tree_base_node_t *root, obj_query_plan_tree_base_node_t *child);
+void obj_query_plan_tree_add_children(obj_query_plan_tree_base_node_t *root, obj_array_t *children);
 
 /* and node */
 obj_query_plan_tree_and_node_t *obj_query_plan_tree_and_node_create();

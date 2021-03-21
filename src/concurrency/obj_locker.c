@@ -3,8 +3,8 @@
 /* default deadlock timeout is 500ms */
 static obj_duration_msecond s_obj_locker_default_deadlock_timeout = 500;
 
-static obj_uint64_t obj_resource_id_request_map_hash_func(const void *key);
-static int obj_resource_id_request_map_key_compare(const void *key1, const void *key2);
+static obj_uint64_t obj_resource_id_request_map_hash_func(void *key);
+static int obj_resource_id_request_map_key_compare(void *key1, void *key2);
 static void *obj_resource_id_request_map_key_get(void *data);
 static void *obj_resource_id_request_map_value_get(void *data);
 static void obj_resource_id_request_map_key_set(void *data, void *key);
@@ -24,12 +24,12 @@ static obj_prealloc_map_methods_t methods = {
     NULL
 };
 
-static obj_uint64_t obj_resource_id_request_map_hash_func(const void *key) {
+static obj_uint64_t obj_resource_id_request_map_hash_func(void *key) {
     return obj_prealloc_map_hash_function(key, sizeof(obj_lock_resource_id_t));
 }
 
 /* compare resource id */
-static int obj_resource_id_request_map_key_compare(const void *key1, const void *key2) {
+static int obj_resource_id_request_map_key_compare(void *key1, void *key2) {
     obj_lock_resource_id_t *id1 = (obj_lock_resource_id_t *)key1;
     obj_lock_resource_id_t *id2 = (obj_lock_resource_id_t *)key2;
     return (*id1) - (*id2);
@@ -123,25 +123,17 @@ obj_bool_t obj_locker_is_collection_locked_for_mode(obj_locker_t *locker, char *
 /* create a locker */
 obj_locker_t *obj_locker_create() {
     obj_locker_t *locker = obj_alloc(sizeof(obj_locker_t));
-    if (locker == NULL) {
-        return NULL;
-    }
-    if (!obj_locker_init(locker)) {
-        obj_free(locker);
-    }
+    obj_locker_init(locker);
     return locker;
 }
 
 /* init a locker */
-obj_bool_t obj_locker_init(obj_locker_t *locker) {
+void obj_locker_init(obj_locker_t *locker) {
     obj_assert(locker);
     obj_lock_grant_notify_init(&locker->notify);
-    if (!obj_prealloc_map_init(&locker->request_map, &methods, sizeof(obj_resource_id_request_pair_t))) {
-        return false;
-    }
+    obj_prealloc_map_init(&locker->request_map, &methods, sizeof(obj_resource_id_request_pair_t));
     locker->deadlock_timeout = s_obj_locker_default_deadlock_timeout;
     locker->max_lock_timeout_is_set = false;
-    return true;
 }
 
 void obj_locker_destroy_static(obj_locker_t *locker) {
@@ -163,9 +155,6 @@ obj_lock_result_t obj_locker_lock(obj_locker_t *locker, obj_lock_resource_id_t r
     if (result == OBJ_LOCK_RESULT_OK) {
         return result;
     }
-    if (result == OBJ_LOCK_RESULT_INTERNAL_ERROR) {
-        return result;
-    }
     obj_assert(result == OBJ_LOCK_RESULT_WAITING);
     return obj_locker_lock_complete(locker, resource_id, mode, deadline, check_deadlock);
 }
@@ -179,13 +168,8 @@ obj_lock_result_t obj_locker_lock_begin(obj_locker_t *locker, obj_lock_resource_
     if (entry == NULL) {
         /* printf("new request, resource_id = %lu\n", resource_id); */
         entry = obj_prealloc_map_add_key(&locker->request_map, &resource_id);
-        if (entry == NULL) {
-            /* out of memory */
-            return OBJ_LOCK_RESULT_INTERNAL_ERROR;
-        } else {
-            request = (obj_lock_request_t *)obj_prealloc_map_get_value(&locker->request_map, entry);
-            obj_lock_request_init(request, locker, &locker->notify);
-        }
+        request = (obj_lock_request_t *)obj_prealloc_map_get_value(&locker->request_map, entry);
+        obj_lock_request_init(request, locker, &locker->notify);
     } else {
         /* printf("old request, resource_id = %lu\n", resource_id); */
         /* already have the request */

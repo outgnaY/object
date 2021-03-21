@@ -55,7 +55,7 @@ int main() {
 
     /* simple case */
     /*
-    obj_bson_t *bson1 = obj_bson_init();
+    obj_bson_t *bson1 = obj_bson_create();
     for (i = 0; i < 10; i++) {
         obj_bson_append_utf8(bson1, "hello", 5, "world", 5);
         obj_bson_print(bson1);
@@ -65,8 +65,8 @@ int main() {
     */
     /* nesting case */
     /*
-    obj_bson_t *bson2 = obj_bson_init();
-    obj_bson_t *array1 = obj_bson_init();
+    obj_bson_t *bson2 = obj_bson_create();
+    obj_bson_t *array1 = obj_bson_create();
     obj_bson_append_utf8(array1, "0", 1, "awesome", 7);
     obj_bson_append_double(array1, "1", 1, 5.05);
     obj_bson_append_int32(array1, "2", 1, 1986);
@@ -76,7 +76,7 @@ int main() {
     obj_bson_destroy(array1);
     */
     /* test visitor, simple case */
-    obj_bson_t *bson3 = obj_bson_init();
+    obj_bson_t *bson3 = obj_bson_create();
     for (i = 0; i < 6; i++) {
         obj_bson_append_utf8(bson3, "hello", 5, "world", 5);
     }
@@ -85,8 +85,8 @@ int main() {
     printf("res = %d\n", res);
     obj_bson_destroy(bson3);
     /* test visitor, nesting case */
-    obj_bson_t *bson4 = obj_bson_init();
-    obj_bson_t *array2 = obj_bson_init();
+    obj_bson_t *bson4 = obj_bson_create();
+    obj_bson_t *array2 = obj_bson_create();
     obj_bson_append_utf8(array2, "0", 1, "awesome", 7);
     obj_bson_append_double(array2, "1", 1, 5.05);
     obj_bson_append_int32(array2, "2", 1, 1986);
@@ -97,7 +97,7 @@ int main() {
     obj_bson_destroy(bson4);
     obj_bson_destroy(array2);
     /* test validator, simple case */
-    obj_bson_t *bson5 = obj_bson_init();
+    obj_bson_t *bson5 = obj_bson_create();
     for (i = 0; i < 6; i++) {
         obj_bson_append_utf8(bson5, "hello", 5, "world", 5);
     }
@@ -113,8 +113,8 @@ int main() {
     printf("validate bson5 res after modify: %d\n", res);
     obj_bson_destroy(bson5);
     /* test validator, nesting case */
-    obj_bson_t *bson6 = obj_bson_init();
-    obj_bson_t *array3 = obj_bson_init();
+    obj_bson_t *bson6 = obj_bson_create();
+    obj_bson_t *array3 = obj_bson_create();
     obj_bson_append_utf8(array3, "0", 1, "awesome", 7);
     obj_bson_append_double(array3, "1", 1, 5.05);
     obj_bson_append_int32(array3, "2", 1, 1986);

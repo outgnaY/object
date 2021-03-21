@@ -61,18 +61,18 @@ union obj_bson_bcon_append_u {
 #define obj_bson_bcon_stack_element(ctx, delta, name) (ctx->stack[(delta) + ctx->n].name)
 #define obj_bson_bcon_stack_bson(ctx, delta) (((delta) + ctx->n) == 0 ? bson : &obj_bson_bcon_stack_element(ctx, delta, bson))
 
-const char *obj_bson_bcon_magic();
+char *obj_bson_bcon_magic();
 obj_bson_t *obj_bson_bcon_new(void *unused, ...);
 void obj_bson_bcon_append_ctx_init(obj_bson_bcon_append_ctx_t *ctx);
 void obj_bson_bcon_append_ctx_va(obj_bson_t *bson, obj_bson_bcon_append_ctx_t *ctx, va_list *ap);
 
 #define OBJ_BSON_BCON_MAGIC obj_bson_bcon_magic()
 #define OBJ_BSON_BCON_NEW(...) obj_bson_bcon_new(NULL, __VA_ARGS__, (void *)NULL)
-#define OBJ_BSON_BCON_UTF8(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_UTF8, ((const char *)val)
+#define OBJ_BSON_BCON_UTF8(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_UTF8, (( char *)val)
 #define OBJ_BSON_BCON_DOUBLE(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_DOUBLE, ((double)val)
-#define OBJ_BSON_BCON_OBJECT(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_OBJECT, ((const obj_bson_t *)val)
-#define OBJ_BSON_BCON_ARRAY(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_ARRAY, ((const obj_bson_t *)val)
-#define OBJ_BSON_BCON_BINARY(val, len) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_BINARY, ((const obj_uint8_t *)val), ((obj_int32_t)len)
+#define OBJ_BSON_BCON_OBJECT(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_OBJECT, (( obj_bson_t *)val)
+#define OBJ_BSON_BCON_ARRAY(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_ARRAY, (( obj_bson_t *)val)
+#define OBJ_BSON_BCON_BINARY(val, len) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_BINARY, (( obj_uint8_t *)val), ((obj_int32_t)len)
 #define OBJ_BSON_BCON_BOOL(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_BOOL, ((obj_bool_t )val)
 #define OBJ_BSON_BCON_NULL OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_NULL
 #define OBJ_BSON_BCON_INT32(val) OBJ_BSON_BCON_MAGIC, OBJ_BSON_BCON_TYPE_INT32, ((obj_int32_t)val)

@@ -40,7 +40,7 @@ struct obj_interval_s {
 /* an ordered list of intervals for one field */
 struct obj_ordered_interval_list_s {
     obj_array_t intervals;
-    obj_stringdata_t name;
+    char *name;
 };
 
 extern obj_bson_value_t g_interval_value_min;
@@ -60,7 +60,7 @@ void obj_interval_reverse(obj_interval_t *interval);
 /*  ordered interval list methods*/
 void obj_ordered_interval_list_intersect(obj_ordered_interval_list_t *oil1, obj_ordered_interval_list_t *oil2);
 void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_ordered_interval_list_t *oil2);
-obj_bool_t obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil);
+void obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil);
 void obj_ordered_interval_list_reverse(obj_ordered_interval_list_t *oil);
 void obj_ordered_interval_list_dump(obj_ordered_interval_list_t *oil);
 

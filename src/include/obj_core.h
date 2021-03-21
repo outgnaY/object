@@ -46,10 +46,8 @@
 #include "util/obj_endian.h"
 /* #include "util/obj_hash.h" */
 #include "util/obj_prealloc_map.h"
-#include "util/obj_hashtable.h"
 #include "util/obj_list.h"
 #include "util/obj_math.h"
-#include "util/obj_sds.h"
 #include "util/obj_status_with.h"
 #include "util/obj_string.h"
 #include "util/obj_rbtree.h"
@@ -113,8 +111,8 @@
 
 /* exec */
 /*
-#include "exec/obj_plan_working_set.h"
-#include "exec/obj_plan_tree.h"
+#include "exec/obj_exec_working_set.h"
+#include "exec/obj_exec_tree.h"
 #include "exec/obj_plan_executor.h"
 */
 /* client library */

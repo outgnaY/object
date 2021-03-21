@@ -12,7 +12,7 @@ int main() {
     struct timeval start;
     struct timeval end;
     gettimeofday(&start, NULL);
-    /*
+    
     obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
         "find", OBJ_BSON_BCON_UTF8("db.coll"),
         "filter", "{",
@@ -22,13 +22,14 @@ int main() {
             "]",
         "}"
     );
-    */
+    
     /*
     obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
         "find", OBJ_BSON_BCON_UTF8("db.coll"),
         "filter", "{", "z", OBJ_BSON_BCON_INT32(1), "}"
     );
     */
+    /*
     obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
         "find", OBJ_BSON_BCON_UTF8("db.coll"),
         "filter", "{",
@@ -43,6 +44,7 @@ int main() {
             "]",
         "}"
     );
+    */
     obj_status_with_t status_with_qr1 = obj_query_parse_from_find_cmd(cmd);
     obj_status_with_t status_with_sq1 = obj_query_standardize((obj_query_request_t *)status_with_qr1.data);
     obj_standard_query_t *sq = (obj_standard_query_t *)status_with_sq1.data;
@@ -66,7 +68,9 @@ int main() {
     obj_array_push_back(&indexes, &entry2);
     obj_array_push_back(&indexes, &entry3);
     
-    obj_query_planner_plan(sq, &indexes);
+    obj_status_with_t status_with_plan = obj_query_planner_plan(sq, &indexes);
+    obj_query_plan_tree_base_node_t *plan_tree = (obj_query_plan_tree_base_node_t *)status_with_plan.data;
+    obj_query_plan_tree_dump(plan_tree, 0);
     gettimeofday(&end, NULL);
     time_interval(start, end);
     return 0;

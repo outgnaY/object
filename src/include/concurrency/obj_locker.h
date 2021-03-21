@@ -33,7 +33,7 @@ obj_bool_t obj_locker_is_write_locked(obj_locker_t *locker);
 obj_bool_t obj_locker_is_read_locked(obj_locker_t *locker);
 obj_bool_t obj_locker_is_db_locked_for_mode(obj_locker_t *locker, char *db_name, int name_len, obj_lock_mode_t mode);
 obj_locker_t *obj_locker_create();
-obj_bool_t obj_locker_init(obj_locker_t *locker);
+void obj_locker_init(obj_locker_t *locker);
 void obj_locker_destroy_static(obj_locker_t *locker);
 void obj_locker_destroy(obj_locker_t *locker);
 obj_lock_result_t obj_locker_lock(obj_locker_t *locker, obj_lock_resource_id_t resource_id, obj_lock_mode_t mode, obj_abs_time_msecond deadline, obj_bool_t check_deadlock);

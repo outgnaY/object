@@ -3,26 +3,15 @@
 
 #include "obj_core.h"
 
-typedef enum obj_prealloc_map_error_code obj_prealloc_map_error_code_t;
 typedef struct obj_prealloc_map_methods_s obj_prealloc_map_methods_t;
 typedef struct obj_prealloc_map_entry_s obj_prealloc_map_entry_t;
 typedef struct obj_prealloc_map_s obj_prealloc_map_t;
 
-enum obj_prealloc_map_error_code {
-    OBJ_PREALLOC_MAP_CODE_OK = 0,
-    OBJ_PREALLOC_MAP_CODE_DUP_KEY,
-    OBJ_PREALLOC_MAP_CODE_NOMEM,
-    OBJ_PREALLOC_MAP_CODE_KEY_NOT_EXISTS
-};
 
 /* methods */
 struct obj_prealloc_map_methods_s {
-    obj_uint64_t (*hash_func)(const void *key);
-    /*
-    void *(*key_dup)(const void *key);
-    void *(*value_dup)(const void *value);
-    */
-    int (*key_compare)(const void *key1, const void *key2);
+    obj_uint64_t (*hash_func)(void *key);
+    int (*key_compare)(void *key1, void *key2);
     void (*key_free)(void *data);
     void (*value_free)(void *data);
     void *(*key_get)(void *data);
@@ -47,17 +36,17 @@ struct obj_prealloc_map_s {
     obj_prealloc_map_methods_t *methods;
 };
 /* forward declaration */
-obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
+obj_uint64_t obj_siphash(obj_uint8_t *in, obj_size_t inlen, obj_uint8_t *k);
 
-obj_uint64_t obj_prealloc_map_hash_function(const void *key, int len);
+obj_uint64_t obj_prealloc_map_hash_function(void *key, int len);
 obj_prealloc_map_t *obj_prealloc_map_create(obj_prealloc_map_methods_t *methods, int element_size);
-obj_bool_t obj_prealloc_map_init(obj_prealloc_map_t *map, obj_prealloc_map_methods_t *methods, int element_size);
+void obj_prealloc_map_init(obj_prealloc_map_t *map, obj_prealloc_map_methods_t *methods, int element_size);
 void obj_prealloc_map_destroy_static(obj_prealloc_map_t *map);
 void obj_prealloc_map_destroy(obj_prealloc_map_t *map);
 obj_prealloc_map_entry_t *obj_prealloc_map_add_key(obj_prealloc_map_t *map, void *key);
-obj_prealloc_map_error_code_t obj_prealloc_map_add(obj_prealloc_map_t *map, void *key, void *value);
+void obj_prealloc_map_add(obj_prealloc_map_t *map, void *key, void *value);
 void obj_prealloc_map_delete_entry(obj_prealloc_map_t *map, obj_prealloc_map_entry_t *entry);
-obj_prealloc_map_error_code_t obj_prealloc_map_delete(obj_prealloc_map_t *map, void *key, obj_bool_t nofree);
+void obj_prealloc_map_delete(obj_prealloc_map_t *map, void *key, obj_bool_t nofree);
 void obj_prealloc_map_delete_all(obj_prealloc_map_t *map);
 obj_prealloc_map_entry_t *obj_prealloc_map_find_add_key_if_not_exists(obj_prealloc_map_t *map, void *key);
 obj_prealloc_map_entry_t *obj_prealloc_map_find(obj_prealloc_map_t *map, void *key);

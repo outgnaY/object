@@ -2,77 +2,136 @@
 
 /* query planner */
 
-static obj_uint64_t obj_stringdata_set_hash_func(const void *key);
-static int obj_stringdata_set_key_compare(const void *key1, const void *key2);
-static void *obj_stringdata_set_key_get(void *data);
-static void obj_stringdata_set_key_set(void *data, void *key);
+static obj_uint64_t obj_string_set_hash_func(void *key);
+static int obj_string_set_key_compare(void *key1, void *key2);
+static void *obj_string_set_key_get(void *data);
+static void obj_string_set_key_set(void *data, void *key);
 
+static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_projection(obj_query_plan_tree_base_node_t *root, obj_bson_t *projection);
+static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_sort(obj_query_plan_tree_base_node_t *root, obj_bson_t *sort);
+static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_skip(obj_query_plan_tree_base_node_t *root, int skip);
+static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_limit(obj_query_plan_tree_base_node_t *root, int limit);
+static obj_query_plan_tree_base_node_t *obj_query_plan_analyze_data_access(obj_query_request_t *qr, obj_query_plan_tree_base_node_t *root);
+static obj_query_plan_tree_base_node_t *obj_query_plan_build_collection_scan(obj_query_request_t *qr);
+static void obj_query_planner_clean_unused_plans(obj_array_t *plans, int winner_index);
+static obj_query_plan_tree_base_node_t *obj_query_planner_pick_best_plan(obj_array_t *plans, int *winner_index);
 static void obj_query_planner_dump_relevant_indexes(obj_array_t *relevant_indexes);
 
-/* stringdata set methods */
-static obj_prealloc_map_methods_t stringdata_set_methods = {
-    obj_stringdata_set_hash_func,
-    obj_stringdata_set_key_compare,
+/* string set methods */
+static obj_prealloc_map_methods_t string_set_methods = {
+    obj_string_set_hash_func,
+    obj_string_set_key_compare,
     NULL,
     NULL,
-    obj_stringdata_set_key_get,
+    obj_string_set_key_get,
     NULL,
-    obj_stringdata_set_key_set,
+    obj_string_set_key_set,
     NULL,
     NULL,
     NULL
 };
 
-static obj_uint64_t obj_stringdata_set_hash_func(const void *key) {
-    obj_stringdata_t *stringdata = (obj_stringdata_t *)key;
-    return obj_set_hash_function(stringdata->data, stringdata->size);
+static obj_uint64_t obj_string_set_hash_func(void *key) {
+    char *str = *(char **)key;
+    return obj_set_hash_function(str, obj_strlen(str));
 }
 
-static int obj_stringdata_set_key_compare(const void *key1, const void *key2) {
-    obj_stringdata_t *stringdata1 = (obj_stringdata_t *)key1;
-    obj_stringdata_t *stringdata2 = (obj_stringdata_t *)key2;
-    return obj_stringdata_compare(stringdata1, stringdata2);
+static int obj_string_set_key_compare(void *key1, void *key2) {
+    char *str1 = *(char **)key1;
+    char *str2 = *(char **)key2;
+    return obj_strcmp(str1, str2);
 }
 
-static void *obj_stringdata_set_key_get(void *data) {
-    return (obj_stringdata_t *)data;
+static void *obj_string_set_key_get(void *data) {
+    return data;
 }
 
-static void obj_stringdata_set_key_set(void *data, void *key) {
-    obj_memcpy(data, key, sizeof(obj_stringdata_t));
+static void obj_string_set_key_set(void *data, void *key) {
+    obj_memcpy(data, key, sizeof(char *));
 }
 
-/* build collection scan plan */
-obj_query_plan_tree_base_node_t *obj_query_planner_build_collection_scan() {
-    
+
+
+/* add projection */
+static inline obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_projection(obj_query_plan_tree_base_node_t *root, obj_bson_t *projection) {
+    obj_query_plan_tree_projection_node_t *projection_node = obj_query_plan_tree_projection_node_create();
+    projection_node->projection = projection;
+    obj_query_plan_tree_add_child((obj_query_plan_tree_base_node_t *)projection_node, root);
+    return (obj_query_plan_tree_base_node_t *)projection_node;
+}
+
+
+/* add sort */
+static inline obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_sort(obj_query_plan_tree_base_node_t *root, obj_bson_t *sort) {
+    obj_query_plan_tree_sort_node_t *sort_node = obj_query_plan_tree_sort_node_create();
+    sort_node->pattern = sort;
+    obj_query_plan_tree_add_child((obj_query_plan_tree_base_node_t *)sort_node, root);
+    return (obj_query_plan_tree_base_node_t *)sort_node;
+}
+
+/* add skip */
+static inline obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_skip(obj_query_plan_tree_base_node_t *root, int skip) {
+    obj_query_plan_tree_skip_node_t *skip_node = obj_query_plan_tree_skip_node_create();
+    skip_node->skip = skip;
+    obj_query_plan_tree_add_child((obj_query_plan_tree_base_node_t *)skip_node, root);
+    return (obj_query_plan_tree_base_node_t *)skip_node;
+}
+
+/* add limit */
+static inline obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_limit(obj_query_plan_tree_base_node_t *root, int limit) {
+    obj_query_plan_tree_limit_node_t *limit_node = obj_query_plan_tree_limit_node_create();
+    limit_node->limit = limit;
+    obj_query_plan_tree_add_child((obj_query_plan_tree_base_node_t *)limit_node, root);
+    return (obj_query_plan_tree_base_node_t *)limit_node;
+}
+
+/* handle sort/projection/skip/limit */
+static obj_query_plan_tree_base_node_t *obj_query_plan_analyze_data_access(obj_query_request_t *qr, obj_query_plan_tree_base_node_t *root) {
+    /* sort->projection->skip->limit */
+    if (!obj_bson_is_empty(&qr->sort)) {
+        root = obj_query_plan_tree_add_sort(root, &qr->sort);
+    }
+    if (!obj_bson_is_empty(&qr->projection)) {
+        root = obj_query_plan_tree_add_projection(root, &qr->projection);
+    }
+    if (qr->skip != -1) {
+        root = obj_query_plan_tree_add_skip(root, qr->skip);
+    }
+    if (qr->limit != -1) {
+        root = obj_query_plan_tree_add_limit(root, qr->limit);
+    }
+    return root;
+}
+
+/* TODO build collection scan */
+static obj_query_plan_tree_base_node_t *obj_query_plan_build_collection_scan(obj_query_request_t *qr) {
+    obj_query_plan_tree_collection_scan_node_t *collection_scan_node = obj_query_plan_tree_collection_scan_node_create();
+    obj_query_plan_tree_base_node_t *root = NULL;
+    root = obj_query_plan_analyze_data_access(qr, (obj_query_plan_tree_base_node_t *)collection_scan_node);
+    return root;
 }
 
 
 /* 
- * generate query plan for a query 
+ * Entrance: generate query plan for a query 
  */
 obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_array_t *indexes) {
     printf("begin planning...\n");
-    /* output query plan trees */
-    obj_array_t *out = NULL;
-    out = obj_array_create(sizeof(obj_query_plan_tree_base_node_t *));
-    if (out == NULL) {
-        return obj_status_with_create(NULL, "out of memory", OBJ_CODE_QUERY_PLAN_NOMEM);
-    }
+    /* possible query plans */
+    obj_array_t plans;
+    obj_array_init(&plans, sizeof(obj_query_plan_tree_base_node_t *));
     /*
      * 1. find relevant indexes    
      */
     /* get fields */
     obj_set_t fields;
-    if (!obj_set_init(&fields, &stringdata_set_methods, sizeof(obj_stringdata_t))) {
+    if (!obj_set_init(&fields, &string_set_methods, sizeof(char *))) {
         return obj_status_with_create(NULL, "out of memory", OBJ_CODE_QUERY_PLAN_NOMEM);
     }
     obj_query_index_get_fields(sq->root, &fields);
     /* find relevant indexes */
     obj_array_t relevant_indexes;
-    if (!obj_array_init(&relevant_indexes, sizeof(obj_query_index_entry_t))) {
-        return obj_status_with_create(NULL, "out of memory", OBJ_CODE_QUERY_PLAN_NOMEM);
-    }
+    obj_array_init(&relevant_indexes, sizeof(obj_query_index_entry_t));
     obj_query_index_find_relevant_indexes(&fields, indexes, &relevant_indexes);
     /* obj_query_planner_dump_relevant_indexes(&relevant_indexes); */
     /*
@@ -90,31 +149,79 @@ obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_array_t *
             /* obj_expr_dump(tag_tree); */
             obj_query_plan_tree_base_node_t *plan_root = NULL;
             plan_root = obj_query_index_build_indexed_data_access(tag_tree, &relevant_indexes);
-            if (plan_root != NULL) {
-                printf("********** plan tree: **********\n");
-                obj_query_plan_tree_dump(plan_root, 0);
+            if (plan_root == NULL) {
+                continue;
             }
+            plan_root = obj_query_plan_analyze_data_access(sq->qr, plan_root);
+            /*
+            printf("********** plan tree: **********\n");
+            obj_query_plan_tree_dump(plan_root, 0);
+            */
+            /* add to plans */
+            obj_array_push_back(&plans, &plan_root);
+            
         }
     }
 
-    /*
-     * check for sort
-     */
+    /* don't leave tags on query tree */
+    obj_expr_reset_tag(sq->root);
 
     /*
-     * check for projection 
+     * make collection scan node if we need to
      */
-
-    /*
-     * add collection scan node if we need to
-     */
-    if (out->size == 0) {
-
-        
+    if (plans.size == 0) {
+        obj_query_plan_tree_base_node_t *root = NULL;
+        root = obj_query_plan_build_collection_scan(sq->qr);
+        obj_array_push_back(&plans, &root);
     }
-
-    return obj_status_with_create(out, "", OBJ_CODE_OK);
+    int winner_index;
+    obj_query_plan_tree_base_node_t *winner_plan = obj_query_planner_pick_best_plan(&plans, &winner_index);
+    obj_query_planner_clean_unused_plans(&plans, winner_index);
+    obj_array_destroy_static(&plans);
+    return obj_status_with_create(winner_plan, "", OBJ_CODE_OK);
 }
+
+
+static void obj_query_planner_clean_unused_plans(obj_array_t *plans, int winner_index) {
+    int i;
+    obj_query_plan_tree_base_node_t *plan = NULL;
+    for (i = 0; i < plans->size; i++) {
+        if (i != winner_index) {
+            /* clean */
+            plan = (obj_query_plan_tree_base_node_t *)obj_array_get_index_value(plans, i, uintptr_t);
+            obj_query_plan_tree_destroy(plan);
+        }
+    }
+}
+
+/* pick a plan */
+static obj_query_plan_tree_base_node_t *obj_query_planner_pick_best_plan(obj_array_t *plans, int *winner_index) {
+    obj_assert(plans->size > 0);
+    obj_query_plan_tree_base_node_t *current = NULL;
+    int current_node_num;
+    int i;
+    current = (obj_query_plan_tree_base_node_t *)obj_array_get_index_value(plans, 0, uintptr_t);
+    if (plans->size == 1) {
+        *winner_index = 0;
+        return current;
+    }
+    int min_node_num = obj_query_plan_tree_count_nodes(current);
+    int min_node_index = 0;
+    obj_query_plan_tree_base_node_t *winner = NULL;
+    for (i = 1; i < plans->size; i++) {
+        current = (obj_query_plan_tree_base_node_t *)obj_array_get_index_value(plans, 0, uintptr_t);
+        current_node_num = obj_query_plan_tree_count_nodes(current);
+        if (current_node_num < min_node_num) {
+            min_node_index = i;
+        }
+    }
+    winner = (obj_query_plan_tree_base_node_t *)obj_array_get_index_value(plans, min_node_index, uintptr_t);
+    *winner_index = min_node_index;
+    return winner;
+}
+
+
+
 
 /* for debug */
 static void obj_query_planner_dump_relevant_indexes(obj_array_t *relevant_indexes) {

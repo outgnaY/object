@@ -5,8 +5,8 @@ obj_lock_manager_t *g_lock_manager;
 /* resource id of global */
 obj_lock_resource_id_t g_resource_id_global;
 
-static obj_uint64_t obj_resource_id_lock_head_map_hash_func(const void *key);
-static int obj_resource_id_lock_head_map_key_compare(const void *key1, const void *key2);
+static obj_uint64_t obj_resource_id_lock_head_map_hash_func(void *key);
+static int obj_resource_id_lock_head_map_key_compare(void *key1, void *key2);
 static void obj_resource_id_lock_head_map_value_free(void *data);
 static void *obj_resource_id_lock_head_map_key_get(void *data);
 static void *obj_resource_id_lock_head_map_value_get(void *data);
@@ -14,10 +14,10 @@ static void obj_resource_id_lock_head_map_key_set(void *data, void *key);
 static void obj_resource_id_lock_head_map_value_set(void *data, void *value);
 static obj_bool_t obj_lock_conflict(obj_lock_mode_t new_mode, int existing_mode);
 static int obj_lock_mode_mask(obj_lock_mode_t mode);
-static obj_uint64_t obj_lock_hash_string(const void *key, int len);
+static obj_uint64_t obj_lock_hash_string(void *key, int len);
 static obj_lock_manager_t *obj_lock_manager_create();
 static void obj_lock_manager_destroy(obj_lock_manager_t *lock_manager);
-static obj_bool_t obj_lock_bucket_init(obj_lock_bucket_t *bucket);
+static void obj_lock_bucket_init(obj_lock_bucket_t *bucket);
 static void obj_lock_bucket_destroy_static(obj_lock_bucket_t *bucket);
 static obj_lock_head_t *obj_lock_lock_head_create(obj_lock_resource_id_t resource_id);
 static void obj_lock_lock_head_init(obj_lock_head_t *lock_head, obj_lock_resource_id_t resource_id);
@@ -44,12 +44,12 @@ static obj_prealloc_map_methods_t methods = {
 };
 
 
-static obj_uint64_t obj_resource_id_lock_head_map_hash_func(const void *key) {
+static obj_uint64_t obj_resource_id_lock_head_map_hash_func(void *key) {
     return obj_prealloc_map_hash_function(key, sizeof(obj_lock_resource_id_t));
 }
 
 /* compare resource id */
-static int obj_resource_id_lock_head_map_key_compare(const void *key1, const void *key2) {
+static int obj_resource_id_lock_head_map_key_compare(void *key1, void *key2) {
     obj_lock_resource_id_t *id1 = (obj_lock_resource_id_t *)key1;
     obj_lock_resource_id_t *id2 = (obj_lock_resource_id_t *)key2;
     return (*id1) - (*id2);
@@ -119,8 +119,8 @@ inline obj_bool_t obj_lock_is_mode_covered(obj_lock_mode_t mode, obj_lock_mode_t
 }
 
 /* hash string */
-static inline obj_uint64_t obj_lock_hash_string(const void *key, int len) {
-    return obj_siphash(key, len, obj_lock_string_hash_seed);
+static inline obj_uint64_t obj_lock_hash_string(void *key, int len) {
+    return obj_siphash((obj_uint8_t *)key, len, obj_lock_string_hash_seed);
 }
 
 /* init global lock manager */
@@ -137,32 +137,13 @@ void obj_global_lock_manager_init() {
 /* create lock manager */
 static obj_lock_manager_t *obj_lock_manager_create() {
     obj_lock_manager_t *lock_manager = obj_alloc(sizeof(obj_lock_manager_t));
-    if (lock_manager == NULL) {
-        goto clean;
-    }
     lock_manager->num_buckets = OBJ_LOCK_BUCKET_NUM;
     lock_manager->buckets = obj_alloc(OBJ_LOCK_BUCKET_NUM * sizeof(obj_lock_bucket_t));
-    if (lock_manager->buckets == NULL) {
-        goto clean;
-    }
     int i;
     for (i = 0; i < OBJ_LOCK_BUCKET_NUM; i++) {
-        if (!obj_lock_bucket_init(&lock_manager->buckets[i])) {
-            goto clean;
-        }
+        obj_lock_bucket_init(&lock_manager->buckets[i]);
     }
     return lock_manager;
-clean:
-    if (lock_manager) {
-        if (lock_manager->buckets) {
-            for (i = 0; i < OBJ_LOCK_BUCKET_NUM; i++) {
-                obj_lock_bucket_destroy_static(&lock_manager->buckets[i]);
-            }
-            obj_free(lock_manager->buckets);
-        }
-        obj_free(lock_manager);
-    }
-    return NULL;
 }
 
 /* destroy a lock manager */
@@ -184,13 +165,10 @@ void obj_global_lock_manager_destroy() {
 }
 
 /* init a lock bucket */
-static obj_bool_t obj_lock_bucket_init(obj_lock_bucket_t *bucket) {
+static void obj_lock_bucket_init(obj_lock_bucket_t *bucket) {
     obj_assert(bucket);
     pthread_mutex_init(&bucket->mutex, NULL);
-    if (!obj_prealloc_map_init(&bucket->map, &methods, sizeof(obj_resource_id_lock_head_pair_t))) {
-        return false;
-    }
-    return true;
+    obj_prealloc_map_init(&bucket->map, &methods, sizeof(obj_resource_id_lock_head_pair_t));
 }
 
 /* don't free bucket itself */
@@ -202,9 +180,6 @@ static void obj_lock_bucket_destroy_static(obj_lock_bucket_t *bucket) {
 static obj_lock_head_t *obj_lock_lock_head_create(obj_lock_resource_id_t resource_id) {
     obj_lock_head_t *lock_head = NULL;
     lock_head = obj_alloc(sizeof(obj_lock_head_t));
-    if (lock_head == NULL) {
-        return NULL;
-    }
     obj_lock_lock_head_init(lock_head, resource_id);
     return lock_head;
 }
@@ -292,7 +267,7 @@ static inline void obj_lock_decr_conflict_mode_count(obj_lock_head_t *lock_head,
     }
 }
 
-inline obj_lock_resource_id_t obj_lock_resource_id(obj_lock_resource_type_t type, const char *str, int len) {
+inline obj_lock_resource_id_t obj_lock_resource_id(obj_lock_resource_type_t type, char *str, int len) {
     obj_uint64_t hash = obj_lock_hash_string(str, len);
     return obj_lock_resource_id_fullhash(type, hash);
 }
@@ -320,10 +295,6 @@ obj_lock_result_t obj_lock_lock(obj_lock_manager_t *lock_manager, obj_lock_resou
     /* protect the bucket */
     pthread_mutex_lock(&bucket->mutex);
     obj_lock_head_t *lock_head = obj_lock_find_or_insert(bucket, resource_id);
-    if (lock_head == NULL) {
-        pthread_mutex_unlock(&bucket->mutex);
-        return OBJ_LOCK_RESULT_INTERNAL_ERROR;
-    }
     obj_lock_result_t result = obj_lock_new_request(request, lock_head);
     pthread_mutex_unlock(&bucket->mutex);
     return result;
@@ -473,13 +444,7 @@ obj_lock_head_t *obj_lock_find_or_insert(obj_lock_bucket_t *bucket, obj_lock_res
     obj_prealloc_map_entry_t *entry = obj_prealloc_map_find(&bucket->map, &resource_id);
     if (entry == NULL) {
         lock_head = obj_lock_lock_head_create(resource_id);
-        if (lock_head == NULL) {
-            return NULL;
-        }
-        if (obj_prealloc_map_add(&bucket->map, &resource_id, &lock_head) != OBJ_PREALLOC_MAP_CODE_OK) {
-            obj_lock_lock_head_destroy(lock_head);
-            return NULL;
-        }
+        obj_prealloc_map_add(&bucket->map, &resource_id, &lock_head);
         return lock_head;
     } else {
         lock_head = *((obj_lock_head_t **)obj_prealloc_map_get_value(&bucket->map, entry));
@@ -699,7 +664,7 @@ obj_lock_result_t obj_lock_grant_notify_timed_wait(obj_lock_grant_notify_t *noti
         wait_res = pthread_cond_timedwait(&notify->cond, &notify->mutex, &deadline);
         if (wait_res == 0) {
             continue;
-        } else  if (wait_res == ETIMEDOUT) {
+        } else if (wait_res == ETIMEDOUT) {
             /* timeout */
             pthread_mutex_unlock(&notify->mutex);
             return OBJ_LOCK_RESULT_TIMEOUT;

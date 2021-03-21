@@ -1,15 +1,15 @@
 #include "obj_core.h"
 
-static const char *s_obj_bson_bcon_magic = "$";
+static char *s_obj_bson_bcon_magic = "$";
 
 static void obj_bson_bcon_stack_push_array(obj_bson_bcon_append_ctx_t *ctx);
 static void obj_bson_bcon_stack_push_object(obj_bson_bcon_append_ctx_t *ctx);
 static void obj_bson_bcon_stack_pop_array(obj_bson_bcon_append_ctx_t *ctx);
 static void obj_bson_bcon_stack_pop_object(obj_bson_bcon_append_ctx_t *ctx);
-static void obj_bson_bcon_append_single(obj_bson_t *bson, obj_bson_bcon_type_t type, const char *key, obj_bson_bcon_append_t *val);
+static void obj_bson_bcon_append_single(obj_bson_t *bson, obj_bson_bcon_type_t type, char *key, obj_bson_bcon_append_t *val);
 static obj_bson_bcon_type_t obj_bson_bcon_append_tokenize(va_list *ap, obj_bson_bcon_append_t *u);
 
-inline const char *obj_bson_bcon_magic() {
+inline char *obj_bson_bcon_magic() {
     return s_obj_bson_bcon_magic;
 }
 
@@ -45,7 +45,7 @@ obj_bson_t *obj_bson_bcon_new(void *unused, ...) {
     obj_bson_bcon_append_ctx_t ctx;
     obj_bson_t *bson;
     obj_bson_bcon_append_ctx_init(&ctx);
-    bson = obj_bson_init();
+    bson = obj_bson_create();
     va_start(ap, unused);
     obj_bson_bcon_append_ctx_va(bson, &ctx, &ap);
     va_end(ap);
@@ -62,7 +62,7 @@ void obj_bson_bcon_append_ctx_init(obj_bson_bcon_append_ctx_t *ctx) {
 
 void obj_bson_bcon_append_ctx_va(obj_bson_t *bson, obj_bson_bcon_append_ctx_t *ctx, va_list *ap) {
     obj_bson_bcon_type_t type;
-    const char *key;
+    char *key;
     char i_str[16];
     obj_bson_bcon_append_t u = {0};
     key = i_str;
@@ -124,7 +124,7 @@ void obj_bson_bcon_append_ctx_va(obj_bson_t *bson, obj_bson_bcon_append_ctx_t *c
 }
 
 /* wrapper */
-static void obj_bson_bcon_append_single(obj_bson_t *bson, obj_bson_bcon_type_t type, const char *key, obj_bson_bcon_append_t *val) {
+static void obj_bson_bcon_append_single(obj_bson_t *bson, obj_bson_bcon_type_t type, char *key, obj_bson_bcon_append_t *val) {
     switch (type) {
         case OBJ_BSON_BCON_TYPE_UTF8:
             obj_bson_append_utf8(bson, key, obj_strlen(key), val->v_utf8, obj_strlen(val->v_utf8));

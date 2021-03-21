@@ -1,16 +1,16 @@
 #include "obj_core.h"
 
 /* expr->memo_id map methods */
-static obj_uint64_t obj_expr_id_map_hash_func(const void *key);
-static int obj_expr_id_map_key_compare(const void *key1, const void *key2);
+static obj_uint64_t obj_expr_id_map_hash_func(void *key);
+static int obj_expr_id_map_key_compare(void *key1, void *key2);
 static void *obj_expr_id_map_key_get(void *data);
 static void *obj_expr_id_map_value_get(void *data);
 static void obj_expr_id_map_key_set(void *data, void *key);
 static void obj_expr_id_map_value_set(void *data, void *value);
 
 /* index_id->expr_list map methods */
-static obj_uint64_t obj_index_expr_list_map_hash_func(const void *key);
-static int obj_index_expr_list_map_key_compare(const void *key1, const void *key2);
+static obj_uint64_t obj_index_expr_list_map_hash_func(void *key);
+static int obj_index_expr_list_map_key_compare(void *key1, void *key2);
 static void obj_index_expr_list_map_value_free(void *data);
 static void *obj_index_expr_list_map_key_get(void *data);
 static void *obj_index_expr_list_map_value_get(void *data);
@@ -52,11 +52,11 @@ static obj_prealloc_map_methods_t expr_id_map_methods = {
     NULL
 };
  
-static obj_uint64_t obj_expr_id_map_hash_func(const void *key) {
+static obj_uint64_t obj_expr_id_map_hash_func(void *key) {
     return obj_prealloc_map_hash_function(key, sizeof(obj_expr_base_expr_t *));
 }
 
-static int obj_expr_id_map_key_compare(const void *key1, const void *key2) {
+static int obj_expr_id_map_key_compare(void *key1, void *key2) {
     obj_expr_base_expr_t *expr1 = *(obj_expr_base_expr_t **)key1;
     obj_expr_base_expr_t *expr2 = *(obj_expr_base_expr_t **)key2;
     if (expr1 - expr2 < 0) {
@@ -102,11 +102,11 @@ static obj_prealloc_map_methods_t index_expr_list_map_methods = {
     NULL
 };
 
-static obj_uint64_t obj_index_expr_list_map_hash_func(const void *key) {
+static obj_uint64_t obj_index_expr_list_map_hash_func(void *key) {
     return obj_prealloc_map_hash_function(key, sizeof(int));
 }
 
-static int obj_index_expr_list_map_key_compare(const void *key1, const void *key2) {
+static int obj_index_expr_list_map_key_compare(void *key1, void *key2) {
     int index_id1 = *(int *)key1;
     int index_id2 = *(int *)key2;
     return index_id1 - index_id2;
@@ -279,9 +279,6 @@ static obj_bool_t obj_query_plan_iter_prep_memo(obj_query_plan_iter_t *pi, obj_e
         int new_id;
         obj_query_plan_iter_base_node_t *new_node = NULL;
         obj_query_plan_iter_allocate_node(pi, expr, &new_node, &new_id);
-        if (new_node == NULL) {
-            return false;
-        }
         obj_query_plan_iter_or_node_init(new_node);
         for (i = 0; i < expr->methods->num_child(expr); i++) {
             child = expr->methods->get_child(expr, i);
@@ -344,9 +341,6 @@ static obj_bool_t obj_query_plan_iter_prep_memo(obj_query_plan_iter_t *pi, obj_e
         obj_query_plan_iter_base_node_t *new_node = NULL;
         int new_id;
         obj_query_plan_iter_allocate_node(pi, expr, &new_node, &new_id);
-        if (new_node == NULL) {
-            return false;
-        }
         obj_query_plan_iter_and_node_init(new_node);
         obj_query_plan_iter_one_index(pi, &index_to_first, &index_to_not_first, &subnodes, &new_node->and_node);
         /* clean */
@@ -514,11 +508,11 @@ static int obj_query_plan_iter_get_position(obj_query_index_entry_t *index_entry
     obj_expr_relevant_tag_t *rt = (obj_expr_relevant_tag_t *)pred->tag;
     int position = 0;
     obj_bson_iter_t iter;
-    const char *key = NULL;
+    char *key = NULL;
     obj_bson_type_t bson_type;
     obj_bson_iter_init(&iter, index_entry->key_pattern);
     while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
-        if (obj_strcmp(key, rt->path.data) == 0) {
+        if (obj_strcmp(key, rt->path) == 0) {
             return position;
         }
         position++;

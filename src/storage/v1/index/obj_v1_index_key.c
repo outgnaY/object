@@ -30,7 +30,7 @@ static obj_bool_t obj_v1_index_key_init(obj_v1_index_key_t *index_key, obj_bson_
     obj_bson_iter_init(&iter, bson);
     obj_bson_value_t *value = NULL;
     obj_bson_type_t bson_type;
-    const char *key;
+    char *key;
     obj_uint8_t bits = 0;
     int expect_size = 0;
     int cnt = 0;

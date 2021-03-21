@@ -80,7 +80,6 @@ enum obj_global_error_code {
     OBJ_CODE_OK = 0,
     /* bson error code */
     OBJ_CODE_BSON_VALIDATE_EXCEED_MAX_DEPTH = 10001,
-    OBJ_CODE_BSON_VALIDATE_NOMEM = 10002,
     OBJ_CODE_BSON_VALIDATE_WRONG_SIZE = 10003,
     OBJ_CODE_BSON_INVALID_BSON = 10004,
     OBJ_CODE_BSON_INVALID_BSON_TYPE = 10005,
@@ -91,7 +90,6 @@ enum obj_global_error_code {
     OBJ_CODE_BSON_ITERATOR_INIT_ERROR = 10010,
     /* expression */
     OBJ_CODE_EXPR_BAD_VALUE = 20001,
-    OBJ_CODE_EXPR_NOMEM = 20002,
     OBJ_CODE_EXPR_PARSER_NOT_FOUND = 20003,
     OBJ_CODE_EXPR_TYPE_NOT_FOUND = 20004,
     /* database operation error code */
@@ -100,7 +98,6 @@ enum obj_global_error_code {
     OBJ_CODE_DB_NOT_OPENED = 30003,
     OBJ_CODE_DB_COLLECTION_ALREADY_EXISTS = 30004,
     /* query error code */
-    OBJ_CODE_QUERY_NOMEM = 40001,
     OBJ_CODE_QUERY_WRONG_TYPE = 40002,
     OBJ_CODE_QUERY_MISSING_FIELD = 40003,
     /* query planner error code */

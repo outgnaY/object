@@ -118,10 +118,10 @@ static int obj_interval_value_compare(obj_bson_value_t *value1, obj_bson_value_t
 /* init an interval */
 void obj_interval_init(obj_interval_t *interval, obj_bson_t *base, obj_bool_t si, obj_bool_t ei) {
     obj_bson_iter_t iter;
-    const char *key = NULL;
+    char *key = NULL;
     obj_bson_type_t bson_type;
     obj_bson_iter_init(&iter, base);
-    const obj_bson_value_t *value = NULL;
+    obj_bson_value_t *value = NULL;
     obj_assert(obj_bson_iter_next_internal(&iter, &key, &bson_type));
     value = obj_bson_iter_value(&iter);
     interval->start = *value;
@@ -430,9 +430,7 @@ void obj_ordered_interval_list_intersect(obj_ordered_interval_list_t *oil1, obj_
     obj_array_t *oil1_intervals = &oil1->intervals;
     obj_array_t *oil2_intervals = &oil2->intervals;
     obj_array_t result;
-    if (!obj_array_init(&result, sizeof(obj_interval_t))) {
-        return;
-    }
+    obj_array_init(&result, sizeof(obj_interval_t));
     while (index1 < oil1_intervals->size && index2 < oil2_intervals->size) {
         obj_interval_t *interval1 = (obj_interval_t *)obj_array_get_index(oil1_intervals, index1);
         obj_interval_t *interval2 = (obj_interval_t *)obj_array_get_index(oil2_intervals, index2);
@@ -475,9 +473,7 @@ void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_orde
     /* append oil2 to oil1 */
     obj_array_t *oil1_intervals = &oil1->intervals;
     obj_array_t *oil2_intervals = &oil2->intervals;
-    if (!obj_array_reserve(oil1_intervals, oil1_intervals->size + oil2_intervals->size)) {
-        return;
-    }
+    obj_array_reserve(oil1_intervals, oil1_intervals->size + oil2_intervals->size);
     int i = 0;
     for (i = 0; i < oil2_intervals->size; i++) {
         obj_interval_t *interval = (obj_interval_t *)obj_array_get_index(oil2_intervals, i);
@@ -487,9 +483,7 @@ void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_orde
     qsort(oil1_intervals->data, oil1_intervals->size, sizeof(obj_interval_t), obj_interval_compare_for_sort);
     /* merge */
     obj_array_t result;
-    if (!obj_array_init(&result, sizeof(obj_interval_t))) {
-        return;
-    }
+    obj_array_init(&result, sizeof(obj_interval_t));
     obj_interval_t *cur = NULL;
     obj_interval_t *next = NULL;
     obj_interval_t merge;
@@ -531,10 +525,9 @@ void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_orde
     obj_memcpy(oil1_intervals, &result, sizeof(obj_array_t));
 }
 
-obj_bool_t obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil) {
-    oil->name.data = NULL;
-    oil->name.size = 0;
-    return obj_array_init(&oil->intervals, sizeof(obj_interval_t));
+void obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil) {
+    oil->name = NULL;
+    obj_array_init(&oil->intervals, sizeof(obj_interval_t));
 }
 
 /* reverse interval list */
@@ -561,6 +554,7 @@ void obj_ordered_interval_list_reverse(obj_ordered_interval_list_t *oil) {
 void obj_ordered_interval_list_dump(obj_ordered_interval_list_t *oil) {
     int i;
     obj_interval_t *interval;
+    printf("interval name: %s\n", oil->name);
     for (i = 0; i < oil->intervals.size; i++) {
         interval = (obj_interval_t *)obj_array_get_index(&oil->intervals, i);
         printf("%d th interval:\n", i);

@@ -22,7 +22,7 @@ int main() {
     obj_int32_t flags = obj_int32_to_le(1);
     obj_bson_t *selector;
     const char *collection_name = "test_collection\0";
-    selector = obj_bson_init();
+    selector = obj_bson_create();
     obj_bson_append_utf8(selector, "key1", 4, "value1", 6);
     /* obj_bson_append_utf8(selector, "key2", 4, "value2", 6); */
     len += obj_strlen(collection_name) + 1;

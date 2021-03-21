@@ -40,7 +40,7 @@ struct obj_expr_methods_s {
     /* destroy */
     void (*destroy)(obj_expr_base_expr_t *expr);
     /* path */
-    obj_stringdata_t (*get_path)(obj_expr_base_expr_t *expr);
+    char *(*get_path)(obj_expr_base_expr_t *expr);
 };
 
 enum obj_expr_tag_type {
@@ -58,7 +58,7 @@ struct obj_expr_relevant_tag_s {
     obj_expr_tag_t base;
     obj_array_t first;
     obj_array_t not_first;
-    obj_stringdata_t path;
+    char *path;
 };
 
 /* index tag */
@@ -84,18 +84,10 @@ struct obj_expr_tree_expr_s {
 /* EQ LTE LT GT GTE */
 struct obj_expr_compare_expr_s {
     obj_expr_base_expr_t base;
-    /* char *path; */
-    obj_stringdata_t path;
+    char *path;
     obj_bson_value_t value;
 };
 
-/* NOT */
-/*
-struct obj_expr_not_expr_s {
-    obj_expr_base_expr_t base;
-    obj_expr_base_expr_t *expr;
-};
-*/
 
 /* tags */
 void obj_expr_sort_using_tags(obj_expr_base_expr_t *expr);
@@ -106,15 +98,12 @@ void obj_expr_reset_tag(obj_expr_base_expr_t *expr);
 obj_expr_relevant_tag_t *obj_expr_relevant_tag_create();
 obj_expr_index_tag_t *obj_expr_index_tag_create(int i);
 obj_expr_index_tag_t *obj_expr_index_tag_compound_create(int i, int p);
-/* not expression */
-/*
-obj_expr_base_expr_t *obj_expr_not_expr_create(obj_expr_base_expr_t *child);
-*/
+
 /* compare expression */
-obj_expr_base_expr_t *obj_expr_compare_expr_create(const char *path, obj_expr_type_t type, const obj_bson_value_t *value);
+obj_expr_base_expr_t *obj_expr_compare_expr_create(char *path, obj_expr_type_t type, obj_bson_value_t *value);
 /* tree expression */
 obj_expr_base_expr_t *obj_expr_tree_expr_create(obj_expr_type_t type);
-obj_bool_t obj_expr_tree_expr_add_child(obj_expr_base_expr_t *expr, obj_expr_base_expr_t *child);
+void obj_expr_tree_expr_add_child(obj_expr_base_expr_t *expr, obj_expr_base_expr_t *child);
 /* debug */
 void obj_expr_dump(obj_expr_base_expr_t *expr);
 

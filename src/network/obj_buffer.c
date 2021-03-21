@@ -2,7 +2,7 @@
 
 /* little endian */
 
-static obj_bool_t obj_buffer_make_room(obj_buffer_t *buf, int len);
+static void obj_buffer_make_room(obj_buffer_t *buf, int len);
 
 /* debug */
 void obj_buffer_dump(obj_buffer_t *buf) {
@@ -16,19 +16,15 @@ void obj_buffer_dump(obj_buffer_t *buf) {
 }
 
 /* ensure we have at least len bytes space to write */
-static obj_bool_t obj_buffer_make_room(obj_buffer_t *buf, int len) {
+static void obj_buffer_make_room(obj_buffer_t *buf, int len) {
     if (obj_buffer_writable_bytes(buf) + buf->read_index < len) {
         /* check */
         if (buf->write_index + len > OBJ_BUFFER_MAX_SIZE) {
-            return false;
+            return;
         }
         /* reallocate space */
         buf->buf = obj_realloc(buf->buf, buf->write_index + len);
-        if (buf->buf == NULL) {
-            return false;
-        }
         buf->buf_size = buf->write_index + len;
-        return true;
     } else {
         /* move data to start */
         int readable = obj_buffer_readable_bytes(buf);
@@ -36,22 +32,17 @@ static obj_bool_t obj_buffer_make_room(obj_buffer_t *buf, int len) {
         buf->read_index = 0;
         buf->v_read_index = 0; 
         buf->write_index = readable;
-        return true;
     }
 }
 
-/* init a buffer */
-obj_buffer_t *obj_buffer_init() {
+/* create a buffer */
+obj_buffer_t *obj_buffer_create() {
     obj_buffer_t *buffer;
     buffer = obj_alloc(sizeof(obj_buffer_t));
     if (buffer == NULL) {
         return NULL;
     }
     buffer->buf = obj_alloc(OBJ_BUFFER_INIT_SIZE);
-    if (buffer->buf == NULL) {
-        obj_free(buffer);
-        return NULL;
-    }
     buffer->buf_size = OBJ_BUFFER_INIT_SIZE;
     buffer->v_read_index = 0;
     buffer->read_index = 0;
@@ -59,8 +50,8 @@ obj_buffer_t *obj_buffer_init() {
     return buffer;
 }
 
-/* init with size */
-obj_buffer_t *obj_buffer_init_with_size(int size) {
+/* create with size */
+obj_buffer_t *obj_buffer_create_with_size(int size) {
     if (size > OBJ_BUFFER_MAX_SIZE) {
         return NULL;
     }
@@ -70,10 +61,6 @@ obj_buffer_t *obj_buffer_init_with_size(int size) {
         return NULL;
     }
     buffer->buf = obj_alloc(size);
-    if (buffer->buf == NULL) {
-        obj_free(buffer);
-        return NULL;
-    }
     buffer->buf_size = size;
     buffer->v_read_index = 0;
     buffer->read_index = 0;
@@ -105,12 +92,11 @@ int obj_buffer_writable_bytes(obj_buffer_t *buf) {
 }
 
 /* ensure we have at least len bytes space to write */
-obj_bool_t obj_buffer_ensure_writable_bytes(obj_buffer_t *buf, int len) {
+void obj_buffer_ensure_writable_bytes(obj_buffer_t *buf, int len) {
     if (obj_buffer_writable_bytes(buf) < len) {
         /* make space */
-        return obj_buffer_make_room(buf, len);
+        obj_buffer_make_room(buf, len);
     }
-    return true;
 }
 
 /* test if we can read message length */
@@ -171,7 +157,7 @@ char *obj_buffer_v_read_string_unsafe(obj_buffer_t *buf, int *len) {
 obj_bson_t *obj_buffer_v_read_bson_unsafe(obj_buffer_t *buf, obj_int32_t len) {
     obj_bson_t *bson;
     obj_bool_t validate;
-    bson = obj_bson_init_with_data(buf->buf + buf->v_read_index, len);
+    bson = obj_bson_create_with_data(buf->buf + buf->v_read_index, len);
     if (bson == NULL) {
         return NULL;
     }
@@ -206,38 +192,32 @@ void obj_buffer_v_retrieve(obj_buffer_t *buf, int len) {
 }
 
 /* append */
-obj_bool_t obj_buffer_append(obj_buffer_t *buf, const void *data, int len) {
-    obj_bool_t res;
-    res = obj_buffer_ensure_writable_bytes(buf, len);
-    if (!res) {
-        return false;
-    }
+void obj_buffer_append(obj_buffer_t *buf, void *data, int len) {
+    obj_buffer_ensure_writable_bytes(buf, len);
     /* copy data */
     obj_memcpy(buf->buf + buf->write_index, data, len);
     buf->write_index += len;
-    /* printf("append. write index = %d\n", buf->write_index); */
-    return true;
 }
 
 /* append int32 */
-obj_bool_t obj_buffer_append_int32(obj_buffer_t *buf, obj_int32_t data) {
+void obj_buffer_append_int32(obj_buffer_t *buf, obj_int32_t data) {
     obj_int32_t data_le = obj_int32_to_le(data);
-    return obj_buffer_append(buf, &data_le, sizeof(obj_int32_t));
+    obj_buffer_append(buf, &data_le, sizeof(obj_int32_t));
 }
 
 /* append int64 */
-obj_bool_t obj_buffer_append_int64(obj_buffer_t *buf, obj_int64_t data) {
+void obj_buffer_append_int64(obj_buffer_t *buf, obj_int64_t data) {
     obj_int64_t data_le = obj_int64_to_le(data);
-    return obj_buffer_append(buf, &data_le, sizeof(obj_int64_t));
+    obj_buffer_append(buf, &data_le, sizeof(obj_int64_t));
 }
 
 /* append bson */
-obj_bool_t obj_buffer_append_bson(obj_buffer_t *buf, obj_bson_t *bson) {
-    return obj_buffer_append(buf, bson->data, bson->len);
+void obj_buffer_append_bson(obj_buffer_t *buf, obj_bson_t *bson) {
+    obj_buffer_append(buf, bson->data, bson->len);
 }
 
-/* false: out of memory */
-obj_bool_t obj_buffer_read_fd(obj_buffer_t *buf, int fd, int *saved_errno, int *num) {
+
+void obj_buffer_read_fd(obj_buffer_t *buf, int fd, int *saved_errno, int *num) {
     char extrabuf[65536];
     struct iovec vec[2];
     int writable = obj_buffer_writable_bytes(buf);
@@ -259,11 +239,8 @@ obj_bool_t obj_buffer_read_fd(obj_buffer_t *buf, int fd, int *saved_errno, int *
     } else {
         /* stack space used */
         buf->write_index = buf->buf_size;
-        if (!obj_buffer_append(buf, extrabuf, n - writable)) {
-            return false;
-        }
+        obj_buffer_append(buf, extrabuf, n - writable);
     }
-    return true;
 }
 
 /* write to fd */

@@ -88,48 +88,26 @@ struct obj_bson_value_s {
 };
 
 void obj_bson_print(obj_bson_t *bson);
-
-obj_bson_t *obj_bson_init();
-
-obj_bson_t *obj_bson_init_with_data(const obj_uint8_t *data, obj_int32_t len);
-
-obj_bool_t obj_bson_init_static_with_len(obj_bson_t *bson, const obj_uint8_t *data, obj_int32_t len);
-
+obj_bson_t *obj_bson_create();
+obj_bson_t *obj_bson_create_with_data(obj_uint8_t *data, obj_int32_t len);
+void obj_bson_init_static_with_len(obj_bson_t *bson, obj_uint8_t *data, obj_int32_t len);
 obj_bool_t obj_bson_is_empty(obj_bson_t *bson);
-
 void obj_bson_destroy(obj_bson_t *bson);
-
 int obj_bson_compare(obj_bson_t *bson1, obj_bson_t *bson2, obj_bson_t *pattern);
-
-const char *obj_bson_type_to_name(obj_bson_type_t type);
-
-obj_uint8_t *obj_bson_data(const obj_bson_t *bson);
-
-obj_bool_t obj_bson_append_double(obj_bson_t *bson, const char *key, int key_len, double value);
-
-obj_bool_t obj_bson_append_utf8(obj_bson_t *bson, const char *key, int key_len, const char *value, int value_len);
-
-obj_bool_t obj_bson_append_object(obj_bson_t *bson, const char *key, int key_len, const obj_bson_t *value);
-
-obj_bool_t obj_bson_append_array(obj_bson_t *bson, const char *key, int key_len, const obj_bson_t *value);
-
-obj_bool_t obj_bson_append_binary(obj_bson_t *bson, const char *key, int key_len, const obj_uint8_t *value, int value_len);
-
-obj_bool_t obj_bson_append_bool(obj_bson_t *bson, const char *key, int key_len, obj_bool_t value);
-
-obj_bool_t obj_bson_append_null(obj_bson_t *bson, const char *key, int key_len);
-
-obj_bool_t obj_bson_append_int32(obj_bson_t *bson, const char *key, int key_len, obj_int32_t value);
-
-obj_bool_t obj_bson_append_int64(obj_bson_t *bson, const char *key, int key_len, obj_int64_t value);
-
-obj_bool_t obj_bson_append_array_begin(obj_bson_t *bson, const char *key, int key_len, obj_bson_t *child);
-
-obj_bool_t obj_bson_append_array_end(obj_bson_t *bson, obj_bson_t *child);
-
-obj_bool_t obj_bson_append_object_begin(obj_bson_t *bson, const char *key, int key_len, obj_bson_t *child);
-
-obj_bool_t obj_bson_append_object_end(obj_bson_t *bson, obj_bson_t *child);
-
+char *obj_bson_type_to_name(obj_bson_type_t type);
+obj_uint8_t *obj_bson_data(obj_bson_t *bson);
+void obj_bson_append_double(obj_bson_t *bson, char *key, int key_len, double value);
+void obj_bson_append_utf8(obj_bson_t *bson, char *key, int key_len, char *value, int value_len);
+void obj_bson_append_object(obj_bson_t *bson, char *key, int key_len, obj_bson_t *value);
+void obj_bson_append_array(obj_bson_t *bson, char *key, int key_len, obj_bson_t *value);
+void obj_bson_append_binary(obj_bson_t *bson, char *key, int key_len, obj_uint8_t *value, int value_len);
+void obj_bson_append_bool(obj_bson_t *bson, char *key, int key_len, obj_bool_t value);
+void obj_bson_append_null(obj_bson_t *bson, char *key, int key_len);
+void obj_bson_append_int32(obj_bson_t *bson, char *key, int key_len, obj_int32_t value);
+void obj_bson_append_int64(obj_bson_t *bson, char *key, int key_len, obj_int64_t value);
+void obj_bson_append_array_begin(obj_bson_t *bson, char *key, int key_len, obj_bson_t *child);
+void obj_bson_append_array_end(obj_bson_t *bson, obj_bson_t *child);
+void obj_bson_append_object_begin(obj_bson_t *bson, char *key, int key_len, obj_bson_t *child);
+void obj_bson_append_object_end(obj_bson_t *bson, obj_bson_t *child);
 
 #endif  /* OBJ_BSON_H */

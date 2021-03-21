@@ -1,6 +1,6 @@
 #include "obj_core.h"
 
-static obj_bool_t obj_array_ensure_capacity(obj_array_t *array, int capacity);
+static void obj_array_ensure_capacity(obj_array_t *array, int capacity);
 
 /* create */
 obj_array_t *obj_array_create(int element_size) {
@@ -10,14 +10,7 @@ obj_array_t *obj_array_create(int element_size) {
 /* create with initial size */
 obj_array_t *obj_array_create_size(int element_size, int init_size) {
     obj_array_t *array = obj_alloc(sizeof(obj_array_t));
-    if (array == NULL) {
-        return NULL;
-    }
     array->data = obj_alloc(element_size * init_size);
-    if (array->data == NULL) {
-        obj_free(array);
-        return NULL;
-    }
     /* array->flag = 0; */
     array->element_size = element_size;
     array->free = NULL;
@@ -27,23 +20,19 @@ obj_array_t *obj_array_create_size(int element_size, int init_size) {
 }
 
 /* init */
-obj_bool_t obj_array_init(obj_array_t *array, int element_size) {
+void obj_array_init(obj_array_t *array, int element_size) {
     obj_assert(array);
     return obj_array_init_size(array, element_size, OBJ_ARRAY_INIT_SIZE_DEFAULT);
 }
 
 /* init with size */
-obj_bool_t obj_array_init_size(obj_array_t *array, int element_size, int init_size) {
+void obj_array_init_size(obj_array_t *array, int element_size, int init_size) {
     array->data = obj_alloc(element_size * init_size);
-    if (array->data == NULL) {
-        return false;
-    }
     /* array->flag = OBJ_ARRAY_FLAG_STATIC; */
     array->element_size = element_size;
     array->free = NULL;
     array->size = 0;
     array->capacity = init_size;
-    return true;
 }
 
 void obj_array_destroy_static(obj_array_t *array) {
@@ -70,39 +59,32 @@ void obj_array_empty(obj_array_t *array) {
     array->size = 0;
 }
 
-obj_bool_t obj_array_reserve(obj_array_t *array, int capacity) {
-    return obj_array_ensure_capacity(array, capacity);
+void obj_array_reserve(obj_array_t *array, int capacity) {
+    obj_array_ensure_capacity(array, capacity);
 }
 
-obj_bool_t obj_array_resize(obj_array_t *array, int size) {
+void obj_array_resize(obj_array_t *array, int size) {
     if (array->capacity >= size) {
         array->size = size;
-        return true;
+        return;
     }
-    if (!obj_array_ensure_capacity(array, size)) {
-        return false;
-    }
+    obj_array_ensure_capacity(array, size);
     array->size = size;
-    return true;
 }
 
 
 /* ensure capacity */
-static obj_bool_t obj_array_ensure_capacity(obj_array_t *array, int capacity) {
+static void obj_array_ensure_capacity(obj_array_t *array, int capacity) {
     if (array->capacity >= capacity) {
-        return true;
+        return;
     }
     int new_cap = capacity > array->capacity * 2 ? capacity : array->capacity * 2;
     /* check overflow */
-    if (array->capacity < 0 || array->capacity > OBJ_ARRAY_SIZE_MAX) {
-        return false;
+    if (new_cap < 0 || new_cap > OBJ_ARRAY_SIZE_MAX) {
+        return;
     }
     array->data = obj_realloc(array->data, new_cap * array->element_size);
-    if (array->data == NULL) {
-        return false;
-    }
     array->capacity = new_cap;
-    return true;
 }
 
 /* get element at index */
@@ -119,14 +101,11 @@ void obj_array_set_index(obj_array_t *array, int index, void *element_ptr) {
 }
 
 /* push back */
-obj_bool_t obj_array_push_back(obj_array_t *array, void *element_ptr) {
+void obj_array_push_back(obj_array_t *array, void *element_ptr) {
     obj_assert(array);
-    if (!obj_array_ensure_capacity(array, array->size + 1)) {
-        return false;
-    }
+    obj_array_ensure_capacity(array, array->size + 1);
     obj_memcpy(array->data + array->size * array->element_size, element_ptr, array->element_size);
     array->size++;
-    return true;
 }
 
 
@@ -141,18 +120,14 @@ void obj_array_pop_back(obj_array_t *array) {
 }
 
 /* insert */
-obj_bool_t obj_array_insert(obj_array_t *array, int index, void *element_ptr) {
+void obj_array_insert(obj_array_t *array, int index, void *element_ptr) {
     /* index == array->size means append */
-    obj_assert(array && index <= array->size);
-    if (!obj_array_ensure_capacity(array, array->size + 1)) {
-        return false;
-    }
+    obj_array_ensure_capacity(array, array->size + 1);
     /* move */
     obj_memmove(array->data + (index + 1) * array->element_size, array->data + index * array->element_size, (array->size - index) * array->element_size);
     array->size++;
     /* set */
     obj_array_set_index(array, index, element_ptr);
-    return true;
 }
 
 /* remove */
@@ -182,9 +157,3 @@ void obj_array_dump(obj_array_t *array, void (*cb)(obj_array_t *array)) {
 void obj_array_sort(obj_array_t *array, int (*compare)(const void *a, const void *b)) {
     qsort(array->data, array->size, array->element_size, compare);
 }
-
-/*
-void obj_array_sort1(obj_array_t *array) {
-
-}
-*/

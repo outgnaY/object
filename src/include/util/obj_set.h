@@ -21,7 +21,7 @@ obj_bool_t obj_set_init(obj_set_t *set, obj_prealloc_map_methods_t *methods, int
 void obj_set_destroy_static(obj_set_t *set);
 void obj_set_destroy(obj_set_t *set);
 obj_bool_t obj_set_find(obj_set_t *set, void *key);
-obj_bool_t obj_set_add(obj_set_t *set, void *key);
+void obj_set_add(obj_set_t *set, void *key);
 
 
 #endif  /* OBJ_SET_H */

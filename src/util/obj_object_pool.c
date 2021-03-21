@@ -4,7 +4,7 @@
 obj_list_t *g_object_pool_list;
 
 static void obj_global_object_pool_list_free(void *ptr);
-static obj_bool_t obj_object_pool_register(obj_object_pool_t *pool);
+static void obj_object_pool_register(obj_object_pool_t *pool);
 static void obj_object_pool_destroy(obj_object_pool_t *pool);
 static obj_object_pool_block_t *obj_object_pool_add_block(obj_object_pool_t *pool, int *index);
 static obj_object_pool_block_t *obj_object_pool_create_block(int elem_size);
@@ -41,8 +41,8 @@ void obj_global_object_pool_list_destroy() {
 }
 
 /* register to global list */
-static obj_bool_t obj_object_pool_register(obj_object_pool_t *pool) {
-    return obj_list_add_node_tail(g_object_pool_list, pool);
+static void obj_object_pool_register(obj_object_pool_t *pool) {
+    obj_list_add_node_tail(g_object_pool_list, pool);
 }
 
 /* create a new pool */

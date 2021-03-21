@@ -15,18 +15,12 @@ void obj_global_lock_init_with_deadline(obj_global_lock_t *global_lock, obj_lock
 
 obj_global_lock_t *obj_global_lock_create(obj_locker_t *locker, obj_lock_mode_t mode) {
     obj_global_lock_t *global_lock = obj_alloc(sizeof(obj_global_lock_t));
-    if (global_lock == NULL) {
-        return NULL;
-    }
     obj_global_lock_init(global_lock, locker, mode);
     return global_lock;
 }
 
 obj_global_lock_t *obj_global_lock_create_with_deadline(obj_locker_t *locker, obj_lock_mode_t mode, obj_abs_time_msecond deadline) {
     obj_global_lock_t *global_lock = obj_global_lock_create(locker, mode);
-    if (global_lock == NULL) {
-        return NULL;
-    }
     global_lock->deadline = deadline;
     return global_lock;
 }
@@ -39,34 +33,28 @@ obj_bool_t obj_global_lock_unlock(obj_global_lock_t *global_lock) {
     return obj_locker_unlock(global_lock->locker, g_resource_id_global);
 }
 
-void obj_db_lock_init(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, obj_stringdata_t *db) {
+void obj_db_lock_init(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *db) {
     obj_assert(db_lock);
     obj_assert(locker);
     db_lock->locker = locker;
     db_lock->mode = mode;
     db_lock->result = OBJ_LOCK_RESULT_INVALID;
-    db_lock->rid = obj_lock_resource_id(OBJ_LOCK_RESOURCE_DATABASE, db->data, db->size);
+    db_lock->rid = obj_lock_resource_id(OBJ_LOCK_RESOURCE_DATABASE, db, obj_strlen(db));
 }
 
-void obj_db_lock_init_with_deadline(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, obj_stringdata_t *db, obj_abs_time_msecond deadline) {
+void obj_db_lock_init_with_deadline(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *db, obj_abs_time_msecond deadline) {
     obj_db_lock_init(db_lock, locker, mode, db);
     db_lock->deadline = deadline;
 }
 
-obj_db_lock_t *obj_db_lock_create(obj_locker_t *locker, obj_lock_mode_t mode, obj_stringdata_t *db) {
+obj_db_lock_t *obj_db_lock_create(obj_locker_t *locker, obj_lock_mode_t mode, char *db) {
     obj_db_lock_t *db_lock = obj_alloc(sizeof(obj_db_lock_t));
-    if (db_lock == NULL) {
-        return NULL;
-    }
     obj_db_lock_init(db_lock, locker, mode, db);
     return db_lock;
 }
 
-obj_db_lock_t *obj_db_lock_create_with_deadline(obj_locker_t *locker, obj_lock_mode_t mode, obj_stringdata_t *db, obj_abs_time_msecond deadline) {
+obj_db_lock_t *obj_db_lock_create_with_deadline(obj_locker_t *locker, obj_lock_mode_t mode, char *db, obj_abs_time_msecond deadline) {
     obj_db_lock_t *db_lock = obj_db_lock_create(locker, mode, db);
-    if (db_lock == NULL) {
-        return NULL;
-    }
     db_lock->deadline = deadline;
     return db_lock;
 }
@@ -79,34 +67,28 @@ obj_bool_t obj_db_lock_unlock(obj_db_lock_t *db_lock) {
     return obj_locker_unlock(db_lock->locker, db_lock->rid);
 }
 
-void obj_collection_lock_init(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, obj_stringdata_t *collection) {
+void obj_collection_lock_init(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *collection) {
     obj_assert(collection_lock);
     obj_assert(locker);
     collection_lock->locker = locker;
     collection_lock->mode = mode;
     collection_lock->result = OBJ_LOCK_RESULT_INVALID;
-    collection_lock->rid = obj_lock_resource_id(OBJ_LOCK_RESOURCE_COLLECTION, collection->data, collection->size);
+    collection_lock->rid = obj_lock_resource_id(OBJ_LOCK_RESOURCE_COLLECTION, collection, obj_strlen(collection));
 }
 
-void obj_collection_lock_init_with_deadline(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, obj_stringdata_t *collection, obj_abs_time_msecond deadline) {
+void obj_collection_lock_init_with_deadline(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *collection, obj_abs_time_msecond deadline) {
     obj_collection_lock_init(collection_lock, locker, mode, collection);
     collection_lock->deadline = deadline;
 }
 
-obj_collection_lock_t *obj_collection_lock_create(obj_locker_t *locker, obj_lock_mode_t mode, obj_stringdata_t *collection) {
+obj_collection_lock_t *obj_collection_lock_create(obj_locker_t *locker, obj_lock_mode_t mode, char *collection) {
     obj_collection_lock_t *collection_lock = obj_alloc(sizeof(obj_collection_lock_t));
-    if (collection_lock == NULL) {
-        return NULL;
-    }
     obj_collection_lock_init(collection_lock, locker, mode, collection);
     return collection_lock;
 }
 
-obj_collection_lock_t *obj_collection_lock_with_deadline(obj_locker_t *locker, obj_lock_mode_t mode, obj_stringdata_t *collection, obj_abs_time_msecond deadline) {
+obj_collection_lock_t *obj_collection_lock_with_deadline(obj_locker_t *locker, obj_lock_mode_t mode, char *collection, obj_abs_time_msecond deadline) {
     obj_collection_lock_t *collection_lock = obj_collection_lock_create(locker, mode, collection);
-    if (collection_lock == NULL) {
-        return NULL;
-    }
     collection_lock->deadline = deadline;
     return collection_lock;
 }

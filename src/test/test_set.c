@@ -1,7 +1,7 @@
 #include "obj_core.h"
 
-static obj_uint64_t obj_int_set_hash_func(const void *key);
-static int obj_int_set_key_compare(const void *key1, const void *key2);
+static obj_uint64_t obj_int_set_hash_func(void *key);
+static int obj_int_set_key_compare(void *key1, void *key2);
 static void *obj_int_set_key_get(void *data);
 static void obj_int_set_key_set(void *data, void *key);
 
@@ -19,11 +19,11 @@ static obj_prealloc_map_methods_t methods = {
 };
 
 
-static obj_uint64_t obj_int_set_hash_func(const void *key) {
+static obj_uint64_t obj_int_set_hash_func(void *key) {
     return obj_set_hash_function(key, sizeof(int));
 }
 
-static int obj_int_set_key_compare(const void *key1, const void *key2) {
+static int obj_int_set_key_compare(void *key1, void *key2) {
     return *(int *)key1 - *(int *)key2;
 }
 

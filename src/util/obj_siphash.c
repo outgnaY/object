@@ -113,7 +113,7 @@ int obj_siptlw(int c) {
         v2 = ROTL(v2, 32);                                                     \
     } while (0)
 
-obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k) {
+obj_uint64_t obj_siphash(obj_uint8_t *in, obj_size_t inlen, obj_uint8_t *k) {
 #ifndef UNALIGNED_LE_CPU
     obj_uint64_t hash;
     obj_uint8_t *out = (obj_uint8_t*) &hash;
@@ -125,8 +125,8 @@ obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const ob
     obj_uint64_t k0 = U8TO64_LE(k);
     obj_uint64_t k1 = U8TO64_LE(k + 8);
     obj_uint64_t m;
-    const obj_uint8_t *end = in + inlen - (inlen % sizeof(obj_uint64_t));
-    const int left = inlen & 7;
+    obj_uint8_t *end = in + inlen - (inlen % sizeof(obj_uint64_t));
+    int left = inlen & 7;
     obj_uint64_t b = ((obj_uint64_t)inlen) << 56;
     v3 ^= k1;
     v2 ^= k0;
@@ -172,7 +172,7 @@ obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const ob
 #endif
 }
 
-obj_uint64_t obj_siphash_nocase(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k)
+obj_uint64_t obj_siphash_nocase(obj_uint8_t *in, obj_size_t inlen, obj_uint8_t *k)
 {
 #ifndef UNALIGNED_LE_CPU
     obj_uint64_t hash;
@@ -185,8 +185,8 @@ obj_uint64_t obj_siphash_nocase(const obj_uint8_t *in, const obj_size_t inlen, c
     obj_uint64_t k0 = U8TO64_LE(k);
     obj_uint64_t k1 = U8TO64_LE(k + 8);
     obj_uint64_t m;
-    const obj_uint8_t *end = in + inlen - (inlen % sizeof(obj_uint64_t));
-    const int left = inlen & 7;
+    obj_uint8_t *end = in + inlen - (inlen % sizeof(obj_uint64_t));
+    int left = inlen & 7;
     obj_uint64_t b = ((obj_uint64_t)inlen) << 56;
     v3 ^= k1;
     v2 ^= k0;

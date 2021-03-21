@@ -401,49 +401,28 @@ static obj_bool_t obj_process_command(obj_conn_t *c, obj_msg_header_t *header) {
     obj_bson_t **objects;
     obj_bson_t *object;
     reply_msg = obj_alloc(sizeof(obj_msg_reply_t));
-    if (reply_msg == NULL) {
-        goto clean;
-    }
     objects = obj_alloc(sizeof(obj_bson_t *));
-    if (objects == NULL) {
-        goto clean;
-    }
     /* send message back */
     switch (header->opCode) {
         case OBJ_MSG_OP_UPDATE:
-            object = obj_bson_init();
-            if (object == NULL) {
-                goto clean;
-            }
-            res = obj_bson_append_utf8(object, "type", 4, "update", 6);
+            object = obj_bson_create();
+            obj_bson_append_utf8(object, "type", 4, "update", 6);
             break;
         case OBJ_MSG_OP_INSERT:
-            object = obj_bson_init();
-            if (object == NULL) {
-                goto clean;
-            }
-            res = obj_bson_append_utf8(object, "type", 4, "insert", 6);
+            object = obj_bson_create();
+            obj_bson_append_utf8(object, "type", 4, "insert", 6);
             break;
         case OBJ_MSG_OP_QUERY:
-            object = obj_bson_init();
-            if (object == NULL) {
-                goto clean;
-            }
-            res = obj_bson_append_utf8(object, "type", 4, "query", 5);
+            object = obj_bson_create();
+            obj_bson_append_utf8(object, "type", 4, "query", 5);
             break;
         case OBJ_MSG_OP_DELETE:
-            object = obj_bson_init();
-            if (object == NULL) {
-                goto clean;
-            }
-            res = obj_bson_append_utf8(object, "type", 4, "delete", 6);
+            object = obj_bson_create();
+            obj_bson_append_utf8(object, "type", 4, "delete", 6);
             break;
         default:
             obj_assert(false);
             break;
-    }
-    if (!res) {
-        goto clean;
     }
     objects[0] = object;
     len += object->len;
@@ -457,24 +436,9 @@ static obj_bool_t obj_process_command(obj_conn_t *c, obj_msg_header_t *header) {
     reply_msg->num_return = 1;
     reply_msg->objects = objects;
     /* add reply */
-    if (!obj_conn_add_reply(c, reply_msg)) {
-        res = false;
-        goto clean;
-    }
+    obj_conn_add_reply(c, reply_msg);
     /* obj_buffer_dump(c->outbuf); */
     obj_conn_set_state(c, OBJ_CONN_WRITE);
-clean:
-    /* release resources */
-    if (reply_msg != NULL) {
-        obj_free(reply_msg);
-    }
-    if (objects != NULL) {
-        if (objects[0] != NULL) {
-            obj_bson_destroy(objects[0]);
-        }
-        obj_free(objects);
-    }
-    return res;
 }
 
 

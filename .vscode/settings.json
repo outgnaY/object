@@ -4,6 +4,8 @@
         "cwchar": "cpp",
         "cctype": "cpp",
         "type_traits": "cpp",
-        "unordered_map": "c"
+        "unordered_map": "c",
+        "array": "c",
+        "string": "c"
     }
 }

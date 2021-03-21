@@ -132,7 +132,7 @@ extern obj_lock_manager_t *g_lock_manager;
 extern obj_lock_resource_id_t g_resource_id_global;
 
 /* forward declaration */
-obj_uint64_t obj_siphash(const obj_uint8_t *in, const obj_size_t inlen, const obj_uint8_t *k);
+obj_uint64_t obj_siphash(obj_uint8_t *in, obj_size_t inlen, obj_uint8_t *k);
 
 obj_bool_t obj_lock_is_shared_lock_mode(obj_lock_mode_t mode);
 obj_bool_t obj_lock_is_mode_covered(obj_lock_mode_t mode, obj_lock_mode_t cover_mode);
@@ -140,7 +140,7 @@ void obj_global_lock_manager_init();
 void obj_global_lock_manager_destroy();
 
 void obj_lock_request_init(obj_lock_request_t *request, obj_locker_t *locker, obj_lock_grant_notify_t *notify);
-obj_lock_resource_id_t obj_lock_resource_id(obj_lock_resource_type_t type, const char *str, int len);
+obj_lock_resource_id_t obj_lock_resource_id(obj_lock_resource_type_t type, char *str, int len);
 obj_lock_resource_id_t obj_lock_resource_id_from_hashid(obj_lock_resource_type_t type, obj_uint64_t hash);
 obj_lock_resource_type_t obj_lock_resource_id_get_type(obj_lock_resource_id_t resource_id);
 obj_lock_result_t obj_lock_lock(obj_lock_manager_t *lock_manager, obj_lock_resource_id_t resource_id, obj_lock_request_t *request, obj_lock_mode_t mode);

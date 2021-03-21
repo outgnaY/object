@@ -37,9 +37,9 @@ void obj_list_destroy_static(obj_list_t *list);
 
 void obj_list_destroy(obj_list_t *list);
 
-obj_bool_t obj_list_add_node_head(obj_list_t *list, void *value);
+void obj_list_add_node_head(obj_list_t *list, void *value);
 
-obj_bool_t obj_list_add_node_tail(obj_list_t *list, void *value);
+void obj_list_add_node_tail(obj_list_t *list, void *value);
 
 void obj_list_del_node(obj_list_t *list, obj_list_node_t *node);
 

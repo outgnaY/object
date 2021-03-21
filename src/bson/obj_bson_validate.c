@@ -159,9 +159,6 @@ static obj_global_error_code_t obj_bson_validate_internal(obj_bson_validate_t *v
     obj_global_error_code_t code = OBJ_CODE_OK;;
     obj_bson_validate_state_t next_state;
     int actual_length;
-    if (list == NULL) {
-        return OBJ_CODE_BSON_VALIDATE_NOMEM;
-    }
     while (state != OBJ_BSON_VALIDATE_DONE) {
         switch (state) {
         case OBJ_BSON_VALIDATE_BEGIN_OBJ:
@@ -170,10 +167,6 @@ static obj_global_error_code_t obj_bson_validate_internal(obj_bson_validate_t *v
             }
             /* init new frame */
             cur = obj_bson_validate_frame_init();
-            if (cur == NULL) {
-                code = OBJ_CODE_BSON_VALIDATE_NOMEM;
-                goto clean;
-            }
             obj_list_add_node_tail(list, cur);
             cur->start_position = validate->position;
             if (!obj_bson_validate_can_read_number(validate, int32)) {

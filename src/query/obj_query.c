@@ -1,12 +1,12 @@
 #include "obj_core.h"
 
-static const char *find_cmd_name = "find";
-static const char *filter_field = "filter";
-static const char *projection_field = "projection";
-static const char *sort_field = "sort";
-static const char *skip_field = "skip";
-static const char *limit_field = "limit";
-/* static const char *hint_field = "hint"; */
+static char *find_cmd_name = "find";
+static char *filter_field = "filter";
+static char *projection_field = "projection";
+static char *sort_field = "sort";
+static char *skip_field = "skip";
+static char *limit_field = "limit";
+
 
 /* query request methods */
 static void obj_query_request_init(obj_query_request_t *qr);
@@ -20,13 +20,10 @@ static void obj_query_expression_tree_sort(obj_expr_base_expr_t *root);
 obj_status_with_t obj_query_parse_from_find_cmd(obj_bson_t *cmd) {
     obj_assert(cmd);
     obj_query_request_t *qr = obj_alloc(sizeof(obj_query_request_t));
-    if (qr == NULL) {
-        return obj_status_with_create(NULL, "out of memory, can't build query request", OBJ_CODE_QUERY_NOMEM);
-    }
     obj_query_request_init(qr);
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, cmd);
-    const char *key;
+    char *key;
     obj_bson_type_t bson_type;
     obj_bson_value_t *value = NULL;
     /* iterate through  */
@@ -37,8 +34,7 @@ obj_status_with_t obj_query_parse_from_find_cmd(obj_bson_t *cmd) {
                 obj_free(qr);
                 return obj_status_with_create(NULL, "collection name must be of type string", OBJ_CODE_QUERY_WRONG_TYPE);
             }
-            obj_stringdata_t full_name = obj_stringdata_create_with_size(value->value.v_utf8.str, value->value.v_utf8.len);
-            qr->full_name = obj_namespace_string_create(&full_name);
+            qr->full_name = value->value.v_utf8.str;
         } else if (obj_strcmp(filter_field, key) == 0) {
             if (bson_type != OBJ_BSON_TYPE_OBJECT) {
                 obj_free(qr);
@@ -77,7 +73,7 @@ obj_status_with_t obj_query_parse_from_find_cmd(obj_bson_t *cmd) {
 
         } */
     }
-    if (qr->full_name.str.data == NULL) {
+    if (qr->full_name == NULL) {
         obj_free(qr);
         return obj_status_with_create(NULL, "missing full name", OBJ_CODE_QUERY_MISSING_FIELD);
     }
@@ -87,7 +83,7 @@ obj_status_with_t obj_query_parse_from_find_cmd(obj_bson_t *cmd) {
 /* dump query request */
 void obj_query_request_dump(obj_query_request_t *qr) {
     printf("query request:\n");
-    printf("full name: %s\n", qr->full_name.str.data);
+    printf("full name: %s\n", qr->full_name);
     /* filter */
     if (!obj_bson_is_empty(&qr->filter)) {
         printf("filter:\n");
@@ -128,9 +124,6 @@ static inline void obj_query_request_init(obj_query_request_t *qr) {
 obj_status_with_t obj_query_standardize(obj_query_request_t *qr) {
     obj_assert(qr);
     obj_standard_query_t *sq = obj_alloc(sizeof(obj_standard_query_t));
-    if (sq == NULL) {
-        return obj_status_with_create(NULL, "out of memory, can't build standard query", OBJ_CODE_QUERY_NOMEM);
-    }
     obj_expr_base_expr_t *root = NULL;
     /* has filter expression */
     if (!obj_bson_is_empty(&qr->filter)) {
@@ -160,7 +153,7 @@ static int obj_query_expression_compare(const void *a, const void *b) {
     /* if have path, compare path */
     int path_compare;
     if (expr1->type >= OBJ_EXPR_TYPE_EQ && expr1->type <= OBJ_EXPR_TYPE_GTE) {
-        path_compare = obj_stringdata_compare(&((obj_expr_compare_expr_t *)expr1)->path, &((obj_expr_compare_expr_t *)expr2)->path);
+        path_compare = obj_strcmp(((obj_expr_compare_expr_t *)expr1)->path, ((obj_expr_compare_expr_t *)expr2)->path);
         if (path_compare != 0) {
             return path_compare;
         }

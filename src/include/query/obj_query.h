@@ -22,7 +22,7 @@ struct obj_query_request_s {
     /* limit, -1 if not assign */
     int limit;
     /* full name. e.x. db.coll */
-    obj_namespace_string_t full_name;
+    char *full_name;
 };
 
 /* standard query */

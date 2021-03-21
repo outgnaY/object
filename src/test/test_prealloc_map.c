@@ -1,7 +1,7 @@
 #include "obj_core.h"
 
-static obj_uint64_t obj_resource_id_request_map_hash_func(const void *key);
-static int obj_resource_id_request_map_key_compare(const void *key1, const void *key2);
+static obj_uint64_t obj_resource_id_request_map_hash_func(void *key);
+static int obj_resource_id_request_map_key_compare(void *key1, void *key2);
 static void *obj_resource_id_request_map_key_get(void *data);
 static void *obj_resource_id_request_map_value_get(void *data);
 static void obj_resource_id_request_map_key_set(void *data, void *key);
@@ -21,12 +21,12 @@ static obj_prealloc_map_methods_t methods = {
     NULL
 };
 
-static obj_uint64_t obj_resource_id_request_map_hash_func(const void *key) {
+static obj_uint64_t obj_resource_id_request_map_hash_func(void *key) {
     return obj_prealloc_map_hash_function(key, sizeof(obj_lock_resource_id_t));
 }
 
 /* compare resource id */
-static int obj_resource_id_request_map_key_compare(const void *key1, const void *key2) {
+static int obj_resource_id_request_map_key_compare(void *key1, void *key2) {
     obj_lock_resource_id_t *id1 = (obj_lock_resource_id_t *)key1;
     obj_lock_resource_id_t *id2 = (obj_lock_resource_id_t *)key2;
     return (*id1) - (*id2);
@@ -89,7 +89,7 @@ int main() {
     /* delete */
     for (i = 0; i < 31; i++) {
         id = i;
-        obj_assert(!obj_prealloc_map_delete(&map, &id, true));
+        obj_prealloc_map_delete(&map, &id, true);
     }
     obj_assert(obj_prealloc_map_is_empty(&map));
     /*

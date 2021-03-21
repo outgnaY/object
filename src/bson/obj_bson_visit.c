@@ -1,28 +1,28 @@
 #include "obj_core.h"
 
 /* print message for debug */
-static obj_bool_t obj_bson_visit_print_visit_before(const obj_bson_iter_t *iter, const char *key, void *data);
-static obj_bool_t obj_bson_visit_print_visit_double(const obj_bson_iter_t *iter, double v_double, void *data);
-static obj_bool_t obj_bson_visit_print_visit_utf8(const obj_bson_iter_t *iter, obj_int32_t len, const char *v_utf8, void *data);
-static obj_bool_t obj_bson_visit_print_visit_object(const obj_bson_iter_t *iter, const obj_bson_t *v_object, void *data);
-static obj_bool_t obj_bson_visit_print_visit_array(const obj_bson_iter_t *iter, const obj_bson_t *v_array, void *data);
-static obj_bool_t obj_bson_visit_print_visit_binary(const obj_bson_iter_t *iter, obj_int32_t len, const obj_uint8_t *v_binary, void *data);
-static obj_bool_t obj_bson_visit_print_visit_bool(const obj_bson_iter_t *iter, obj_bool_t v_bool, void *data);
-static obj_bool_t obj_bson_visit_print_visit_null(const obj_bson_iter_t *iter, void *data);
-static obj_bool_t obj_bson_visit_print_visit_int32(const obj_bson_iter_t *iter, obj_int32_t v_int32, void *data);
-static obj_bool_t obj_bson_visit_print_visit_int64(const obj_bson_iter_t *iter, obj_int64_t v_int64, void *data);
-static obj_bool_t obj_bson_visit_print_visit_all(const obj_bson_t *bson);
+static obj_bool_t obj_bson_visit_print_visit_before(obj_bson_iter_t *iter, char *key, void *data);
+static obj_bool_t obj_bson_visit_print_visit_double(obj_bson_iter_t *iter, double v_double, void *data);
+static obj_bool_t obj_bson_visit_print_visit_utf8(obj_bson_iter_t *iter, obj_int32_t len, char *v_utf8, void *data);
+static obj_bool_t obj_bson_visit_print_visit_object(obj_bson_iter_t *iter, obj_bson_t *v_object, void *data);
+static obj_bool_t obj_bson_visit_print_visit_array(obj_bson_iter_t *iter, obj_bson_t *v_array, void *data);
+static obj_bool_t obj_bson_visit_print_visit_binary(obj_bson_iter_t *iter, obj_int32_t len, obj_uint8_t *v_binary, void *data);
+static obj_bool_t obj_bson_visit_print_visit_bool(obj_bson_iter_t *iter, obj_bool_t v_bool, void *data);
+static obj_bool_t obj_bson_visit_print_visit_null(obj_bson_iter_t *iter, void *data);
+static obj_bool_t obj_bson_visit_print_visit_int32(obj_bson_iter_t *iter, obj_int32_t v_int32, void *data);
+static obj_bool_t obj_bson_visit_print_visit_int64(obj_bson_iter_t *iter, obj_int64_t v_int64, void *data);
+static obj_bool_t obj_bson_visit_print_visit_all(obj_bson_t *bson);
 
 /* validate bson */
-static obj_bool_t obj_bson_visit_validate_visit_before(const obj_bson_iter_t *iter, const char *key, void *data);
-static obj_bool_t obj_bson_visit_validate_visit_utf8(const obj_bson_iter_t *iter, obj_int32_t len, const char *v_utf8, void *data);
-static obj_bool_t obj_bson_visit_validate_visit_object(const obj_bson_iter_t *iter, const obj_bson_t *v_object, void *data);
-static obj_bool_t obj_bson_visit_validate_visit_array(const obj_bson_iter_t *iter, const obj_bson_t *v_array, void *data);
-static obj_bool_t obj_bson_visit_validate_visit_all(const obj_bson_t *bson, obj_bson_visit_validate_flag_t flag);
+static obj_bool_t obj_bson_visit_validate_visit_before( obj_bson_iter_t *iter, char *key, void *data);
+static obj_bool_t obj_bson_visit_validate_visit_utf8( obj_bson_iter_t *iter, obj_int32_t len, char *v_utf8, void *data);
+static obj_bool_t obj_bson_visit_validate_visit_object( obj_bson_iter_t *iter, obj_bson_t *v_object, void *data);
+static obj_bool_t obj_bson_visit_validate_visit_array( obj_bson_iter_t *iter, obj_bson_t *v_array, void *data);
+static obj_bool_t obj_bson_visit_validate_visit_all( obj_bson_t *bson, obj_bson_visit_validate_flag_t flag);
 
 
 /* print message for debug */
-const obj_bson_visit_visitor_t obj_bson_visit_print_visitors = {
+ obj_bson_visit_visitor_t obj_bson_visit_print_visitors = {
     obj_bson_visit_print_visit_before,
     obj_bson_visit_print_visit_double,
     obj_bson_visit_print_visit_utf8,
@@ -35,7 +35,7 @@ const obj_bson_visit_visitor_t obj_bson_visit_print_visitors = {
     obj_bson_visit_print_visit_int64
 };
 
-const obj_bson_visit_visitor_t obj_bson_visit_validate_visitors = {
+ obj_bson_visit_visitor_t obj_bson_visit_validate_visitors = {
     obj_bson_visit_validate_visit_before,
     NULL,
     obj_bson_visit_validate_visit_utf8,
@@ -49,7 +49,7 @@ const obj_bson_visit_visitor_t obj_bson_visit_validate_visitors = {
 };
 
 /* ---------- print message for debug ---------- */
-static obj_bool_t obj_bson_visit_print_visit_before(const obj_bson_iter_t *iter, const char *key, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_before(obj_bson_iter_t *iter, char *key, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     if (state->count) {
         printf(",");
@@ -59,7 +59,7 @@ static obj_bool_t obj_bson_visit_print_visit_before(const obj_bson_iter_t *iter,
 }
 
 
-static obj_bool_t obj_bson_visit_print_visit_double(const obj_bson_iter_t *iter, double v_double, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_double(obj_bson_iter_t *iter, double v_double, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     printf("[double]");
     if (v_double != v_double) {
@@ -77,7 +77,7 @@ static obj_bool_t obj_bson_visit_print_visit_double(const obj_bson_iter_t *iter,
     return true;
 }
 
-static obj_bool_t obj_bson_visit_print_visit_utf8(const obj_bson_iter_t *iter, obj_int32_t len, const char *v_utf8, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_utf8(obj_bson_iter_t *iter, obj_int32_t len, char *v_utf8, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     int i;
     printf("[utf8]");
@@ -87,7 +87,7 @@ static obj_bool_t obj_bson_visit_print_visit_utf8(const obj_bson_iter_t *iter, o
     return true;
 }
 
-static obj_bool_t obj_bson_visit_print_visit_object(const obj_bson_iter_t *iter, const obj_bson_t *v_object, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_object(obj_bson_iter_t *iter, obj_bson_t *v_object, void *data) {
     /* printf("visit object\n"); */
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     obj_bson_visit_print_state_t child_state;
@@ -106,7 +106,7 @@ static obj_bool_t obj_bson_visit_print_visit_object(const obj_bson_iter_t *iter,
     return true;
 }
 
-static obj_bool_t obj_bson_visit_print_visit_array(const obj_bson_iter_t *iter, const obj_bson_t *v_array, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_array(obj_bson_iter_t *iter, obj_bson_t *v_array, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     obj_bson_visit_print_state_t child_state;
     obj_bson_iter_t child;
@@ -124,7 +124,7 @@ static obj_bool_t obj_bson_visit_print_visit_array(const obj_bson_iter_t *iter, 
     return true;
 }
 
-static obj_bool_t obj_bson_visit_print_visit_binary(const obj_bson_iter_t *iter, obj_int32_t len, const obj_uint8_t *v_binary, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_binary(obj_bson_iter_t *iter, obj_int32_t len, obj_uint8_t *v_binary, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     int i;
     printf("[binary]");
@@ -134,7 +134,7 @@ static obj_bool_t obj_bson_visit_print_visit_binary(const obj_bson_iter_t *iter,
     return true;
 }
 
-static obj_bool_t obj_bson_visit_print_visit_bool(const obj_bson_iter_t *iter, obj_bool_t v_bool, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_bool(obj_bson_iter_t *iter, obj_bool_t v_bool, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     printf("[bool]");
     if (v_bool) {
@@ -145,21 +145,21 @@ static obj_bool_t obj_bson_visit_print_visit_bool(const obj_bson_iter_t *iter, o
     return true;
 }
 
-static obj_bool_t obj_bson_visit_print_visit_null(const obj_bson_iter_t *iter, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_null(obj_bson_iter_t *iter, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     printf("[null]");
     printf("null");
     return true;
 }
 
-static obj_bool_t obj_bson_visit_print_visit_int32(const obj_bson_iter_t *iter, obj_int32_t v_int32, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_int32(obj_bson_iter_t *iter, obj_int32_t v_int32, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     printf("[int32]");
     printf("%d", v_int32);
     return true;
 }
 
-static obj_bool_t obj_bson_visit_print_visit_int64(const obj_bson_iter_t *iter, obj_int64_t v_int64, void *data) {
+static obj_bool_t obj_bson_visit_print_visit_int64(obj_bson_iter_t *iter, obj_int64_t v_int64, void *data) {
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     printf("[int64]");
     printf("%ld", v_int64);
@@ -167,7 +167,7 @@ static obj_bool_t obj_bson_visit_print_visit_int64(const obj_bson_iter_t *iter, 
 }
 
 /* visit a bson */
-static obj_bool_t obj_bson_visit_print_visit_all(const obj_bson_t *bson) {
+static obj_bool_t obj_bson_visit_print_visit_all(obj_bson_t *bson) {
     obj_bson_visit_print_state_t state;
     obj_bson_iter_t iter;
     state.depth = 0;
@@ -186,12 +186,12 @@ static obj_bool_t obj_bson_visit_print_visit_all(const obj_bson_t *bson) {
     return obj_bson_visit_print_visit_object(&iter, bson, &state);
 }
 
-obj_bool_t obj_bson_visit_print_visit(const obj_bson_t *bson) {
+obj_bool_t obj_bson_visit_print_visit(obj_bson_t *bson) {
     return obj_bson_visit_print_visit_all(bson);
 }
 
 /* ----------validate bson ---------- */
-static obj_bool_t obj_bson_visit_validate_visit_before(const obj_bson_iter_t *iter, const char *key, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_before(obj_bson_iter_t *iter, char *key, void *data) {
     obj_bson_visit_validate_state_t *state = (obj_bson_visit_validate_state_t *)data;
     if ((state->flag & OBJ_BSON_VALIDATE_FLAG_EMPTY_KEYS) == 0) {
         if (key[0] == '\0') {
@@ -201,18 +201,18 @@ static obj_bool_t obj_bson_visit_validate_visit_before(const obj_bson_iter_t *it
     return true;
 }
 /*
-static obj_bool_t obj_bson_visit_validate_visit_double(const obj_bson_iter_t *iter, const char *key, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_double( obj_bson_iter_t *iter,  char *key, void *data) {
 
 }
 */
-static obj_bool_t obj_bson_visit_validate_visit_utf8(const obj_bson_iter_t *iter, obj_int32_t len, const char *v_utf8, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_utf8(obj_bson_iter_t *iter, obj_int32_t len, char *v_utf8, void *data) {
     obj_bson_visit_validate_state_t *state = (obj_bson_visit_validate_state_t *)data;
     obj_bool_t allow_null;
     allow_null = ((state->flag & OBJ_BSON_VALIDATE_FLAG_UTF8_ALLOW_NULL) != 0);
     return obj_validate_utf8_string(v_utf8, len, allow_null);
 }
 
-static obj_bool_t obj_bson_visit_validate_visit_object(const obj_bson_iter_t *iter, const obj_bson_t *v_object, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_object(obj_bson_iter_t *iter, obj_bson_t *v_object, void *data) {
     obj_bson_visit_validate_state_t *state = (obj_bson_visit_validate_state_t *)data;
     obj_bson_iter_t child;
     obj_bool_t res;
@@ -223,7 +223,7 @@ static obj_bool_t obj_bson_visit_validate_visit_object(const obj_bson_iter_t *it
     return res && state->off_err == -1;
 }
 
-static obj_bool_t obj_bson_visit_validate_visit_array(const obj_bson_iter_t *iter, const obj_bson_t *v_array, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_array(obj_bson_iter_t *iter, obj_bson_t *v_array, void *data) {
     obj_bson_visit_validate_state_t *state = (obj_bson_visit_validate_state_t *)data;
     obj_bson_iter_t child;
     obj_bool_t res;
@@ -234,28 +234,28 @@ static obj_bool_t obj_bson_visit_validate_visit_array(const obj_bson_iter_t *ite
     return res && state->off_err == -1;
 }
 /*
-static obj_bool_t obj_bson_visit_validate_visit_binary(const obj_bson_iter_t *iter, obj_int32_t len, const obj_uint8_t *v_binary, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_binary( obj_bson_iter_t *iter, obj_int32_t len,  obj_uint8_t *v_binary, void *data) {
 
 }
 
-static obj_bool_t obj_bson_visit_validate_visit_bool(const obj_bson_iter_t *iter, obj_bool_t v_bool, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_bool( obj_bson_iter_t *iter, obj_bool_t v_bool, void *data) {
 
 }
 
-static obj_bool_t obj_bson_visit_validate_visit_null(const obj_bson_iter_t *iter, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_null( obj_bson_iter_t *iter, void *data) {
 
 }
 
-static obj_bool_t obj_bson_visit_validate_visit_int32(const obj_bson_iter_t *iter, obj_int32_t v_int32, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_int32( obj_bson_iter_t *iter, obj_int32_t v_int32, void *data) {
 
 }
 
-static obj_bool_t obj_bson_visit_validate_visit_int64(const obj_bson_iter_t *iter, obj_int64_t v_int64, void *data) {
+static obj_bool_t obj_bson_visit_validate_visit_int64( obj_bson_iter_t *iter, obj_int64_t v_int64, void *data) {
 
 }
 */
 
-static obj_bool_t obj_bson_visit_validate_visit_all(const obj_bson_t *bson, obj_bson_visit_validate_flag_t flag) {
+static obj_bool_t obj_bson_visit_validate_visit_all(obj_bson_t *bson, obj_bson_visit_validate_flag_t flag) {
     obj_bson_visit_validate_state_t state;
     obj_bson_iter_t iter;
     obj_bool_t res;
@@ -268,7 +268,7 @@ static obj_bool_t obj_bson_visit_validate_visit_all(const obj_bson_t *bson, obj_
     return res && state.off_err == -1;
 }
 
-obj_bool_t obj_bson_visit_validate_visit(const obj_bson_t *bson, obj_bson_visit_validate_flag_t flag) {
+obj_bool_t obj_bson_visit_validate_visit(obj_bson_t *bson, obj_bson_visit_validate_flag_t flag) {
     return obj_bson_visit_validate_visit_all(bson, flag);
 }
 
