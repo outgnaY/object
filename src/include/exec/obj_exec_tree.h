@@ -101,10 +101,8 @@ struct obj_exec_tree_sort_node_data_item_s {
     obj_exec_working_set_id_t ws_id;
     /* key pattern. e.x. {"a": 1, "b": -1} */
     obj_bson_t *pattern; 
-    /* sort key */
-    obj_bson_t *sort_key;
     /* record */
-
+    obj_record_t *record;
 };
 
 /* sort node */
@@ -118,7 +116,6 @@ struct obj_exec_tree_sort_node_s {
     obj_bool_t sorted;
     /* data to be sorted */
     obj_array_t data;
-    /* current position */
     int curr;
 };
 

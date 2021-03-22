@@ -43,6 +43,11 @@ void obj_set_add(obj_set_t *set, void *key) {
     obj_prealloc_map_add(&set->map, key, NULL);
 }
 
+/* delete from set */
+void obj_set_delete(obj_set_t *set, void *key) {
+    obj_prealloc_map_delete(&set->map, key, false);
+}
+
 void obj_set_delete_all(obj_set_t *set) {
     obj_prealloc_map_delete_all(&set->map);
 }

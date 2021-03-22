@@ -78,7 +78,13 @@
 #include "obj_thread.h"
 
 
-/* storage */
+/* engine */
+#include "engine/index/obj_index_key.h"
+#include "engine/index/obj_skiplist.h"
+#include "engine/record/obj_record_store.h"
+#include "engine/catalog/obj_catalog.h"
+#include "engine/obj_engine.h"
+/*
 #include "storage/index/obj_index_key.h"
 #include "storage/index/obj_index.h"
 #include "storage/obj_record_store.h"
@@ -86,14 +92,14 @@
 #include "storage/obj_engine.h"
 
 #include "storage/v1/index/obj_v1_index_key.h"
-/*
+
 #include "storage/v1/index/obj_skiplist.h"
 #include "storage/v1/index/obj_v1_index.h"
-*/
+
 #include "storage/v1/obj_v1_record_store.h"
 #include "storage/v1/obj_v1_catalog.h"
 #include "storage/v1/obj_v1_engine.h"
-
+*/
 
 /* operation handler */
 /*

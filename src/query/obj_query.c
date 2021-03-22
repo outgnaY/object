@@ -77,6 +77,7 @@ obj_status_with_t obj_query_parse_from_find_cmd(obj_bson_t *cmd) {
         obj_free(qr);
         return obj_status_with_create(NULL, "missing full name", OBJ_CODE_QUERY_MISSING_FIELD);
     }
+    /* TODO check parameters */
     return obj_status_with_create(qr, "", OBJ_CODE_OK);
 }
 

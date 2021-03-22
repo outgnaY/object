@@ -443,81 +443,67 @@ static obj_bool_t obj_plan_tree_index_scan_node_is_eof(obj_plan_tree_base_node_t
 
 /* ********** sort node ********** */
 
-obj_plan_tree_sort_node_t *obj_plan_tree_sort_node_create(obj_plan_tree_sort_params_t params, obj_plan_working_set_t *ws, obj_plan_tree_base_node_t *child) {
-    obj_plan_tree_sort_node_t *node = (obj_plan_tree_sort_node_t *)obj_alloc(sizeof(obj_plan_tree_sort_node_t *));
-    if (node == NULL) {
-        return NULL;
-    }
-    if (!obj_array_init(&node->base.children, sizeof(obj_plan_tree_base_node_t *))) {
-        obj_free(node);
-        return NULL;
-    }
-    /* add child */
-    if (!obj_array_push_back(&node->base.children, &child)) {
-        obj_free(node);
-        return NULL;
-    }
-    if (!obj_array_init(&node->data, sizeof(obj_plan_tree_sort_node_data_item_t))) {
-        obj_array_destroy_static(&node->base.children);
-        obj_free(node);
-        return NULL;
-    }
-    node->params = params;
-    node->ws = ws;
-    node->mem_usage = 0;
-    node->sorted = false;
-    /* current position */
-    node->curr = -1;
-    return node;
-}
+static obj_exec_tree_node_methods_t obj_exec_tree_sort_node_methods = {
 
-/* get type */
-static obj_plan_tree_node_type_t obj_plan_tree_sort_node_get_type() {
-    return OBJ_PLAN_TREE_NODE_TYPE_SORT;
-}
+};
+
+obj_exec_tree_sort_node_t *obj_exec_tree_sort_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, obj_bson_t *pattern) {
+    obj_exec_tree_sort_node_t *sort_node = obj_alloc(sizeof(obj_exec_tree_sort_node_t));
+    obj_exec_tree_init_base((obj_exec_tree_base_node_t *)sort_node, &obj_exec_tree_sort_node_methods);
+    /* add child */
+    obj_array_push_back(&sort_node->base.children, &child);
+    sort_node->ws = ws;
+    sort_node->pattern = pattern;
+    sort_node->sorted = false;
+
+    return sort_node;
+}   
+
+
 
 /* compare */
-static int obj_plan_tree_sort_node_data_item_compare(const void *data_item1, const void *data_item2) {
-    obj_plan_tree_sort_node_data_item_t *sort_node_data_item1 = (obj_plan_tree_sort_node_data_item_t *)data_item1;
-    obj_plan_tree_sort_node_data_item_t *sort_node_data_item2 = (obj_plan_tree_sort_node_data_item_t *)data_item2;
+static int obj_exec_tree_sort_node_data_item_compare(const void *data_item1, const void *data_item2) {
+    obj_exec_tree_sort_node_data_item_t *sort_node_data_item1 = (obj_exec_tree_sort_node_data_item_t *)data_item1;
+    obj_exec_tree_sort_node_data_item_t *sort_node_data_item2 = (obj_exec_tree_sort_node_data_item_t *)data_item2;
     /* TODO optimize */
+    
     return obj_bson_compare(sort_node_data_item1->sort_key, sort_node_data_item2->sort_key, sort_node_data_item1->pattern);
 }
 
 /* sort node work() */
-static obj_plan_tree_exec_state_t obj_plan_tree_sort_node_work(obj_plan_tree_base_node_t *node, obj_plan_working_set_id_t *out) {
-    obj_plan_tree_sort_node_t *sort_node = (obj_plan_tree_sort_node_t *)node;
+static obj_exec_tree_exec_state_t obj_exec_tree_sort_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out) {
+    obj_exec_tree_sort_node_t *sort_node = (obj_exec_tree_sort_node_t *)node;
     /* check memory usage */
 
     /* all works are done, return eof */
     if (node->methods->is_eof(node)) {
-        return OBJ_PLAN_TREE_STATE_EOF;
+        return OBJ_EXEC_TREE_STATE_EOF;
     }
     
     /* if not sorted yet */
     if (!sort_node->sorted) {
-        obj_plan_working_set_id_t id = OBJ_PLAN_WORKING_SET_INVALID_ID;
-        obj_plan_tree_base_node_t *child = obj_plan_tree_get_child(node);
-        obj_plan_tree_exec_state_t state = child->methods->work(child, &id);
-        if (state == OBJ_PLAN_TREE_STATE_ADVANCED) {
-            obj_plan_working_set_member_t *member = obj_plan_working_set_get(sort_node->ws, id);
-            obj_plan_tree_sort_node_data_item_t data_item;
+        obj_exec_working_set_id_t id = OBJ_EXEC_WORKING_SET_INVALID_ID;
+        obj_exec_tree_base_node_t *child = obj_plan_tree_get_child(node);
+        obj_exec_tree_exec_state_t state = child->methods->work(child, &id);
+        if (state == OBJ_EXEC_TREE_STATE_ADVANCED) {
+            obj_exec_working_set_member_t *member = obj_exec_working_set_get(sort_node->ws, id);
+            obj_exec_tree_sort_node_data_item_t data_item;
             data_item.ws_id = id;
             /* TODO set sort key */
-            data_item.sort_key = ;
+            data_item.record = member->record;
             /* set pattern */
-            data_item.pattern = sort_node->params.pattern;
+            data_item.pattern = sort_node->pattern;
             /* add to data set */
             obj_array_push_back(&sort_node->data, &data_item);
-            return OBJ_PLAN_TREE_STATE_NEED_TIME;
-        } else if (state == OBJ_PLAN_TREE_STATE_EOF) {
+            return OBJ_EXEC_TREE_STATE_NEED_TIME;
+        } else if (state == OBJ_EXEC_TREE_STATE_EOF) {
             /* child done. do the sort */
-            obj_array_sort(&sort_node->data, obj_plan_tree_sort_node_data_item_compare);
+            obj_array_sort(&sort_node->data, obj_exec_tree_sort_node_data_item_compare);
             /* set to begin */
             sort_node->curr = 0;
             sort_node->sorted = true;
-            return OBJ_PLAN_TREE_STATE_NEED_TIME;
-        } else if (state == OBJ_PLAN_TREE_STATE_INTERNAL_ERROR) {
+            return OBJ_EXEC_TREE_STATE_NEED_TIME;
+        } else if (state == OBJ_EXEC_TREE_STATE_INTERNAL_ERROR) {
             /* TODO error occurred */
         }
 
@@ -527,16 +513,21 @@ static obj_plan_tree_exec_state_t obj_plan_tree_sort_node_work(obj_plan_tree_bas
     obj_assert(sort_node->sorted);
     /* we haven't returned all results */
     obj_assert(sort_node->data.size != sort_node->curr);
-    obj_plan_tree_sort_node_data_item_t *data_item = (obj_plan_tree_sort_node_data_item_t *)obj_array_get_index(&sort_node->data, sort_node->curr);
+    obj_exec_tree_sort_node_data_item_t *data_item = (obj_exec_tree_sort_node_data_item_t *)obj_array_get_index(&sort_node->data, sort_node->curr);
     *out = data_item->ws_id;
     sort_node->curr++;
-    return OBJ_PLAN_TREE_STATE_ADVANCED;
+    return OBJ_EXEC_TREE_STATE_ADVANCED;
+}
+
+/* get type */
+static obj_exec_tree_node_type_t obj_exec_tree_sort_node_get_type() {
+    return OBJ_EXEC_TREE_NODE_TYPE_SORT;
 }
 
 /* is eof */
-static obj_bool_t obj_plan_tree_sort_node_is_eof(obj_plan_tree_base_node_t *node) {
-    obj_plan_tree_sort_node_t *sort_node = (obj_plan_tree_sort_node_t *)node;
-    obj_plan_tree_base_node_t *child = obj_plan_tree_get_child(node);
+static obj_bool_t obj_exec_tree_sort_node_is_eof(obj_exec_tree_base_node_t *node) {
+    obj_exec_tree_sort_node_t *sort_node = (obj_exec_tree_sort_node_t *)node;
+    obj_exec_tree_base_node_t *child = obj_exec_tree_get_child(node);
     /* 
      * done if:
      * 1. child has no more results 

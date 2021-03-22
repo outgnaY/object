@@ -22,6 +22,7 @@ void obj_set_destroy_static(obj_set_t *set);
 void obj_set_destroy(obj_set_t *set);
 obj_bool_t obj_set_find(obj_set_t *set, void *key);
 void obj_set_add(obj_set_t *set, void *key);
+void obj_set_delete(obj_set_t *set, void *key);
 void obj_set_delete_all(obj_set_t *set);
 
 
