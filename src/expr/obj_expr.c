@@ -386,7 +386,6 @@ static obj_bool_t obj_expr_tree_expr_match(obj_expr_base_expr_t *expr, obj_bson_
                 char *path = leaf_child->path;
                 /* get value according to path */
                 value = obj_bson_get_path(data, path);
-                printf("path = %s\n", path);
                 child_match = child->methods->match_single(child, value);
                 if (!child_match) {
                     return false;
@@ -412,11 +411,7 @@ static obj_bool_t obj_expr_tree_expr_match(obj_expr_base_expr_t *expr, obj_bson_
                 char *path = leaf_child->path;
                 /* get value according to path */
                 value = obj_bson_get_path(data, path);
-                printf("path = %s value = %d\n", path, value->value.v_int32);
                 child_match = child->methods->match_single(child, value);
-                /*
-                printf("child_match = %d\n", child_match);
-                */
                 if (child_match) {
                     return true;
                 }

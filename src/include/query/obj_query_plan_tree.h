@@ -5,6 +5,10 @@
 
 /* output by query planner, corresponding to exec tree */
 
+/* forward declaration */
+typedef struct obj_exec_working_set_s obj_exec_working_set_t;
+typedef struct obj_exec_tree_base_node_s obj_exec_tree_base_node_t;
+
 typedef enum obj_query_plan_tree_node_type obj_query_plan_tree_node_type_t;
 typedef struct obj_query_plan_tree_node_methods_s obj_query_plan_tree_node_methods_t;
 /* base node */
@@ -41,7 +45,7 @@ struct obj_query_plan_tree_node_methods_s {
 struct obj_query_plan_tree_base_node_s {
     obj_query_plan_tree_node_methods_t *methods;
     obj_array_t children;
-    obj_bson_t *filter;
+    obj_expr_base_expr_t *filter;
 };
 
 /* and node */
@@ -59,7 +63,7 @@ struct obj_query_plan_tree_collection_scan_node_s {
     obj_query_plan_tree_base_node_t base;
     /* collection scan direction */
     int direction;
-
+    obj_collection_catalog_entry_t *collection;
 };
 
 /* index scan node */
@@ -100,7 +104,7 @@ struct obj_query_plan_tree_limit_node_s {
     int limit;
 };
 
-
+obj_exec_tree_base_node_t *obj_query_plan_tree_build_exec_tree(obj_query_plan_tree_base_node_t *root, obj_standard_query_t *sq, obj_exec_working_set_t *ws);
 int obj_query_plan_tree_count_nodes(obj_query_plan_tree_base_node_t *root);
 void obj_query_plan_tree_destroy(obj_query_plan_tree_base_node_t *root);
 void obj_query_plan_tree_dump(obj_query_plan_tree_base_node_t *root, int skip);

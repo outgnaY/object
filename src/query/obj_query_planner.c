@@ -12,7 +12,7 @@ static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_sort(obj_query_p
 static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_skip(obj_query_plan_tree_base_node_t *root, int skip);
 static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_limit(obj_query_plan_tree_base_node_t *root, int limit);
 static obj_query_plan_tree_base_node_t *obj_query_plan_analyze_data_access(obj_query_request_t *qr, obj_query_plan_tree_base_node_t *root);
-static obj_query_plan_tree_base_node_t *obj_query_plan_build_collection_scan(obj_query_request_t *qr);
+static obj_query_plan_tree_base_node_t *obj_query_plan_build_collection_scan(obj_standard_query_t *sq);
 static void obj_query_planner_clean_unused_plans(obj_array_t *plans, int winner_index);
 static obj_query_plan_tree_base_node_t *obj_query_planner_pick_best_plan(obj_array_t *plans, int *winner_index);
 static void obj_query_planner_dump_relevant_indexes(obj_array_t *relevant_indexes);
@@ -103,11 +103,15 @@ static obj_query_plan_tree_base_node_t *obj_query_plan_analyze_data_access(obj_q
     return root;
 }
 
-/* TODO build collection scan */
-static obj_query_plan_tree_base_node_t *obj_query_plan_build_collection_scan(obj_query_request_t *qr) {
+/* build collection scan node */
+static obj_query_plan_tree_base_node_t *obj_query_plan_build_collection_scan(obj_standard_query_t *sq) {
     obj_query_plan_tree_collection_scan_node_t *collection_scan_node = obj_query_plan_tree_collection_scan_node_create();
     obj_query_plan_tree_base_node_t *root = NULL;
-    root = obj_query_plan_analyze_data_access(qr, (obj_query_plan_tree_base_node_t *)collection_scan_node);
+    collection_scan_node->direction = 1;
+    collection_scan_node->base.filter = sq->root;
+    /* TODO find collection */
+    /* collection_scan_node->collection */
+    root = obj_query_plan_analyze_data_access(sq->qr, (obj_query_plan_tree_base_node_t *)collection_scan_node);
     return root;
 }
 
@@ -168,7 +172,7 @@ obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_array_t *
      */
     if (plans.size == 0) {
         obj_query_plan_tree_base_node_t *root = NULL;
-        root = obj_query_plan_build_collection_scan(sq->qr);
+        root = obj_query_plan_build_collection_scan(sq);
         obj_array_push_back(&plans, &root);
     }
     int winner_index;
@@ -216,8 +220,6 @@ static obj_query_plan_tree_base_node_t *obj_query_planner_pick_best_plan(obj_arr
     *winner_index = min_node_index;
     return winner;
 }
-
-
 
 
 /* for debug */

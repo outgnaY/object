@@ -16,7 +16,7 @@ typedef struct obj_record_store_iterator_s obj_record_store_iterator_t;
 struct obj_record_s {
     OBJ_EMBEDDED_LIST_NODE_T(obj_record_t) list;
     /* data */
-    obj_bson_t bson;
+    obj_bson_t *bson;
 };
 
 /* store current iterators */
@@ -48,6 +48,7 @@ obj_record_store_t *obj_record_store_create();
 void obj_record_store_init(obj_record_store_t *record_store);
 void obj_record_store_destroy(obj_record_store_t *record_store);
 int obj_record_store_num_records(obj_record_store_t *record_store);
+void obj_record_store_add(obj_record_store_t *record_store, obj_bson_t *bson);
 int obj_record_store_iterator_num(obj_record_store_t *record_store);
 
 /* record store iterator methods */

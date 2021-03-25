@@ -148,4 +148,15 @@ struct obj_exec_tree_eof_node_s {
     obj_exec_tree_base_node_t base;
 };
 
+
+obj_exec_tree_and_node_t *obj_exec_tree_and_node_create(obj_exec_working_set_t *ws);
+obj_exec_tree_or_node_t *obj_exec_tree_or_node_create(obj_exec_working_set_t *ws);
+obj_exec_tree_collection_scan_node_t *obj_exec_tree_collection_scan_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter, int direction, obj_collection_catalog_entry_t *collection);
+
+obj_exec_tree_projection_node_t *obj_exec_tree_projection_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, obj_bson_t *projection);
+obj_exec_tree_skip_node_t *obj_exec_tree_skip_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, int skip);
+obj_exec_tree_limit_node_t *obj_exec_tree_limit_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, int limit);
+obj_exec_tree_eof_node_t *obj_exec_tree_eof_node_create();
+
+
 #endif  /* OBJ_EXEC_TREE_H */

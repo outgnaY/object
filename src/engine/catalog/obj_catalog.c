@@ -1,6 +1,26 @@
 #include "obj_core.h"
 
 
+static obj_uint64_t obj_db_catalog_entry_map_hash_func(void *key);
+static int obj_db_catalog_entry_map_key_compare(void *key1, void *key2);
+static void obj_db_catalog_entry_map_key_free(void *data);
+static void obj_db_catalog_entry_map_value_free(void *data);
+static void *obj_db_catalog_entry_map_key_get(void *data);
+static void *obj_db_catalog_entry_map_value_get(void *data);
+static void obj_db_catalog_entry_map_key_set(void *data, void *key);
+static void obj_db_catalog_entry_map_value_set(void *data, void *value);
+
+
+static obj_uint64_t obj_collection_catalog_entry_map_hash_func(void *key);
+static int obj_collection_catalog_entry_map_key_compare(void *key1, void *key2);
+static void obj_collection_catalog_entry_map_key_free(void *data);
+static void obj_collection_catalog_entry_map_value_free(void *data);
+static void *obj_collection_catalog_entry_map_key_get(void *data);
+static void *obj_collection_catalog_entry_map_value_get(void *data);
+static void obj_collection_catalog_entry_map_key_set(void *data, void *key);
+static void obj_collection_catalog_entry_map_value_set(void *data, void *value);
+
+
 /* database catalog entry map methods */
 obj_prealloc_map_methods_t db_catalog_entry_map_methods = {
     obj_db_catalog_entry_map_hash_func,
@@ -56,8 +76,6 @@ static void obj_db_catalog_entry_map_value_set(void *data, void *value) {
     obj_db_catalog_entry_pair_t *pair = (obj_db_catalog_entry_pair_t *)data;
     obj_memcpy(&pair->entry, value, sizeof(obj_db_catalog_entry_t *));
 }
-
-
 
 
 /* collection catalog entry map methods */

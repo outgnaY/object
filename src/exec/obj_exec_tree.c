@@ -1,5 +1,61 @@
 #include "obj_core.h"
 
+
+static obj_uint64_t obj_record_set_hash_func(void *key);
+static int obj_record_set_key_compare(void *key1, void *key2);
+static void *obj_record_set_key_get(void *data);
+static void obj_record_set_key_set(void *data, void *key);
+
+static obj_uint64_t obj_record_wsid_map_hash_func(void *key);
+static int obj_record_wsid_map_key_compare(void *key1, void *key2);
+static void *obj_record_wsid_map_key_get(void *data);
+static void *obj_record_wsid_map_value_get(void *data);
+static void obj_record_wsid_map_key_set(void *data, void *key);
+static void obj_record_wsid_map_value_set(void *data, void *value);
+
+
+static void obj_exec_tree_init_base(obj_exec_tree_base_node_t *base, obj_exec_tree_node_methods_t *methods);
+static obj_exec_tree_base_node_t *obj_exec_tree_get_child(obj_exec_tree_base_node_t *node);
+
+/* and node */
+static obj_exec_tree_exec_state_t obj_exec_tree_and_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_exec_state_t obj_exec_tree_and_node_read_first_child(obj_exec_tree_and_node_t *and_node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_exec_state_t obj_exec_tree_and_node_hash_other_children(obj_exec_tree_and_node_t *and_node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_exec_state_t obj_exec_tree_and_node_work_child(obj_exec_tree_and_node_t *and_node, int child_index, obj_exec_working_set_id_t *out);
+static obj_exec_tree_node_type_t obj_exec_tree_and_node_get_type();
+static obj_bool_t obj_exec_tree_and_node_is_eof(obj_exec_tree_base_node_t *node);
+
+/* or node */
+static obj_exec_tree_exec_state_t obj_exec_tree_or_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_node_type_t obj_exec_tree_or_node_get_type();
+static obj_bool_t obj_exec_tree_or_node_is_eof(obj_exec_tree_base_node_t *node);
+
+/* collection scan node */
+static obj_exec_tree_exec_state_t obj_exec_tree_collection_scan_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_node_type_t obj_exec_tree_collection_scan_node_get_type();
+static obj_exec_tree_exec_state_t obj_exec_tree_collection_scan_node_return_if_matches(obj_exec_tree_collection_scan_node_t *collection_scan_node, obj_exec_working_set_member_t *member, obj_exec_working_set_t *ws, obj_exec_working_set_id_t id, obj_exec_working_set_id_t *out);
+static obj_bool_t obj_exec_tree_collection_scan_node_is_eof(obj_exec_tree_base_node_t *node);
+
+/* projection node */
+static obj_exec_tree_exec_state_t obj_exec_tree_projection_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_node_type_t obj_exec_tree_projection_node_get_type();
+static obj_bool_t obj_exec_tree_projection_node_is_eof(obj_exec_tree_base_node_t *node);
+
+/* skip node */
+static obj_exec_tree_exec_state_t obj_exec_tree_skip_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_node_type_t obj_exec_tree_skip_node_get_type();
+static obj_bool_t obj_exec_tree_skip_node_is_eof(obj_exec_tree_base_node_t *node);
+
+/* limit node */
+static obj_exec_tree_exec_state_t obj_exec_tree_limit_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_node_type_t obj_exec_tree_limit_node_get_type();
+static obj_bool_t obj_exec_tree_limit_node_is_eof(obj_exec_tree_base_node_t *node);
+
+/* eof node */
+static obj_exec_tree_exec_state_t obj_exec_tree_eof_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out);
+static obj_exec_tree_node_type_t obj_exec_tree_eof_node_get_type();
+static obj_bool_t obj_exec_tree_eof_node_is_eof(obj_exec_tree_base_node_t *node);
+
 /* execute query plan tree */
 
 /* record set methods, for or node */
@@ -137,7 +193,7 @@ obj_exec_tree_and_node_t *obj_exec_tree_and_node_create(obj_exec_working_set_t *
 }
 
 /* and node work() */
-obj_exec_tree_exec_state_t obj_exec_tree_and_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out) {
+static obj_exec_tree_exec_state_t obj_exec_tree_and_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out) {
     obj_exec_tree_and_node_t *and_node = (obj_exec_tree_and_node_t *)node;
     if (node->methods->is_eof(node)) {
         return OBJ_EXEC_TREE_STATE_EOF;
@@ -287,19 +343,19 @@ static obj_exec_tree_exec_state_t obj_exec_tree_and_node_work_child(obj_exec_tre
         obj_array_set_index(&and_node->look_ahead_results, child_index, &invalid_id);
         return OBJ_EXEC_TREE_STATE_ADVANCED;
     } else {
-        obj_exec_tree_base_node_t *child = obj_array_get_index_value(&and_node->base.children, child_index, uintptr_t);
+        obj_exec_tree_base_node_t *child = (obj_exec_tree_base_node_t *)obj_array_get_index_value(&and_node->base.children, child_index, uintptr_t);
         return child->methods->work(child, out);
     }
 }
 
 /* get type */
-obj_exec_tree_node_type_t obj_exec_tree_and_node_get_type() {
+static obj_exec_tree_node_type_t obj_exec_tree_and_node_get_type() {
     return OBJ_EXEC_TREE_NODE_TYPE_AND;
 }
 
 
 /* is eof */
-obj_bool_t obj_exec_tree_and_node_is_eof(obj_exec_tree_base_node_t *node) {
+static obj_bool_t obj_exec_tree_and_node_is_eof(obj_exec_tree_base_node_t *node) {
     obj_exec_tree_and_node_t *and_node = (obj_exec_tree_and_node_t *)node;
     if (and_node->look_ahead_results.size == 0) {
         return false;
@@ -313,7 +369,7 @@ obj_bool_t obj_exec_tree_and_node_is_eof(obj_exec_tree_base_node_t *node) {
     /* we are done when the last child is done */
     obj_exec_working_set_id_t last_child_id = obj_array_get_index_value(&and_node->look_ahead_results, node->children.size - 1, obj_exec_working_set_id_t);
     obj_exec_tree_base_node_t *last_child = (obj_exec_tree_base_node_t *)obj_array_get_index_value(&node->children, node->children.size - 1, uintptr_t);
-    return last_child == OBJ_EXEC_WORKING_SET_INVALID_ID && last_child->methods->is_eof(last_child);
+    return last_child_id == OBJ_EXEC_WORKING_SET_INVALID_ID && last_child->methods->is_eof(last_child);
 }
 
 
@@ -339,7 +395,7 @@ obj_exec_tree_or_node_t *obj_exec_tree_or_node_create(obj_exec_working_set_t *ws
 
 
 /* or node work() */
-obj_exec_tree_exec_state_t obj_exec_tree_or_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out) {
+static obj_exec_tree_exec_state_t obj_exec_tree_or_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out) {
     if (node->methods->is_eof(node)) {
         return OBJ_EXEC_TREE_STATE_EOF;
     }
@@ -373,13 +429,13 @@ obj_exec_tree_exec_state_t obj_exec_tree_or_node_work(obj_exec_tree_base_node_t 
 }
 
 /* get type */
-obj_exec_tree_node_type_t obj_exec_tree_or_node_get_type() {
+static obj_exec_tree_node_type_t obj_exec_tree_or_node_get_type() {
     return OBJ_EXEC_TREE_NODE_TYPE_OR;
 }
 
 
 /* is eof */
-obj_bool_t obj_exec_tree_or_node_is_eof(obj_exec_tree_base_node_t *node) {
+static obj_bool_t obj_exec_tree_or_node_is_eof(obj_exec_tree_base_node_t *node) {
     obj_exec_tree_or_node_t *or_node = (obj_exec_tree_or_node_t *)node;
     /* if we are still working on one child */
     return or_node->current_child >= node->children.size;
@@ -423,15 +479,15 @@ static obj_exec_tree_exec_state_t obj_exec_tree_collection_scan_node_work(obj_ex
     obj_exec_working_set_id_t id = obj_exec_working_set_allocate(collection_scan_node->ws);
     obj_exec_working_set_member_t *member = obj_exec_working_set_get(collection_scan_node->ws, id);
     member->record = record;
-    return obj_exec_tree_collection_scan_node_return_if_matches(collection_scan_node->ws, member, id, out);
+    return obj_exec_tree_collection_scan_node_return_if_matches(collection_scan_node, member, collection_scan_node->ws, id, out);
 }
 
 static obj_exec_tree_node_type_t obj_exec_tree_collection_scan_node_get_type() {
     return OBJ_EXEC_TREE_NODE_TYPE_COLLECTION_SCAN;
 }
 
-static obj_exec_tree_exec_state_t obj_exec_tree_collection_scan_node_return_if_matches(obj_exec_working_set_t *ws, obj_exec_working_set_member_t *member, obj_exec_working_set_id_t id, obj_exec_working_set_id_t *out) {
-    if () {
+static obj_exec_tree_exec_state_t obj_exec_tree_collection_scan_node_return_if_matches(obj_exec_tree_collection_scan_node_t *collection_scan_node, obj_exec_working_set_member_t *member, obj_exec_working_set_t *ws, obj_exec_working_set_id_t id, obj_exec_working_set_id_t *out) {
+    if (collection_scan_node->filter->methods->match(collection_scan_node->filter, member->record->bson)) {
         *out = id;
         return OBJ_EXEC_TREE_STATE_ADVANCED;
     }else {
@@ -447,7 +503,7 @@ static obj_bool_t obj_exec_tree_collection_scan_node_is_eof(obj_exec_tree_base_n
 }
 
 /* ********** index scan node ********** */
-
+/*
 obj_plan_tree_index_scan_node_t *obj_plan_tree_index_scan_node_create() {
     obj_plan_tree_index_scan_node_t *node = (obj_plan_tree_index_scan_node_t *)obj_alloc(sizeof(obj_plan_tree_index_scan_node_t));
     if (node == NULL) {
@@ -456,32 +512,35 @@ obj_plan_tree_index_scan_node_t *obj_plan_tree_index_scan_node_create() {
 
     return node;
 }
-
+*/
 /* get type */
+/*
 static obj_plan_tree_node_type_t obj_plan_tree_index_scan_get_type() {
     return OBJ_PLAN_TREE_NODE_TYPE_INDEX_SCAN;
 }
-
+*/
 /* index scan node work() */
+/*
 static obj_plan_tree_exec_state_t obj_plan_tree_index_scan_node_work(obj_plan_working_set_id_t *out) {
 
 }
-
+*/
 /* is eof */
+/*
 static obj_bool_t obj_plan_tree_index_scan_node_is_eof(obj_plan_tree_base_node_t *node) {
     obj_plan_tree_index_scan_node_t *index_scan_node = (obj_plan_tree_index_scan_node_t *)node;
 }
-
+*/
 /* ********** sort node ********** */
 
 static obj_exec_tree_node_methods_t obj_exec_tree_sort_node_methods = {
 
 };
 
+
 obj_exec_tree_sort_node_t *obj_exec_tree_sort_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, obj_bson_t *pattern) {
     obj_exec_tree_sort_node_t *sort_node = obj_alloc(sizeof(obj_exec_tree_sort_node_t));
     obj_exec_tree_init_base((obj_exec_tree_base_node_t *)sort_node, &obj_exec_tree_sort_node_methods);
-    /* add child */
     obj_array_push_back(&sort_node->base.children, &child);
     sort_node->ws = ws;
     sort_node->pattern = pattern;
@@ -496,9 +555,10 @@ obj_exec_tree_sort_node_t *obj_exec_tree_sort_node_create(obj_exec_working_set_t
 static int obj_exec_tree_sort_node_data_item_compare(const void *data_item1, const void *data_item2) {
     obj_exec_tree_sort_node_data_item_t *sort_node_data_item1 = (obj_exec_tree_sort_node_data_item_t *)data_item1;
     obj_exec_tree_sort_node_data_item_t *sort_node_data_item2 = (obj_exec_tree_sort_node_data_item_t *)data_item2;
-    /* TODO optimize */
     
+    /*
     return obj_bson_compare(sort_node_data_item1->sort_key, sort_node_data_item2->sort_key, sort_node_data_item1->pattern);
+    */
 }
 
 /* sort node work() */
@@ -514,7 +574,7 @@ static obj_exec_tree_exec_state_t obj_exec_tree_sort_node_work(obj_exec_tree_bas
     /* if not sorted yet */
     if (!sort_node->sorted) {
         obj_exec_working_set_id_t id = OBJ_EXEC_WORKING_SET_INVALID_ID;
-        obj_exec_tree_base_node_t *child = obj_plan_tree_get_child(node);
+        obj_exec_tree_base_node_t *child = obj_exec_tree_get_child(node);
         obj_exec_tree_exec_state_t state = child->methods->work(child, &id);
         if (state == OBJ_EXEC_TREE_STATE_ADVANCED) {
             obj_exec_working_set_member_t *member = obj_exec_working_set_get(sort_node->ws, id);
@@ -665,7 +725,7 @@ static obj_exec_tree_node_type_t obj_exec_tree_skip_node_get_type() {
 /* is eof */
 static obj_bool_t obj_exec_tree_skip_node_is_eof(obj_exec_tree_base_node_t *node) {
     obj_exec_tree_skip_node_t *skip_node = (obj_exec_tree_skip_node_t *)node;
-    obj_exec_tree_base_node_t *child = obj_plan_tree_get_child(node);
+    obj_exec_tree_base_node_t *child = obj_exec_tree_get_child(node);
     return child->methods->is_eof(child);
 }
 

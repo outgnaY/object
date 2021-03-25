@@ -1,5 +1,29 @@
 #include "obj_core.h"
 
+static obj_uint64_t obj_record_iter_set_hash_func(void *key);
+static int obj_record_iter_set_key_compare(void *key1, void *key2);
+static void obj_record_iter_set_key_free(void *data);
+static void *obj_record_iter_set_key_get(void *data);
+static void obj_record_iter_set_key_set(void *data, void *key);
+
+
+static obj_record_t *obj_record_store_get_first_record(obj_record_store_t *record_store);
+static obj_record_t *obj_record_store_get_last_record(obj_record_store_t *record_store);
+static obj_record_t *obj_record_store_get_next_record(obj_record_t *record);
+static obj_record_t *obj_record_store_get_prev_record(obj_record_t *record);
+static void obj_record_store_add_record(obj_record_store_t *record_store, obj_record_t *record);
+static void obj_record_store_remove_record(obj_record_store_t *record_store, obj_record_t *record);
+static void obj_record_store_record_destroy(obj_record_t *record);
+
+static void obj_record_store_iterator_advance(obj_record_store_iterator_t *iter);
+static obj_bool_t obj_record_store_iterator_is_eof(obj_record_store_iterator_t *iter);
+
+static void obj_record_store_iterator_set_init(obj_record_store_iterator_set_t *iter_set);
+static void obj_record_store_iterator_set_register(obj_record_store_iterator_set_t *iter_set, obj_record_store_iterator_t *iter);
+static void obj_record_store_iterator_set_unregister(obj_record_store_iterator_set_t *iter_set, obj_record_store_iterator_t *iter);
+
+
+
 /* record itertor set */
 static obj_prealloc_map_methods_t record_iter_set_methods = {
     obj_record_iter_set_hash_func,
@@ -111,8 +135,15 @@ static void obj_record_store_remove_record(obj_record_store_t *record_store, obj
     obj_record_store_record_destroy(record);
 }
 
+void obj_record_store_add(obj_record_store_t *record_store, obj_bson_t *bson) {
+    obj_record_t *record = obj_alloc(sizeof(obj_record_t));
+    record->bson = bson;
+    obj_record_store_add_record(record_store, record);
+}
+
+
 static inline void obj_record_store_record_destroy(obj_record_t *record) {
-    obj_bson_destroy(&record->bson);
+    obj_bson_destroy(record->bson);
     obj_free(record);
 }
 
@@ -187,9 +218,9 @@ static void obj_record_store_iterator_set_init(obj_record_store_iterator_set_t *
 }
 
 static void obj_record_store_iterator_set_register(obj_record_store_iterator_set_t *iter_set, obj_record_store_iterator_t *iter) {
-    obj_set_add(iter_set, &iter);
+    obj_set_add(&iter_set->iters, &iter);
 }
 
 static void obj_record_store_iterator_set_unregister(obj_record_store_iterator_set_t *iter_set, obj_record_store_iterator_t *iter) {
-    obj_set_delete(iter_set, &iter);
+    obj_set_delete(&iter_set->iters, &iter);
 }

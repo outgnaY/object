@@ -65,7 +65,9 @@ void obj_exec_working_set_free(obj_exec_working_set_t *working_set, obj_exec_wor
     obj_assert(id < working_set->data.size);
     obj_assert(id == holder->next_free_or_self);
     /* clear resources */
+    /*
     obj_exec_working_set_member_clear(holder->member);
+    */
     /* insert into freelist */
     holder->next_free_or_self = working_set->freelist;
     working_set->freelist = id;
