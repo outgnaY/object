@@ -34,6 +34,10 @@ struct obj_expr_methods_s {
     void (*destroy)(obj_expr_base_expr_t *expr);
     /* path */
     char *(*get_path)(obj_expr_base_expr_t *expr);
+    /* match */
+    obj_bool_t (*match)(obj_expr_base_expr_t *expr, obj_bson_t *data);
+    /* match single */
+    obj_bool_t (*match_single)(obj_expr_base_expr_t *expr, obj_bson_value_t *value);
 };
 
 enum obj_expr_tag_type {

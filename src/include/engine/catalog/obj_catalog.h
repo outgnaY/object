@@ -7,6 +7,8 @@ typedef struct obj_db_catalog_entry_pair_s obj_db_catalog_entry_pair_t;
 typedef struct obj_collection_catalog_entry_pair_s obj_collection_catalog_entry_pair_t;
 typedef struct obj_db_catalog_entry_s obj_db_catalog_entry_t;
 typedef struct obj_collection_catalog_entry_s obj_collection_catalog_entry_t;
+typedef struct obj_index_catalog_entry_s obj_index_catalog_entry_t;
+typedef struct obj_index_catalog_s obj_index_catalog_t;
 
 
 struct obj_db_catalog_entry_pair_s {
@@ -28,6 +30,18 @@ struct obj_db_catalog_entry_s {
 struct obj_collection_catalog_entry_s {
     /* record store */
     obj_record_store_t *record_store;
+    /* object prototype */
+    obj_bson_t *prototype;
+};
+
+/* an index */
+struct obj_index_catalog_entry_s {
+
+};
+
+/* indexes */
+struct obj_index_catalog_s {
+
 };
 
 

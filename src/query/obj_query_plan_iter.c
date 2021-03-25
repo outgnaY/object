@@ -164,7 +164,7 @@ void obj_query_plan_iter_destroy_static(obj_query_plan_iter_t *pi) {
 }
 
 static void obj_query_plan_iter_node_destroy(void *ptr) {
-    obj_query_plan_iter_base_node_t *base_node = (obj_query_plan_iter_base_node_t *)ptr;
+    obj_query_plan_iter_base_node_t *base_node = *(obj_query_plan_iter_base_node_t **)ptr;
     if (base_node->node_type == OBJ_QUERY_PLAN_TREE_NODE_TYPE_AND) {
         obj_array_destroy_static(&base_node->and_node.choices);
         obj_free(base_node);

@@ -41,6 +41,7 @@ static void obj_query_plan_tree_limit_node_dump(obj_query_plan_tree_base_node_t 
 
 /* build execution tree from query plan tree */
 /* TODO collection */
+/*
 obj_exec_tree_base_node_t *obj_query_plan_tree_build_exec_tree(obj_query_plan_tree_base_node_t *root, obj_standard_query_t *sq, obj_exec_working_set_t *ws) {
     switch (root->methods->get_type()) {
         case OBJ_QUERY_PLAN_TREE_NODE_TYPE_AND: {
@@ -96,7 +97,7 @@ obj_exec_tree_base_node_t *obj_query_plan_tree_build_exec_tree(obj_query_plan_tr
             obj_assert(0);
     }
 }
-
+*/
 /* count nodes */
 int obj_query_plan_tree_count_nodes(obj_query_plan_tree_base_node_t *root) {
     int count = 1;

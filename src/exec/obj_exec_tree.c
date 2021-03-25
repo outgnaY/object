@@ -388,31 +388,62 @@ obj_bool_t obj_exec_tree_or_node_is_eof(obj_exec_tree_base_node_t *node) {
 
 /* ********** collection scan node ********** */
 
-obj_plan_tree_collection_scan_node_t *obj_plan_tree_collection_scan_node_create(obj_plan_tree_collection_scan_params_t params, obj_plan_working_set_t *ws, obj_expr_base_t *filter) {
-    obj_plan_tree_collection_scan_node_t *node = (obj_plan_tree_collection_scan_node_t *)obj_alloc(sizeof(obj_plan_tree_collection_scan_node_t));
-    if (node == NULL) {
-        return NULL;
-    }
-    
-    node->params = params;
-    node->ws = ws;
-    node->filter = filter;
-    return node;
+static obj_exec_tree_node_methods_t obj_exec_tree_collection_scan_node_methods = {
+    obj_exec_tree_collection_scan_node_work,
+    obj_exec_tree_collection_scan_node_get_type,
+    obj_exec_tree_collection_scan_node_is_eof
+};
+
+obj_exec_tree_collection_scan_node_t *obj_exec_tree_collection_scan_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter, int direction, obj_collection_catalog_entry_t *collection) {
+    obj_exec_tree_collection_scan_node_t *collection_scan_node = obj_alloc(sizeof(obj_exec_tree_collection_scan_node_t));
+    obj_exec_tree_init_base((obj_exec_tree_base_node_t *)collection_scan_node, &obj_exec_tree_collection_scan_node_methods);
+    collection_scan_node->direction = direction;
+    collection_scan_node->ws = ws;
+    collection_scan_node->filter = filter;
+    collection_scan_node->collection = collection;
+    collection_scan_node->iter = NULL;
+    collection_scan_node->end = false;
+    return collection_scan_node;
 }
 
-/* get type */
-static obj_plan_tree_node_type_t obj_plan_tree_collection_scan_node_get_type() {
-    return OBJ_PLAN_TREE_NODE_TYPE_COLLECTION_SCAN;
-}
 
 /* collection scan node work() */
-static obj_plan_tree_exec_state_t obj_plan_tree_collection_scan_node_work(obj_plan_working_set_id_t *out) {
+static obj_exec_tree_exec_state_t obj_exec_tree_collection_scan_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out) {
+    obj_exec_tree_collection_scan_node_t *collection_scan_node = (obj_exec_tree_collection_scan_node_t *)node;
+    obj_record_t *record;
+    if (collection_scan_node->iter == NULL) {
+        collection_scan_node->iter = obj_record_store_iterator_create(collection_scan_node->collection->record_store, collection_scan_node->direction);
+        return OBJ_EXEC_TREE_STATE_NEED_TIME;
+    }
+    record = obj_record_store_iterator_next(collection_scan_node->iter);
+    if (record == NULL) {
+        collection_scan_node->end = true;
+        return OBJ_EXEC_TREE_STATE_EOF;
+    }
+    obj_exec_working_set_id_t id = obj_exec_working_set_allocate(collection_scan_node->ws);
+    obj_exec_working_set_member_t *member = obj_exec_working_set_get(collection_scan_node->ws, id);
+    member->record = record;
+    return obj_exec_tree_collection_scan_node_return_if_matches(collection_scan_node->ws, member, id, out);
+}
 
+static obj_exec_tree_node_type_t obj_exec_tree_collection_scan_node_get_type() {
+    return OBJ_EXEC_TREE_NODE_TYPE_COLLECTION_SCAN;
+}
+
+static obj_exec_tree_exec_state_t obj_exec_tree_collection_scan_node_return_if_matches(obj_exec_working_set_t *ws, obj_exec_working_set_member_t *member, obj_exec_working_set_id_t id, obj_exec_working_set_id_t *out) {
+    if () {
+        *out = id;
+        return OBJ_EXEC_TREE_STATE_ADVANCED;
+    }else {
+        obj_exec_working_set_free(ws, id);
+        return OBJ_EXEC_TREE_STATE_NEED_TIME;
+    }
 }
 
 /* is eof */
-static obj_bool_t obj_plan_tree_collection_scan_node_is_eof(obj_plan_tree_base_node_t *node) {
-    obj_plan_tree_collection_scan_node_t *collection_scan_node = (obj_plan_tree_collection_scan_node_t *)node;
+static obj_bool_t obj_exec_tree_collection_scan_node_is_eof(obj_exec_tree_base_node_t *node) {
+    obj_exec_tree_collection_scan_node_t *collection_scan_node = (obj_exec_tree_collection_scan_node_t *)node;
+    return collection_scan_node->end == true;
 }
 
 /* ********** index scan node ********** */

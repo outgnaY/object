@@ -15,7 +15,7 @@ typedef struct obj_exec_working_set_member_holder_s obj_exec_working_set_member_
 struct obj_exec_working_set_s {
     /* freelist */
     obj_exec_working_set_id_t freelist;
-    /* current active */
+    /* current active [member_holder] */
     obj_array_t data;
 };
 
@@ -26,10 +26,6 @@ struct obj_exec_working_set_member_holder_s {
     obj_exec_working_set_member_t *member;
 };
 
-enum obj_exec_working_set_member_state {
-    OBJ_EXEC_WORKING_SET_MEMBER_STATE_INVALID,
-
-};
 
 /* member of working set */
 struct obj_exec_working_set_member_s {
@@ -38,5 +34,14 @@ struct obj_exec_working_set_member_s {
 };
 
 #define OBJ_EXEC_WORKING_SET_INVALID_ID -1
+
+obj_exec_working_set_t *obj_exec_working_set_create();
+void obj_exec_working_set_destroy(obj_exec_working_set_t *working_set);
+void obj_exec_working_set_clear(obj_exec_working_set_t *working_set);
+obj_exec_working_set_id_t obj_exec_working_set_allocate(obj_exec_working_set_t *working_set);
+obj_exec_working_set_member_t *obj_exec_working_set_get(obj_exec_working_set_t *working_set, obj_exec_working_set_id_t id);
+void obj_exec_working_set_free(obj_exec_working_set_t *working_set, obj_exec_working_set_id_t id);
+
+
 
 #endif  /* OBJ_EXEC_WORKING_SET_H */

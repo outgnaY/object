@@ -6,6 +6,12 @@
         "type_traits": "cpp",
         "unordered_map": "c",
         "array": "c",
-        "string": "c"
+        "string": "c",
+        "deque": "c",
+        "vector": "c",
+        "initializer_list": "c",
+        "functional": "c",
+        "tuple": "c",
+        "utility": "c"
     }
 }

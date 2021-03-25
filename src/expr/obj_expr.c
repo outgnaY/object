@@ -8,12 +8,17 @@ static int obj_expr_tag_compare(const void *a, const void *b);
 static int obj_expr_compare_expr_num_child(obj_expr_base_expr_t *expr);
 static void obj_expr_compare_expr_destroy(obj_expr_base_expr_t *expr);
 static char *obj_expr_compare_expr_get_path(obj_expr_base_expr_t *expr);
+static obj_bool_t obj_expr_compare_expr_match(obj_expr_base_expr_t *expr, obj_bson_t *bson);
+static obj_bool_t obj_expr_compare_expr_match_single(obj_expr_base_expr_t *expr, obj_bson_value_t *value);
+
 /* tree expression */
 static int obj_expr_tree_expr_num_child(obj_expr_base_expr_t *expr);
 static obj_expr_base_expr_t *obj_expr_tree_expr_get_child(obj_expr_base_expr_t *expr, int i);
 static void obj_expr_tree_expr_free_child(void *ptr);
 static void obj_expr_tree_expr_destroy(obj_expr_base_expr_t *expr);
 static char *obj_expr_tree_expr_get_path(obj_expr_base_expr_t *expr);
+static obj_bool_t obj_expr_tree_expr_match(obj_expr_base_expr_t *expr, obj_bson_t *data);
+static obj_bool_t obj_expr_tree_expr_match_single(obj_expr_base_expr_t *expr, obj_bson_value_t *value);
 
 
 /* debug methods */
@@ -38,6 +43,62 @@ static char *obj_expr_type_str_map[] = {
     "!!",       /* NOR */
     "!="        /* NEQ */
 };
+
+/* compare values, for filter */
+static int obj_expr_compare_value(obj_bson_value_t *value1, obj_bson_value_t *value2) {
+    obj_bson_type_t type1 = value1->type;
+    obj_bson_type_t type2 = value2->type;
+    obj_assert(type1 == type2);
+    switch (type1) {
+        case OBJ_BSON_TYPE_DOUBLE:
+            if (value1->value.v_double < value2->value.v_double) {
+                return -1;
+            } else if (value1->value.v_double != value2->value.v_double) {
+                return 1;
+            } 
+            return 0;
+        case OBJ_BSON_TYPE_UTF8: {
+            int common, len1, len2;
+            len1 = value1->value.v_utf8.len;
+            len2 = value2->value.v_utf8.len;
+            common = (len1 < len2 ? len1 : len2);
+            int res = obj_memcmp(value1->value.v_utf8.str, value2->value.v_utf8.str, common);
+            if (res) {
+                return res;
+            }
+            return len1 - len2;
+        }
+        case OBJ_BSON_TYPE_BINARY: {
+            int common, len1, len2;
+            len1 = value1->value.v_binary.len;
+            len2 = value2->value.v_binary.len;
+            common = (len1 < len2 ? len1 : len2);
+            int res = obj_memcmp(value1->value.v_binary.data, value2->value.v_binary.data, common);
+            if (res) {
+                return res;
+            }
+            return len1 - len2;
+        }
+        case OBJ_BSON_TYPE_INT32:
+            if (value1->value.v_int32 < value2->value.v_int32) {
+                return -1;
+            } else if (value1->value.v_int32 != value2->value.v_int32) {
+                return 1;
+            } 
+            return 0;
+        case OBJ_BSON_TYPE_INT64:
+            if (value1->value.v_int64 < value2->value.v_int64) {
+                return -1;
+            } else if (value1->value.v_int64 != value2->value.v_int64) {
+                return 1;
+            }
+            return 0;
+        default:
+            obj_assert(0);
+            obj_assert(NULL);
+    }
+
+}
 
 
 
@@ -172,7 +233,9 @@ static obj_expr_methods_t compare_expr_methods = {
     obj_expr_compare_expr_num_child,
     NULL,
     obj_expr_compare_expr_destroy,
-    obj_expr_compare_expr_get_path
+    obj_expr_compare_expr_get_path,
+    obj_expr_compare_expr_match,
+    obj_expr_compare_expr_match_single
 };
 
 static int obj_expr_compare_expr_num_child(obj_expr_base_expr_t *expr) {
@@ -205,13 +268,43 @@ static char *obj_expr_compare_expr_get_path(obj_expr_base_expr_t *expr) {
     return compare_expr->path;
 }
 
+static obj_bool_t obj_expr_compare_expr_match(obj_expr_base_expr_t *expr, obj_bson_t *bson) {
+    /* can't reach here */
+    obj_assert(0);
+    return false;
+}
+
+static obj_bool_t obj_expr_compare_expr_match_single(obj_expr_base_expr_t *expr, obj_bson_value_t *value) {
+    obj_expr_compare_expr_t *compare_expr = (obj_expr_compare_expr_t *)expr;
+    obj_assert(compare_expr->value.type == value->type);
+    int res = obj_expr_compare_value(value, &compare_expr->value);
+    /* printf("%d %d res = %d\n", value->value.v_int32, compare_expr->value.value.v_int32, res); */
+    switch (expr->type) {
+        case OBJ_EXPR_TYPE_EQ:
+            return res == 0;
+        case OBJ_EXPR_TYPE_GT:
+            return res > 0;
+        case OBJ_EXPR_TYPE_GTE:
+            return res >= 0;
+        case OBJ_EXPR_TYPE_LT:
+            return res < 0;
+        case OBJ_EXPR_TYPE_LTE:
+            return res <= 0;
+        default:
+            obj_assert(0);
+            break;
+    }
+}
+
 /* ********** tree expression ********** */
 
 static obj_expr_methods_t tree_expr_methods = {
     obj_expr_tree_expr_num_child,
     obj_expr_tree_expr_get_child,
     obj_expr_tree_expr_destroy,
-    obj_expr_tree_expr_get_path
+    obj_expr_tree_expr_get_path,
+    obj_expr_tree_expr_match,
+    obj_expr_tree_expr_match_single
 };
 
 static int obj_expr_tree_expr_num_child(obj_expr_base_expr_t *expr) {
@@ -263,6 +356,80 @@ void obj_expr_tree_expr_add_child(obj_expr_base_expr_t *expr, obj_expr_base_expr
 
 static char *obj_expr_tree_expr_get_path(obj_expr_base_expr_t *expr) {
     return NULL;
+}
+
+/* consider: {"$and": [{"a.b", 1}, {"c.d": {"$lt": 7}}]} */
+static obj_bool_t obj_expr_tree_expr_match(obj_expr_base_expr_t *expr, obj_bson_t *data) {
+    obj_expr_type_t expr_type = expr->type;
+    int i;
+    obj_expr_base_expr_t *child = NULL;
+    obj_bool_t child_match = false;
+    obj_bson_iter_t iter;
+    char *key;
+    obj_bson_value_t *value;
+    obj_bson_type_t bson_type;
+    if (expr_type == OBJ_EXPR_TYPE_AND) {
+        /* AND */
+        for (i = 0; i < expr->methods->num_child(expr); i++) {
+            child = expr->methods->get_child(expr, i);
+            /* all children must match */
+            if (child->type >= OBJ_EXPR_TYPE_AND && child->type <= OBJ_EXPR_TYPE_OR) {
+                /* tree expr */
+                child_match = child->methods->match(child, data);
+                if (!child_match) {
+                    return false;
+                }
+            } else {
+                /* leaf expr */
+                obj_expr_compare_expr_t *leaf_child = (obj_expr_compare_expr_t *)child;
+                /* get path */
+                char *path = leaf_child->path;
+                /* get value according to path */
+                value = obj_bson_get_path(data, path);
+                printf("path = %s\n", path);
+                child_match = child->methods->match_single(child, value);
+                if (!child_match) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    } else {
+        /* OR */
+        for (i = 0; i < expr->methods->num_child(expr); i++) {
+            child = expr->methods->get_child(expr, i);
+            /* if any child match */
+            if (child->type >= OBJ_EXPR_TYPE_AND && child->type <= OBJ_EXPR_TYPE_OR) {
+                /* tree expr */
+                child_match = child->methods->match(child, data);
+                if (child_match) {
+                    return true;
+                }
+            } else {
+                /* leaf expr */
+                obj_expr_compare_expr_t *leaf_child = (obj_expr_compare_expr_t *)child;
+                /* get path */
+                char *path = leaf_child->path;
+                /* get value according to path */
+                value = obj_bson_get_path(data, path);
+                printf("path = %s value = %d\n", path, value->value.v_int32);
+                child_match = child->methods->match_single(child, value);
+                /*
+                printf("child_match = %d\n", child_match);
+                */
+                if (child_match) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+
+static obj_bool_t obj_expr_tree_expr_match_single(obj_expr_base_expr_t *expr, obj_bson_value_t *value) {
+    /* can't reach */
+    obj_assert(0);
+    return false;
 }
 
 /* ********** debug methods ********** */

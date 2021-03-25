@@ -88,6 +88,9 @@ struct obj_exec_tree_collection_scan_node_s {
     int direction;
     obj_exec_working_set_t *ws;
     obj_expr_base_expr_t *filter;
+    obj_collection_catalog_entry_t *collection;
+    obj_record_store_iterator_t *iter;
+    obj_bool_t end;
 };
 
 /* index scan node */

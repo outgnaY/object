@@ -15,6 +15,7 @@
 #define obj_strcat(dst, src)    strcat(dst, src)
 #define obj_strncmp(s1, s2, n) strncmp((const char *)s1, (const char *)s2, n)
 #define obj_strcmp(s1, s2) strcmp((const char *)s1, (const char *)s2)
+#define obj_strchr(str, c) strchr((const char *)str, c)
 
 #define obj_tolower(c) tolower(c)
 #define obj_toupper(c) toupper(c)

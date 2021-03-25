@@ -2,6 +2,8 @@
 
 static void obj_bson_encode_length(obj_bson_t *bson);
 
+static obj_bson_value_t *obj_bson_get_path_element(obj_bson_iter_t *iter, char *start, char *end);
+
 static void obj_bson_grow(obj_bson_t *bson, obj_size_t size);
 
 static void obj_bson_append_va(obj_bson_t *bson, int n_pairs, int n_bytes, int first_len, obj_uint8_t *first_data, va_list args);
@@ -109,9 +111,145 @@ void obj_bson_destroy(obj_bson_t *bson) {
 }
 
 /* compare bson1 and bson2 using pattern */
+/*
 int obj_bson_compare(obj_bson_t *bson1, obj_bson_t *bson2, obj_bson_t *pattern) {
     
 }
+*/
+
+
+/* get bson element according to path */
+obj_bson_value_t *obj_bson_get_path(obj_bson_t *bson, char *path) {
+    char *ret = NULL;
+    char *start = path;
+    char *end = NULL;
+    /* at '\0 */
+    char *path_end = obj_strlen(path) + start;
+    obj_bson_value_t *value = NULL;
+    obj_bson_t cur_bson;
+    /* make copy */
+    obj_memcpy(&cur_bson, bson, sizeof(obj_bson_t));
+    while (true) {
+        ret = obj_strchr(start, '.');
+        obj_bson_iter_t iter;
+        obj_bson_iter_init(&iter, &cur_bson);
+        if (ret == NULL) {
+            /* last */
+            end = path_end - 1;
+
+        } else {
+            end = ret - 1;
+        }
+        value = obj_bson_get_path_element(&iter, start, end);
+        if (ret == NULL) {
+            /* end */
+            break;
+        }
+        /* step into */
+        if (value->type == OBJ_BSON_TYPE_OBJECT) {
+            obj_bson_init_static_with_len(&cur_bson, value->value.v_object.data, value->value.v_object.len);
+        } else if (value->type == OBJ_BSON_TYPE_ARRAY) {
+            obj_bson_init_static_with_len(&cur_bson, value->value.v_array.data, value->value.v_array.len);
+        }
+        start = ret + 1;
+    }
+    return value;
+}
+
+/* 
+ * get corresponding element according to path. format checked
+ * e.x.1: a[0]
+ * e.x.2: aa
+ * e.x.3: aa[0][1][2]
+ */
+static obj_bson_value_t *obj_bson_get_path_element(obj_bson_iter_t *iter, char *start, char *end) {
+    char *key = NULL;
+    int key_len;
+    obj_bson_type_t bson_type;
+    obj_bson_value_t *value = NULL;
+    /* parse current path */
+    char *bracket = NULL;
+    bracket = obj_strchr(start, '[');
+    obj_bool_t not_array = true;
+    int path_len = end - start + 1;
+    if (bracket == NULL) {
+        /* normal path */        
+        
+    } else {
+        /* array path */
+        not_array = false;
+    }
+    if (not_array) {
+        while (obj_bson_iter_next_internal(iter, &key, &bson_type)) {
+            key_len = obj_strlen(key);
+            if (key_len != path_len) {
+                continue;
+            }
+            if (obj_memcmp(key, start, key_len) == 0) {
+                /* find */
+                value = obj_bson_iter_value(iter);
+                return value;
+            }
+        }
+    } else {
+        /* array */
+        char *arr_name = start;
+        int arr_name_len = bracket - start;
+        /*
+        obj_bson_t *array = NULL;
+        */
+        obj_bson_t array;
+        while (obj_bson_iter_next_internal(iter, &key, &bson_type)) {
+            key_len = obj_strlen(key);
+            if (key_len != arr_name_len) {
+                continue;
+            }
+            if (obj_memcmp(key, start, key_len) == 0) {
+                obj_assert(bson_type == OBJ_BSON_TYPE_ARRAY);
+                /* find */
+                value = obj_bson_iter_value(iter);
+                obj_bson_init_static_with_len(&array, value->value.v_array.data, value->value.v_array.len);
+                break;
+            }
+        }
+        /* parse */
+        
+        obj_bson_t *cur_bson = &array;
+        char *cur_pos = bracket + 1;
+        int cur_index;
+        char c;
+        char *key = NULL;
+        int cnt = 0;
+        obj_bson_type_t bson_type;
+        while (true) {
+            cur_index = 0;
+            while ((c = cur_pos[0]) != ']') {
+                cur_index = cur_index * 10 + (cur_pos[0] - '0');
+                cur_pos += 1;
+            }
+            obj_bson_iter_init(iter, cur_bson);
+            /* get according to index */
+            while (obj_bson_iter_next_internal(iter, &key, &bson_type)) {
+                if (cnt == cur_index) {
+                    value = obj_bson_iter_value(iter);
+                    break;
+                } else {
+                    cnt++;
+                }
+            }
+            if (cur_pos == end) {
+                /* reach end */
+                return value;
+            }
+            obj_assert(value->type == OBJ_BSON_TYPE_ARRAY);
+            obj_bson_init_static_with_len(cur_bson, value->value.v_array.data, value->value.v_array.len);
+            /* skip ']' */
+            cur_pos++;
+        }
+        
+    }
+}
+
 
 static void obj_bson_encode_length(obj_bson_t *bson) {
     obj_int32_t len = (obj_int32_t)bson->len;

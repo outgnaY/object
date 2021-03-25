@@ -119,16 +119,15 @@ expr/obj_expr.o: expr/obj_expr.c /usr/include/stdc-predef.h \
  include/concurrency/obj_locker.h include/concurrency/obj_concurrency.h \
  include/network/obj_proto.h include/network/obj_buffer.h \
  include/network/obj_conn.h include/obj_thread.h include/obj_core.h \
- include/storage/index/obj_index_key.h include/storage/index/obj_index.h \
- include/storage/obj_record_store.h include/storage/obj_catalog.h \
- include/storage/obj_engine.h include/storage/v1/index/obj_v1_index_key.h \
- include/storage/v1/obj_v1_record_store.h \
- include/storage/v1/obj_v1_catalog.h include/storage/v1/obj_v1_engine.h \
+ include/engine/index/obj_index_key.h \
+ include/engine/record/obj_record_store.h \
+ include/engine/catalog/obj_catalog.h include/engine/obj_engine.h \
  include/query/obj_interval.h include/query/obj_index_bounds.h \
  include/query/obj_query.h include/query/obj_query_plan_iter.h \
  include/query/obj_query_index.h include/query/obj_query_plan_tree.h \
- include/query/obj_query_planner.h include/client/obj_client.h \
- include/obj.h
+ include/query/obj_query_planner.h include/exec/obj_exec_working_set.h \
+ include/exec/obj_exec_tree.h include/exec/obj_plan_executor.h \
+ include/client/obj_client.h include/obj.h
 
 /usr/include/stdc-predef.h:
 
@@ -468,23 +467,13 @@ include/obj_thread.h:
 
 include/obj_core.h:
 
-include/storage/index/obj_index_key.h:
+include/engine/index/obj_index_key.h:
 
-include/storage/index/obj_index.h:
+include/engine/record/obj_record_store.h:
 
-include/storage/obj_record_store.h:
+include/engine/catalog/obj_catalog.h:
 
-include/storage/obj_catalog.h:
-
-include/storage/obj_engine.h:
-
-include/storage/v1/index/obj_v1_index_key.h:
-
-include/storage/v1/obj_v1_record_store.h:
-
-include/storage/v1/obj_v1_catalog.h:
-
-include/storage/v1/obj_v1_engine.h:
+include/engine/obj_engine.h:
 
 include/query/obj_interval.h:
 
@@ -499,6 +488,12 @@ include/query/obj_query_index.h:
 include/query/obj_query_plan_tree.h:
 
 include/query/obj_query_planner.h:
+
+include/exec/obj_exec_working_set.h:
+
+include/exec/obj_exec_tree.h:
+
+include/exec/obj_plan_executor.h:
 
 include/client/obj_client.h:
 
