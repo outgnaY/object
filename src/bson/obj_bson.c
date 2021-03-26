@@ -141,6 +141,10 @@ obj_bson_value_t *obj_bson_get_path(obj_bson_t *bson, char *path) {
             end = ret - 1;
         }
         value = obj_bson_get_path_element(&iter, start, end);
+        /* array out of range */
+        if (value == NULL) {
+            return NULL;
+        }
         if (ret == NULL) {
             /* end */
             break;
@@ -236,6 +240,9 @@ static obj_bson_value_t *obj_bson_get_path_element(obj_bson_iter_t *iter, char *
                 } else {
                     cnt++;
                 }
+            }
+            if (cnt < cur_index) {
+                return NULL;
             }
             if (cur_pos == end) {
                 /* reach end */

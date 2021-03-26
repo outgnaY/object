@@ -19,7 +19,6 @@ typedef struct obj_query_plan_tree_or_node_s obj_query_plan_tree_or_node_t;
 typedef struct obj_query_plan_tree_collection_scan_node_s obj_query_plan_tree_collection_scan_node_t;
 typedef struct obj_query_plan_tree_index_scan_node_s obj_query_plan_tree_index_scan_node_t;
 
-typedef struct obj_query_plan_tree_projection_node_s obj_query_plan_tree_projection_node_t;
 typedef struct obj_query_plan_tree_sort_node_s obj_query_plan_tree_sort_node_t;
 
 typedef struct obj_query_plan_tree_skip_node_s obj_query_plan_tree_skip_node_t;
@@ -30,7 +29,6 @@ enum obj_query_plan_tree_node_type {
     OBJ_QUERY_PLAN_TREE_NODE_TYPE_OR,
     OBJ_QUERY_PLAN_TREE_NODE_TYPE_COLLECTION_SCAN,
     OBJ_QUERY_PLAN_TREE_NODE_TYPE_INDEX_SCAN,
-    OBJ_QUERY_PLAN_TREE_NODE_TYPE_PROJECTION,
     OBJ_QUERY_PLAN_TREE_NODE_TYPE_SORT,
     OBJ_QUERY_PLAN_TREE_NODE_TYPE_SKIP,
     OBJ_QUERY_PLAN_TREE_NODE_TYPE_LIMIT
@@ -78,19 +76,11 @@ struct obj_query_plan_tree_index_scan_node_s {
 };
 
 
-/* projection node */
-struct obj_query_plan_tree_projection_node_s {
-    obj_query_plan_tree_base_node_t base;
-    obj_bson_t *projection;
-};
-
 /* sort node */
 struct obj_query_plan_tree_sort_node_s {
     obj_query_plan_tree_base_node_t base;
     obj_bson_t *pattern;
 };
-
-
 
 /* skip node */
 struct obj_query_plan_tree_skip_node_s {
@@ -119,8 +109,6 @@ obj_query_plan_tree_or_node_t *obj_query_plan_tree_or_node_create();
 obj_query_plan_tree_collection_scan_node_t *obj_query_plan_tree_collection_scan_node_create();
 /* index scan node */
 obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_create(obj_query_index_entry_t *index_entry);
-/* projection node */
-obj_query_plan_tree_projection_node_t *obj_query_plan_tree_projection_node_create();
 /* sort node */
 obj_query_plan_tree_sort_node_t *obj_query_plan_tree_sort_node_create();
 /* skip node */

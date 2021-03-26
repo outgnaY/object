@@ -13,7 +13,9 @@ struct obj_type_checker_s {
     obj_bson_t *prototype;
 };
 
+obj_bool_t obj_type_checker_check_type(obj_type_checker_t *checker, obj_bson_t *data);
 obj_bool_t obj_check_type_define(obj_bson_t *prototype);
+obj_bool_t obj_checker_check_type(obj_type_checker_t *checker, obj_bson_t *data);
 obj_bool_t obj_check_type(obj_bson_t *prototype, obj_bson_t *data);
 
 #endif  /* OBJ_TYPE_H */

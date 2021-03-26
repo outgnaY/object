@@ -5,7 +5,6 @@ static char *obj_query_plan_tree_node_type_str_map[] = {
     "OR",
     "COLLECTION_SCAN",
     "INDEX_SCAN",
-    "PROJECTION",
     "SORT",
     "SKIP",
     "LIMIT"
@@ -25,9 +24,6 @@ static void obj_query_plan_tree_collection_scan_node_dump(obj_query_plan_tree_ba
 /* index scan node */
 static obj_query_plan_tree_node_type_t obj_query_plan_tree_index_scan_node_get_type();
 static void obj_query_plan_tree_index_scan_node_dump(obj_query_plan_tree_base_node_t *node);
-/* projection node */
-static obj_query_plan_tree_node_type_t obj_query_plan_tree_projection_node_get_type();
-static void obj_query_plan_tree_projection_node_dump(obj_query_plan_tree_base_node_t *node);
 /* sort node */
 static obj_query_plan_tree_node_type_t obj_query_plan_tree_sort_node_get_type();
 static void obj_query_plan_tree_sort_node_dump(obj_query_plan_tree_base_node_t *node);
@@ -44,8 +40,8 @@ static void obj_query_plan_tree_limit_node_dump(obj_query_plan_tree_base_node_t 
 obj_exec_tree_base_node_t *obj_query_plan_tree_build_exec_tree(obj_query_plan_tree_base_node_t *root, obj_standard_query_t *sq, obj_exec_working_set_t *ws) {
     switch (root->methods->get_type()) {
         case OBJ_QUERY_PLAN_TREE_NODE_TYPE_AND: {
-            obj_exec_tree_and_node_t *and_exec = obj_exec_tree_and_node_create(ws);
             obj_query_plan_tree_and_node_t *and_node = (obj_query_plan_tree_and_node_t *)root;
+            obj_exec_tree_and_node_t *and_exec = obj_exec_tree_and_node_create(ws, and_node->base.filter);
             int i;
             obj_query_plan_tree_base_node_t *child_node = NULL;
             for (i = 0; i < root->children.size; i++) {
@@ -74,12 +70,6 @@ obj_exec_tree_base_node_t *obj_query_plan_tree_build_exec_tree(obj_query_plan_tr
         case OBJ_QUERY_PLAN_TREE_NODE_TYPE_INDEX_SCAN: {
             /*
             obj_query_plan_tree_index_scan_node_t *index_scan_node = (obj_query_plan_tree_index_scan_node_t *)root;
-            */
-            return NULL;
-        }
-        case OBJ_QUERY_PLAN_TREE_NODE_TYPE_PROJECTION: {
-            /*
-            obj_query_plan_tree_projection_node_t *projection_node = (obj_query_plan_tree_projection_node_t *)root;
             */
             return NULL;
         }
@@ -275,29 +265,6 @@ static void obj_query_plan_tree_index_scan_node_dump(obj_query_plan_tree_base_no
     obj_query_plan_tree_index_scan_node_t *index_scan_node = (obj_query_plan_tree_index_scan_node_t *)node;
     printf("%s:\n", obj_query_plan_tree_node_type_str_map[node->methods->get_type()]);
     obj_index_bounds_dump(&index_scan_node->bounds);
-}
-
-/* ********** projection node ********** */
-
-static obj_query_plan_tree_node_methods_t obj_query_plan_tree_projection_node_methods = {
-    obj_query_plan_tree_projection_node_get_type,
-    obj_query_plan_tree_projection_node_dump
-};
-
-obj_query_plan_tree_projection_node_t *obj_query_plan_tree_projection_node_create() {
-    obj_query_plan_tree_projection_node_t *projection_node = (obj_query_plan_tree_projection_node_t *)obj_alloc(sizeof(obj_query_plan_tree_projection_node_t));
-    obj_query_plan_tree_init_base((obj_query_plan_tree_base_node_t *)projection_node, &obj_query_plan_tree_projection_node_methods);
-    return projection_node;
-}
-
-static obj_query_plan_tree_node_type_t obj_query_plan_tree_projection_node_get_type() {
-    return OBJ_QUERY_PLAN_TREE_NODE_TYPE_PROJECTION;
-}
-
-
-static void obj_query_plan_tree_projection_node_dump(obj_query_plan_tree_base_node_t *node) {
-    obj_query_plan_tree_projection_node_t *projection_node = (obj_query_plan_tree_projection_node_t *)node;
-    printf("%s:\n", obj_query_plan_tree_node_type_str_map[node->methods->get_type()]);
 }
 
 

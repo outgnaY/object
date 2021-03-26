@@ -10,7 +10,7 @@ static void obj_query_index_merge_with_leaf(obj_expr_base_expr_t *expr, obj_quer
 static obj_query_plan_tree_base_node_t *obj_query_index_make_leaf_node(obj_query_index_entry_t *index_entry, int pos, obj_expr_base_expr_t *expr);
 static void obj_query_index_finish_leaf_node(obj_query_plan_tree_base_node_t *node, obj_query_index_entry_t *index_entry);
 static void obj_query_index_finish_and_output_leaf(obj_query_index_scan_build_state_t *state, obj_array_t *out);
-static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root, obj_array_t *indexes, obj_array_t *out);
+static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root, obj_array_t *indexes, obj_array_t *out, obj_bool_t *full_indexed);
 static obj_bool_t obj_query_index_process_index_scans_subnode(obj_query_index_scan_build_state_t *state, obj_array_t *out);
 static void obj_query_index_scan_build_state_init(obj_query_index_scan_build_state_t *state, obj_expr_base_expr_t *root, obj_array_t *indexes);
 static void obj_query_index_scan_build_state_reset(obj_query_index_scan_build_state_t *state, obj_expr_index_tag_t *tag);
@@ -182,7 +182,8 @@ static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_and(obj_ex
     obj_array_t index_scan_nodes;
     obj_array_init(&index_scan_nodes, sizeof(obj_query_plan_tree_base_node_t *));
     /* try to generate index scan plans */
-    if (!obj_query_index_process_index_scans(root, indexes, &index_scan_nodes)) {
+    obj_bool_t full_indexed = false;
+    if (!obj_query_index_process_index_scans(root, indexes, &index_scan_nodes, &full_indexed)) {
         return NULL;
     }
     obj_query_plan_tree_base_node_t *and_result = NULL;
@@ -196,6 +197,9 @@ static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_and(obj_ex
         obj_query_plan_tree_add_children((obj_query_plan_tree_base_node_t *)and_node, &index_scan_nodes);
         and_result = (obj_query_plan_tree_base_node_t *)and_node;
     }
+    if (!full_indexed) {
+        and_result->filter = root;
+    }
 
     return and_result;
 }
@@ -206,8 +210,9 @@ static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_and(obj_ex
 static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_or(obj_expr_base_expr_t *root, obj_array_t *indexes) {
     obj_array_t index_scan_nodes;
     obj_array_init(&index_scan_nodes, sizeof(obj_query_plan_tree_base_node_t *));
+    obj_bool_t full_indexed = false;
     /* try to generate index scan plans */
-    if (!obj_query_index_process_index_scans(root, indexes, &index_scan_nodes)) {
+    if (!obj_query_index_process_index_scans(root, indexes, &index_scan_nodes, &full_indexed)) {
         return NULL;
     }
     /* all children must be indexed */
@@ -223,7 +228,7 @@ static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_or(obj_exp
         obj_query_plan_tree_add_children((obj_query_plan_tree_base_node_t *)or_node, &index_scan_nodes);
         or_result = (obj_query_plan_tree_base_node_t *)or_node;
     }
-
+    obj_assert(full_indexed);
     return or_result;
 }
 
@@ -395,7 +400,7 @@ static void obj_query_index_finish_and_output_leaf(obj_query_index_scan_build_st
     obj_array_push_back(out, &state->current_scan);
 }
 
-static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root, obj_array_t *indexes, obj_array_t *out) {
+static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root, obj_array_t *indexes, obj_array_t *out, obj_bool_t *full_indexed) {
     obj_query_index_scan_build_state_t state;
     obj_query_index_scan_build_state_init(&state, root, indexes);
     obj_expr_base_expr_t *child = NULL;
@@ -403,6 +408,7 @@ static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root
         child = root->methods->get_child(root, state.cur_child);
         /* if there is no tag, it's not using an index. because we have sorted children with tags first, stop */
         if (child->tag == NULL) {
+            *full_indexed = false;
             break;
         }
         obj_assert(child->tag->type == OBJ_EXPR_TAG_TYPE_INDEX);
@@ -441,6 +447,7 @@ static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root
         }
         state.cur_child++;
     }
+    *full_indexed = true;
     if (state.current_scan != NULL) {
         obj_query_index_finish_and_output_leaf(&state, out);
     }

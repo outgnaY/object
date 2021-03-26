@@ -42,6 +42,12 @@ static void obj_typename_set_key_set(void *data, void *key) {
     obj_memcpy(data, key, sizeof(char *));
 }
 
+
+/* type checker check type */
+obj_bool_t obj_type_checker_check_type(obj_type_checker_t *checker, obj_bson_t *data) {
+    return obj_check_type(checker->prototype, data);
+}
+
 /* check type define */
 obj_bool_t obj_check_type_define(obj_bson_t *prototype) {
     obj_bson_iter_t iter;

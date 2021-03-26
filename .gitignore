@@ -39,6 +39,8 @@ autom4te.cache
 /src/engine/index/.dirstamp
 /src/engine/record/.deps
 /src/engine/record/.dirstamp
+/src/engine/type/.deps
+/src/engine/type/.dirstamp
 /src/engine/.deps
 /src/exec/.deps
 /src/exec/.dirstamp

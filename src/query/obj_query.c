@@ -2,7 +2,6 @@
 
 static char *find_cmd_name = "find";
 static char *filter_field = "filter";
-static char *projection_field = "projection";
 static char *sort_field = "sort";
 static char *skip_field = "skip";
 static char *limit_field = "limit";
@@ -42,13 +41,6 @@ obj_status_with_t obj_query_parse_from_find_cmd(obj_bson_t *cmd) {
             }
             /* assign */
             obj_bson_init_static_with_len(&qr->filter, value->value.v_object.data, value->value.v_object.len);
-        } else if (obj_strcmp(projection_field, key) == 0) {
-            if (bson_type != OBJ_BSON_TYPE_OBJECT) {
-                obj_free(qr);
-                return obj_status_with_create(NULL, "projection field must be of type object", OBJ_CODE_QUERY_WRONG_TYPE);
-            }
-            /* assign */
-            obj_bson_init_static_with_len(&qr->projection, value->value.v_object.data, value->value.v_object.len);
         } else if (obj_strcmp(sort_field, key) == 0) {
             if (bson_type != OBJ_BSON_TYPE_OBJECT) {
                 obj_free(qr);
@@ -89,12 +81,6 @@ void obj_query_request_dump(obj_query_request_t *qr) {
     if (!obj_bson_is_empty(&qr->filter)) {
         printf("filter:\n");
         obj_bson_visit_print_visit(&qr->filter);
-        printf("\n");
-    }
-    /* projection */
-    if (!obj_bson_is_empty(&qr->projection)) {
-        printf("projection:\n");
-        obj_bson_visit_print_visit(&qr->projection);
         printf("\n");
     }
     /* sort */

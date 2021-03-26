@@ -19,6 +19,7 @@ int main() {
             "$or", "[",
                 "{", "x", OBJ_BSON_BCON_INT32(4), "}",
                 "{", "y", OBJ_BSON_BCON_INT32(5), "}",
+                "{", "z", OBJ_BSON_BCON_INT32(8), "}",
             "]",
         "}"
     );
@@ -45,6 +46,7 @@ int main() {
         "}"
     );
     */
+    
     obj_status_with_t status_with_qr1 = obj_query_parse_from_find_cmd(cmd);
     obj_status_with_t status_with_sq1 = obj_query_standardize((obj_query_request_t *)status_with_qr1.data);
     obj_standard_query_t *sq = (obj_standard_query_t *)status_with_sq1.data;
@@ -59,7 +61,6 @@ int main() {
     obj_bson_t *kp3 = OBJ_BSON_BCON_NEW(
         "y", OBJ_BSON_BCON_INT32(1)
     );
-    /*
     obj_array_t indexes;
     obj_array_init(&indexes, sizeof(obj_query_index_entry_t));
     obj_query_index_entry_t entry1 = {2, kp1};
@@ -75,7 +76,7 @@ int main() {
     obj_query_plan_tree_dump(plan_tree, 0);
     gettimeofday(&end, NULL);
     time_interval(start, end);
-    */
+    
     /*
     obj_bson_t *data = OBJ_BSON_BCON_NEW(
         "x", OBJ_BSON_BCON_INT32(8),
@@ -83,6 +84,7 @@ int main() {
         "z", OBJ_BSON_BCON_UTF8("aaa")
     );
     */
+    /*
     obj_collection_catalog_entry_t *collection = obj_collection_catalog_entry_create();
     obj_record_store_t *record_store = collection->record_store;
     int i;
@@ -98,7 +100,6 @@ int main() {
     obj_array_init(&indexes, sizeof(obj_query_index_entry_t));
     obj_status_with_t status_with_plan = obj_query_planner_plan(sq, &indexes);
     obj_query_plan_tree_base_node_t *plan_tree = (obj_query_plan_tree_base_node_t *)status_with_plan.data;
-    /* ... */
     ((obj_query_plan_tree_collection_scan_node_t *)plan_tree)->collection = collection;
     obj_query_plan_tree_dump(plan_tree, 0);
     obj_exec_working_set_t *ws = obj_exec_working_set_create();
@@ -115,5 +116,6 @@ int main() {
     }
     gettimeofday(&end, NULL);
     time_interval(start, end);
+    */
     return 0;
 }

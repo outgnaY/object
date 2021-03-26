@@ -18,7 +18,6 @@ typedef struct obj_exec_tree_collection_scan_node_s obj_exec_tree_collection_sca
 typedef struct obj_exec_tree_index_scan_node_s obj_exec_tree_index_scan_node_t;
 typedef struct obj_exec_tree_sort_node_data_item_s obj_exec_tree_sort_node_data_item_t;
 typedef struct obj_exec_tree_sort_node_s obj_exec_tree_sort_node_t;
-typedef struct obj_exec_tree_projection_node_s obj_exec_tree_projection_node_t;
 typedef struct obj_exec_tree_skip_node_s obj_exec_tree_skip_node_t;
 typedef struct obj_exec_tree_limit_node_s obj_exec_tree_limit_node_t;
 typedef struct obj_exec_tree_eof_node_s obj_exec_tree_eof_node_t;
@@ -29,7 +28,6 @@ enum obj_exec_tree_node_type {
     OBJ_EXEC_TREE_NODE_TYPE_OR,
     OBJ_EXEC_TREE_NODE_TYPE_COLLECTION_SCAN,
     OBJ_EXEC_TREE_NODE_TYPE_INDEX_SCAN,
-    OBJ_EXEC_TREE_NODE_TYPE_PROJECTION,
     OBJ_EXEC_TREE_NODE_TYPE_SORT,
     OBJ_EXEC_TREE_NODE_TYPE_SKIP,
     OBJ_EXEC_TREE_NODE_TYPE_LIMIT,
@@ -66,6 +64,7 @@ struct obj_record_wsid_pair_s {
 struct obj_exec_tree_and_node_s {
     obj_exec_tree_base_node_t base;
     obj_exec_working_set_t *ws;
+    obj_expr_base_expr_t *filter;
     int current_child;
     obj_prealloc_map_t data_map;
     obj_set_t seen_map;
@@ -122,12 +121,6 @@ struct obj_exec_tree_sort_node_s {
     int curr;
 };
 
-/* projection node */
-struct obj_exec_tree_projection_node_s {
-    obj_exec_tree_base_node_t base;
-    obj_exec_working_set_t *ws;
-    obj_bson_t *projection;
-};
 
 /* skip node */
 struct obj_exec_tree_skip_node_s {
@@ -149,11 +142,10 @@ struct obj_exec_tree_eof_node_s {
 };
 
 
-obj_exec_tree_and_node_t *obj_exec_tree_and_node_create(obj_exec_working_set_t *ws);
+obj_exec_tree_and_node_t *obj_exec_tree_and_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter);
 obj_exec_tree_or_node_t *obj_exec_tree_or_node_create(obj_exec_working_set_t *ws);
 obj_exec_tree_collection_scan_node_t *obj_exec_tree_collection_scan_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter, int direction, obj_collection_catalog_entry_t *collection);
 
-obj_exec_tree_projection_node_t *obj_exec_tree_projection_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, obj_bson_t *projection);
 obj_exec_tree_skip_node_t *obj_exec_tree_skip_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, int skip);
 obj_exec_tree_limit_node_t *obj_exec_tree_limit_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, int limit);
 obj_exec_tree_eof_node_t *obj_exec_tree_eof_node_create();

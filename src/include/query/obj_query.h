@@ -11,8 +11,6 @@ typedef struct obj_standard_query_s obj_standard_query_t;
 struct obj_query_request_s {
     /* filter */
     obj_bson_t filter;
-    /* projection */
-    obj_bson_t projection;
     /* sort */
     obj_bson_t sort;
     /* hint */

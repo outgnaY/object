@@ -7,7 +7,6 @@ static int obj_string_set_key_compare(void *key1, void *key2);
 static void *obj_string_set_key_get(void *data);
 static void obj_string_set_key_set(void *data, void *key);
 
-static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_projection(obj_query_plan_tree_base_node_t *root, obj_bson_t *projection);
 static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_sort(obj_query_plan_tree_base_node_t *root, obj_bson_t *sort);
 static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_skip(obj_query_plan_tree_base_node_t *root, int skip);
 static obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_limit(obj_query_plan_tree_base_node_t *root, int limit);
@@ -51,16 +50,6 @@ static void obj_string_set_key_set(void *data, void *key) {
 }
 
 
-
-/* add projection */
-static inline obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_projection(obj_query_plan_tree_base_node_t *root, obj_bson_t *projection) {
-    obj_query_plan_tree_projection_node_t *projection_node = obj_query_plan_tree_projection_node_create();
-    projection_node->projection = projection;
-    obj_query_plan_tree_add_child((obj_query_plan_tree_base_node_t *)projection_node, root);
-    return (obj_query_plan_tree_base_node_t *)projection_node;
-}
-
-
 /* add sort */
 static inline obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_sort(obj_query_plan_tree_base_node_t *root, obj_bson_t *sort) {
     obj_query_plan_tree_sort_node_t *sort_node = obj_query_plan_tree_sort_node_create();
@@ -85,14 +74,11 @@ static inline obj_query_plan_tree_base_node_t *obj_query_plan_tree_add_limit(obj
     return (obj_query_plan_tree_base_node_t *)limit_node;
 }
 
-/* handle sort/projection/skip/limit */
+/* handle sort/skip/limit */
 static obj_query_plan_tree_base_node_t *obj_query_plan_analyze_data_access(obj_query_request_t *qr, obj_query_plan_tree_base_node_t *root) {
-    /* sort->projection->skip->limit */
+    /* sort->skip->limit */
     if (!obj_bson_is_empty(&qr->sort)) {
         root = obj_query_plan_tree_add_sort(root, &qr->sort);
-    }
-    if (!obj_bson_is_empty(&qr->projection)) {
-        root = obj_query_plan_tree_add_projection(root, &qr->projection);
     }
     if (qr->skip != -1) {
         root = obj_query_plan_tree_add_skip(root, qr->skip);
