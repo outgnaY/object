@@ -98,6 +98,7 @@ int main() {
     obj_array_init(&indexes, sizeof(obj_query_index_entry_t));
     obj_status_with_t status_with_plan = obj_query_planner_plan(sq, &indexes);
     obj_query_plan_tree_base_node_t *plan_tree = (obj_query_plan_tree_base_node_t *)status_with_plan.data;
+    /* ... */
     ((obj_query_plan_tree_collection_scan_node_t *)plan_tree)->collection = collection;
     obj_query_plan_tree_dump(plan_tree, 0);
     obj_exec_working_set_t *ws = obj_exec_working_set_create();

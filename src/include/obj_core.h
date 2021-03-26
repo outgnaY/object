@@ -86,6 +86,7 @@
 */
 #include "engine/record/obj_record_store.h"
 #include "engine/catalog/obj_catalog.h"
+#include "engine/type/obj_type.h"
 #include "engine/obj_engine.h"
 
 

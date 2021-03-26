@@ -31,7 +31,7 @@ struct obj_collection_catalog_entry_s {
     /* record store */
     obj_record_store_t *record_store;
     /* object prototype */
-    obj_bson_t *prototype;
+    /* obj_bson_t *prototype; */
 };
 
 /* an index */
