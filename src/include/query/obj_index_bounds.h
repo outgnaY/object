@@ -3,10 +3,12 @@
 
 #include "obj_core.h"
 
+/* forward declaration */
 typedef struct obj_query_index_entry_s obj_query_index_entry_t;
 
 typedef enum obj_index_bound_inclusion obj_index_bound_inclusion_t;
 typedef struct obj_index_bounds_s obj_index_bounds_t;
+typedef struct obj_index_bounds_checker_s obj_index_bounds_checker_t;
 
 enum obj_index_bound_inclusion {
     OBJ_INDEX_BOUND_EXCLUDE_START_AND_END,
@@ -18,6 +20,15 @@ enum obj_index_bound_inclusion {
 struct obj_index_bounds_s {
     /* [ordered interval list] */
     obj_array_t fields;
+};
+
+
+struct obj_index_bounds_checker_s {
+    obj_index_bounds_t *bounds;
+    /* current interval */
+    obj_array_t cur_interval;
+    /* expected scan direction */
+    obj_array_t expected_direction;
 };
 
 

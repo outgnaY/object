@@ -4,7 +4,9 @@
 #include "obj_core.h"
 
 typedef enum obj_index_key_type obj_index_key_type_t;
+typedef enum obj_index_key_state obj_index_key_state_t;
 typedef struct obj_index_key_s obj_index_key_t;
+typedef struct obj_index_key_iter_s obj_index_key_iter_t;
 typedef unsigned obj_index_key_order_t;
 
 
@@ -16,6 +18,12 @@ enum obj_index_key_type {
     OBJ_INDEX_KEY_TYPE_INT64 = 0x05,
     OBJ_INDEX_KEY_TYPE_MASK = 0x0f,
     OBJ_INDEX_KEY_TYPE_HASMORE = 0x40
+};
+
+enum obj_index_key_state {
+    OBJ_INDEX_KEY_STATE_VALID,
+    OBJ_INDEX_KEY_STATE_MUST_ADVANCE,
+    OBJ_INDEX_KEY_STATE_DONE
 };
 
 struct obj_index_key_s {
@@ -31,6 +39,8 @@ static void obj_index_key_init(obj_index_key_t *index_key, obj_bson_t *key_patte
 void obj_index_key_destroy(obj_index_key_t *index_key);
 int obj_index_key_compare(obj_index_key_t *index_key1, obj_index_key_t *index_key2, obj_index_key_order_t order);
 void obj_index_key_dump(obj_index_key_t *index_key);
+
+
 
 
 #endif  /* OBJ_INDEX_KEY_H */

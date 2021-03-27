@@ -1,5 +1,6 @@
 #include "obj_core.h"
 
+/* ********** index key ********** */
 
 static int obj_index_key_element_compare(obj_uint8_t **p1, obj_uint8_t **p2);
 
@@ -325,3 +326,6 @@ void obj_index_key_dump(obj_index_key_t *index_key) {
         mask <<= 1;
     }
 }
+
+
+

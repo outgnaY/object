@@ -81,9 +81,8 @@
 /* engine */
 
 #include "engine/index/obj_index_key.h"
-/*
 #include "engine/index/obj_index.h"
-*/
+
 #include "engine/record/obj_record_store.h"
 #include "engine/catalog/obj_catalog.h"
 #include "engine/type/obj_type.h"

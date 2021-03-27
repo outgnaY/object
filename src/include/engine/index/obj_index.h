@@ -9,6 +9,8 @@ typedef struct obj_skiplist_level_s obj_skiplist_level_t;
 typedef struct obj_skiplist_s obj_skiplist_t;
 
 typedef struct obj_index_s obj_index_t;
+typedef struct obj_index_seek_point_s obj_index_seek_point_t;
+typedef struct obj_index_key_entry_s obj_index_key_entry_t;
 
 /* ********** skiplist ********** */
 
@@ -38,9 +40,19 @@ struct obj_index_s {
     obj_skiplist_t *skiplist;
 };
 
+/* index seek point describe the position to seek */
+struct obj_index_seek_point_s {
+    obj_bson_t *key_prefix;
+    int prefix_len;
+    obj_bool_t prefix_exclusive;
+    obj_array_t key_suffix;
+    obj_array_t suffix_inclusive;
+};
 
-
-
+/* wrapper for k-v pair */
+struct obj_index_key_entry_s {
+    
+};
 
 
 #define OBJ_SKIPLIST_P 0.25

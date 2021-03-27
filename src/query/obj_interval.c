@@ -3,7 +3,6 @@
 obj_bson_value_t g_interval_value_min = {OBJ_BSON_TYPE_MIN};
 obj_bson_value_t g_interval_value_max = {OBJ_BSON_TYPE_MAX};
 
-static int obj_interval_value_compare(obj_bson_value_t *value1, obj_bson_value_t *value2);
 static obj_bool_t obj_interval_intersects(obj_interval_t *interval1, obj_interval_t *interval2);
 static obj_bool_t obj_interval_equals(obj_interval_t *interval1, obj_interval_t *interval2);
 static obj_bool_t obj_interval_within(obj_interval_t *interval1, obj_interval_t *interval2);
@@ -20,7 +19,7 @@ static int obj_interval_compare_for_sort(const void *a, const void *b);
  * anything(except for MIN) > MIN; MIN == MIN
  * anything(except for MAX) < MAX; MAX == MAX
  */
-static int obj_interval_value_compare(obj_bson_value_t *value1, obj_bson_value_t *value2) {
+int obj_interval_value_compare(obj_bson_value_t *value1, obj_bson_value_t *value2) {
     obj_bson_type_t type1 = value1->type;
     obj_bson_type_t type2 = value2->type;
     /* obj_assert(type1 == type2); */
@@ -415,6 +414,29 @@ void obj_interval_reverse(obj_interval_t *interval) {
     obj_bson_value_t temp_value = interval->start;
     interval->start = interval->end;
     interval->end = temp_value;
+}
+
+/* compare index key element with interval */
+obj_interval_location_t obj_interval_compare_with_key_element(obj_interval_t *interval, obj_bson_value_t *value, int expected_direction) {
+    int cmp;
+    cmp = obj_sgn(obj_interval_value_compare(value, &interval->start));
+    obj_bool_t start_ok;
+    start_ok = (cmp == expected_direction) || (cmp == 0 && interval->start_inclusive);
+    if (!start_ok) {
+        return OBJ_INTERVAL_LOCATION_BEHIND;
+    }
+    cmp = obj_sgn(obj_interval_value_compare(value, &interval->end));
+    obj_bool_t end_ok;
+    end_ok = (cmp == -expected_direction) || (cmp == 0 && interval->end_inclusive);
+    if (!end_ok) {
+        return OBJ_INTERVAL_LOCATION_AHEAD;
+    }
+    return OBJ_INTERVAL_LOCATION_WITHIN;
+}
+
+obj_bool_t obj_interval_is_key_element_ahead_of_interval(obj_interval_t *interval, obj_bson_value_t *value, int expected_direction) {
+    obj_interval_location_t location = obj_interval_compare_with_key_element(interval, value, expected_direction);
+    return location == OBJ_INTERVAL_LOCATION_AHEAD;
 }
 
 

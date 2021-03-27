@@ -10,3 +10,11 @@ obj_size_t obj_next_power_of_two(obj_size_t v) {
     v++;
     return v;
 }
+
+
+int obj_sgn(int i) {
+    if (i == 0) {
+        return 0;
+    }
+    return (i > 0 ? 1 : -1);
+}
