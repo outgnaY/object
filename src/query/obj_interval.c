@@ -4,7 +4,6 @@ obj_bson_value_t g_interval_value_min = {OBJ_BSON_TYPE_MIN};
 obj_bson_value_t g_interval_value_max = {OBJ_BSON_TYPE_MAX};
 
 static obj_bool_t obj_interval_intersects(obj_interval_t *interval1, obj_interval_t *interval2);
-static obj_bool_t obj_interval_equals(obj_interval_t *interval1, obj_interval_t *interval2);
 static obj_bool_t obj_interval_within(obj_interval_t *interval1, obj_interval_t *interval2);
 static obj_bool_t obj_interval_precedes(obj_interval_t *interval1, obj_interval_t *interval2);
 static int obj_interval_compare_for_sort(const void *a, const void *b);
@@ -22,7 +21,6 @@ static int obj_interval_compare_for_sort(const void *a, const void *b);
 int obj_interval_value_compare(obj_bson_value_t *value1, obj_bson_value_t *value2) {
     obj_bson_type_t type1 = value1->type;
     obj_bson_type_t type2 = value2->type;
-    /* obj_assert(type1 == type2); */
     if (type1 >= OBJ_BSON_TYPE_MIN) {
         if (type1 ==OBJ_BSON_TYPE_MIN) {
             if (type2 >= OBJ_BSON_TYPE_MIN) {
@@ -184,7 +182,7 @@ static obj_bool_t obj_interval_intersects(obj_interval_t *interval1, obj_interva
 }
 
 /* check if two intervals equals */
-static obj_bool_t obj_interval_equals(obj_interval_t *interval1, obj_interval_t *interval2) {
+obj_bool_t obj_interval_equals(obj_interval_t *interval1, obj_interval_t *interval2) {
     if (interval1->start_inclusive != interval2->start_inclusive) {
         return false;
     }

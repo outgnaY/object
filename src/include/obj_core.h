@@ -79,8 +79,9 @@
 
 
 /* engine */
-
+/*
 #include "engine/index/obj_index_key.h"
+*/
 #include "engine/index/obj_index.h"
 
 #include "engine/record/obj_record_store.h"

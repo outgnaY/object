@@ -15,6 +15,7 @@ typedef struct obj_record_wsid_pair_s obj_record_wsid_pair_t;
 typedef struct obj_exec_tree_and_node_s obj_exec_tree_and_node_t;
 typedef struct obj_exec_tree_or_node_s obj_exec_tree_or_node_t;
 typedef struct obj_exec_tree_collection_scan_node_s obj_exec_tree_collection_scan_node_t;
+typedef enum obj_exec_tree_index_scan_state obj_exec_tree_index_scan_state_t;
 typedef struct obj_exec_tree_index_scan_node_s obj_exec_tree_index_scan_node_t;
 typedef struct obj_exec_tree_sort_node_data_item_s obj_exec_tree_sort_node_data_item_t;
 typedef struct obj_exec_tree_sort_node_s obj_exec_tree_sort_node_t;
@@ -84,7 +85,6 @@ struct obj_exec_tree_or_node_s {
 /* collection scan node */
 struct obj_exec_tree_collection_scan_node_s {
     obj_exec_tree_base_node_t base;
-    int direction;
     obj_exec_working_set_t *ws;
     obj_expr_base_expr_t *filter;
     obj_collection_catalog_entry_t *collection;
@@ -92,10 +92,25 @@ struct obj_exec_tree_collection_scan_node_s {
     obj_bool_t end;
 };
 
+enum obj_exec_tree_index_scan_state {
+    OBJ_EXEC_TREE_INDEX_SCAN_STATE_INITIALIZING,
+    OBJ_EXEC_TREE_INDEX_SCAN_STATE_NEED_SEEK,
+    OBJ_EXEC_TREE_INDEX_SCAN_STATE_GETTING_NEXT,
+    OBJ_EXEC_TREE_INDEX_SCAN_STATE_HIT_END
+};
+
 /* index scan node */
 struct obj_exec_tree_index_scan_node_s {
     obj_exec_tree_base_node_t base;
-
+    obj_exec_working_set_t *ws;
+    obj_expr_base_expr_t *filter;
+    obj_exec_tree_index_scan_state_t scan_state;
+    obj_index_bounds_checker_t *checker;
+    obj_index_iterator_t *iter;
+    obj_index_seek_point_t seek_point;
+    obj_bson_t *start_key;
+    obj_bson_t *end_key;
+    obj_bool_t end;
 };
 
 /* item to sort */
@@ -144,7 +159,7 @@ struct obj_exec_tree_eof_node_s {
 
 obj_exec_tree_and_node_t *obj_exec_tree_and_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter);
 obj_exec_tree_or_node_t *obj_exec_tree_or_node_create(obj_exec_working_set_t *ws);
-obj_exec_tree_collection_scan_node_t *obj_exec_tree_collection_scan_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter, int direction, obj_collection_catalog_entry_t *collection);
+obj_exec_tree_collection_scan_node_t *obj_exec_tree_collection_scan_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter, obj_collection_catalog_entry_t *collection);
 
 obj_exec_tree_skip_node_t *obj_exec_tree_skip_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, int skip);
 obj_exec_tree_limit_node_t *obj_exec_tree_limit_node_create(obj_exec_working_set_t *ws, obj_exec_tree_base_node_t *child, int limit);

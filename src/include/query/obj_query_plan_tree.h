@@ -59,16 +59,12 @@ struct obj_query_plan_tree_or_node_s {
 /* collection scan node */
 struct obj_query_plan_tree_collection_scan_node_s {
     obj_query_plan_tree_base_node_t base;
-    /* collection scan direction */
-    int direction;
     obj_collection_catalog_entry_t *collection;
 };
 
 /* index scan node */
 struct obj_query_plan_tree_index_scan_node_s {
     obj_query_plan_tree_base_node_t base;
-    /* index scan direction */
-    int direction;
     /* index key pattern */
     obj_query_index_entry_t index_entry;
     /* index bounds */

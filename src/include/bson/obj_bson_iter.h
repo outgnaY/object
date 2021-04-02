@@ -30,6 +30,7 @@ obj_uint8_t *obj_bson_iter_array(obj_bson_iter_t *iter, obj_int32_t *len);
 obj_bool_t obj_bson_iter_bool(obj_bson_iter_t *iter);
 obj_int32_t obj_bson_iter_int32(obj_bson_iter_t *iter);
 obj_int64_t obj_bson_iter_int64(obj_bson_iter_t *iter);
+obj_bool_t obj_bson_iter_has_next(obj_bson_iter_t *iter);
 obj_bool_t obj_bson_iter_next(obj_bson_iter_t *iter);
 obj_bson_value_t *obj_bson_iter_value(obj_bson_iter_t *iter);
 obj_bool_t obj_bson_iter_visit_all(obj_bson_iter_t *iter, obj_bson_visit_visitor_t *visitor, void *data);

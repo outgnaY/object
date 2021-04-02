@@ -65,7 +65,7 @@ obj_exec_tree_base_node_t *obj_query_plan_tree_build_exec_tree(obj_query_plan_tr
         }
         case OBJ_QUERY_PLAN_TREE_NODE_TYPE_COLLECTION_SCAN: {
             obj_query_plan_tree_collection_scan_node_t *collection_scan_node = (obj_query_plan_tree_collection_scan_node_t *)root;
-            return (obj_exec_tree_base_node_t *)obj_exec_tree_collection_scan_node_create(ws, collection_scan_node->base.filter, collection_scan_node->direction, collection_scan_node->collection);
+            return (obj_exec_tree_base_node_t *)obj_exec_tree_collection_scan_node_create(ws, collection_scan_node->base.filter, collection_scan_node->collection);
         }
         case OBJ_QUERY_PLAN_TREE_NODE_TYPE_INDEX_SCAN: {
             /*
@@ -250,7 +250,6 @@ static obj_query_plan_tree_node_methods_t obj_query_plan_tree_index_scan_node_me
 obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_create(obj_query_index_entry_t *index_entry) {
     obj_query_plan_tree_index_scan_node_t *index_scan_node = (obj_query_plan_tree_index_scan_node_t *)obj_alloc(sizeof(obj_query_plan_tree_index_scan_node_t));
     obj_query_plan_tree_init_base((obj_query_plan_tree_base_node_t *)index_scan_node, &obj_query_plan_tree_index_scan_node_methods);
-    index_scan_node->direction = 1;
     index_scan_node->index_entry = *index_entry;
     /* init index bounds else where */
     return index_scan_node;

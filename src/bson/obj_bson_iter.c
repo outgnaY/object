@@ -202,6 +202,12 @@ fill_data_fields:
         case OBJ_BSON_TYPE_INT64:
             iter->off_next = off + 8;
             break;
+        case OBJ_BSON_TYPE_MIN:
+            iter->off_next = off;
+            break;
+        case OBJ_BSON_TYPE_MAX:
+            iter->off_next = off;
+            break;
         default:
             iter->off_err = off;
             goto mark_invalid;
@@ -331,6 +337,14 @@ obj_int64_t obj_bson_iter_int64(obj_bson_iter_t *iter) {
     return 0;
 }
 
+obj_bool_t obj_bson_iter_has_next(obj_bson_iter_t *iter) {
+    /* reach the end */
+    if (iter->buf[iter->off] == '\0') {
+        return false;
+    }
+    return true;
+}
+
 /* advance the iterator to the next field */
 obj_bool_t obj_bson_iter_next(obj_bson_iter_t *iter) {
     obj_bson_type_t bson_type;
@@ -369,6 +383,10 @@ obj_bson_value_t *obj_bson_iter_value(obj_bson_iter_t *iter) {
             break;
         case OBJ_BSON_TYPE_INT64:
             value->value.v_int64 = obj_bson_iter_int64(iter);
+            break;
+        case OBJ_BSON_TYPE_MIN:
+            break;
+        case OBJ_BSON_TYPE_MAX:
             break;
         default:
             return NULL;

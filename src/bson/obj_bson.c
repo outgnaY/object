@@ -110,13 +110,6 @@ void obj_bson_destroy(obj_bson_t *bson) {
     }
 }
 
-/* compare bson1 and bson2 using pattern */
-/*
-int obj_bson_compare(obj_bson_t *bson1, obj_bson_t *bson2, obj_bson_t *pattern) {
-    
-}
-*/
-
 
 /* get bson element according to path */
 obj_bson_value_t *obj_bson_get_path(obj_bson_t *bson, char *path) {
@@ -524,6 +517,25 @@ void obj_bson_append_int64(obj_bson_t *bson, char *key, int key_len, obj_int64_t
     8, &value_le);
 }
 
+
+/* append min */
+void obj_bson_append_min(obj_bson_t *bson, char *key, int key_len) {
+    static obj_uint8_t type = (obj_uint8_t)OBJ_BSON_TYPE_MIN;
+    obj_bson_append(bson, 3, (1 + key_len + 1),
+    1, &type,
+    key_len, key,
+    1, &obj_g_zero);
+}
+
+/* append max */
+void obj_bson_append_max(obj_bson_t *bson, char *key, int key_len) {
+    static obj_uint8_t type = (obj_uint8_t)OBJ_BSON_TYPE_MAX;
+    obj_bson_append(bson, 3, (1 + key_len + 1), 
+    1, &type, 
+    key_len, key,
+    1, &obj_g_zero);
+}
+
 /* general append function */
 void obj_bson_append_value(obj_bson_t *bson, char *key, int key_len, obj_bson_value_t *value) {
     obj_assert(bson);
@@ -561,6 +573,12 @@ void obj_bson_append_value(obj_bson_t *bson, char *key, int key_len, obj_bson_va
         break;
     case OBJ_BSON_TYPE_INT64:
         obj_bson_append_int64(bson, key, key_len, value->value.v_int64);
+        break;
+    case OBJ_BSON_TYPE_MIN:
+        obj_bson_append_min(bson, key, key_len);
+        break;
+    case OBJ_BSON_TYPE_MAX:
+        obj_bson_append_max(bson, key, key_len);
         break;
     default:
         break;

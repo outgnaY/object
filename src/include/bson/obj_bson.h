@@ -110,5 +110,8 @@ void obj_bson_append_array_begin(obj_bson_t *bson, char *key, int key_len, obj_b
 void obj_bson_append_array_end(obj_bson_t *bson, obj_bson_t *child);
 void obj_bson_append_object_begin(obj_bson_t *bson, char *key, int key_len, obj_bson_t *child);
 void obj_bson_append_object_end(obj_bson_t *bson, obj_bson_t *child);
+void obj_bson_append_min(obj_bson_t *bson, char *key, int key_len);
+void obj_bson_append_max(obj_bson_t *bson, char *key, int key_len);
+void obj_bson_append_value(obj_bson_t *bson, char *key, int key_len, obj_bson_value_t *value);
 
 #endif  /* OBJ_BSON_H */

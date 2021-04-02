@@ -1,5 +1,12 @@
 #include "obj_core.h"
 
+static obj_interval_location_t obj_index_bounds_checker_find_interval_for_field(obj_bson_value_t *value, obj_ordered_interval_list_t *oil, int expected_direction, int *new_interval_index);
+
+static obj_interval_location_t obj_index_bounds_checker_find_interval_for_field(obj_bson_value_t *value, obj_ordered_interval_list_t *oil, int expected_direction, int *new_interval_index);
+static obj_bool_t obj_index_bounds_checker_space_left_to_advance(obj_index_bounds_checker_t *checker, int fields_to_check, obj_array_t *values);
+static obj_bool_t obj_index_bounds_checker_find_left_most(obj_index_bounds_checker_t *checker, obj_array_t *values, int *where, obj_interval_location_t *what);
+
+
 
 /* ********** index bounds methods ********** */
 
@@ -68,6 +75,102 @@ void obj_index_bounds_dump(obj_index_bounds_t *bounds) {
     }
 }
 
+obj_bool_t obj_index_bounds_is_single_interval(obj_index_bounds_t *bounds, obj_bson_t **start_key_out, obj_bool_t *start_key_inclusive, obj_bson_t **end_key_out, obj_bool_t *end_key_inclusive) {
+    obj_bson_t *start_key = NULL;
+    obj_bson_t *end_key = NULL;
+    *start_key_inclusive = true;
+    *end_key_inclusive = true;
+    start_key = obj_bson_create();
+    end_key = obj_bson_create();
+    int field_index;
+    obj_ordered_interval_list_t *oil = NULL;
+    obj_interval_t *interval = NULL;
+    obj_bson_value_t *start = NULL;
+    obj_bson_value_t *end = NULL;
+    /* skip over point intervals */
+    for (field_index = 0; field_index < bounds->fields.size; field_index++) {
+        oil = (obj_ordered_interval_list_t *)obj_array_get_index(&bounds->fields, field_index);
+        if (oil->intervals.size != 1) {
+            break;
+        }
+        interval = (obj_interval_t *)obj_array_get_index(&oil->intervals, 0);
+        if (!obj_interval_is_point(interval)) {
+            break;
+        }
+        obj_bson_append_value(start_key, "", 0, &interval->start);
+        obj_bson_append_value(end_key, "", 0, &interval->end);
+    }
+    if (field_index >= bounds->fields.size) {
+        /* all intervals are points */
+        *start_key_out = start_key;
+        *end_key_out = end_key;
+        return true;
+    }
+    obj_ordered_interval_list_t *non_point = (obj_ordered_interval_list_t *)obj_array_get_index(&bounds->fields, field_index);
+    if (non_point->intervals.size != 1) {
+        return false;
+    }
+    interval = (obj_interval_t *)obj_array_get_index(&non_point->intervals, 0);
+    obj_bson_append_value(start_key, "", 0, &interval->start);
+    *start_key_inclusive = interval->start_inclusive;
+    obj_bson_append_value(end_key, "", 0, &interval->end);
+    *end_key_inclusive = interval->end_inclusive;
+    field_index++;
+    /* (MIN, MAX) */
+    obj_interval_t min_max;
+    min_max.empty = false;
+    min_max.start_inclusive = false;
+    min_max.start = g_interval_value_min;
+    min_max.end_inclusive = false;
+    min_max.end = g_interval_value_max;
+    /* (MAX, MIN) */
+    obj_interval_t max_min;
+    max_min.empty = false;
+    max_min.start_inclusive = false;
+    max_min.start = g_interval_value_max;
+    max_min.end_inclusive = false;
+    max_min.end = g_interval_value_min;
+    for (; field_index < bounds->fields.size; field_index++) {
+        oil = (obj_ordered_interval_list_t *)obj_array_get_index(&bounds->fields, field_index);
+        if (oil->intervals.size != 1) {
+            break;
+        }
+        interval = (obj_interval_t *)obj_array_get_index(&oil->intervals, 0);
+        if (obj_interval_equals(interval, &min_max)) {
+            if (!*start_key_inclusive) {
+                obj_bson_append_max(start_key, "", 0);
+            } else {
+                obj_bson_append_min(start_key, "", 0);
+            }
+            if (!*end_key_inclusive) {
+                obj_bson_append_min(end_key, "", 0);
+            } else {
+                obj_bson_append_max(end_key, "", 0);
+            }
+        } else if (obj_interval_equals(interval, &max_min)) {
+            if (!*start_key_inclusive) {
+                obj_bson_append_min(start_key, "", 0);
+            } else {
+                obj_bson_append_max(start_key, "", 0);
+            }
+            if (!*end_key_inclusive) {
+                obj_bson_append_max(end_key, "", 0);
+            } else {
+                obj_bson_append_min(end_key, "", 0);
+            }
+        } else {
+            break;
+        }
+    }
+
+    if (field_index >= bounds->fields.size) {
+        *start_key_out = start_key;
+        *end_key_out = end_key;
+        return true;
+    }
+    return false;
+}
+
 /* ********** index bounds checker methods ********** */
 
 /* init index bounds checker */
@@ -123,7 +226,7 @@ obj_bool_t obj_index_bounds_checker_get_start_seek_point(obj_index_bounds_checke
 
 
 /* find interval */
-obj_interval_location_t obj_index_bounds_checker_find_interval_for_field(obj_bson_value_t *value, obj_ordered_interval_list_t *oil, int expected_direction, int *new_interval_index) {
+static obj_interval_location_t obj_index_bounds_checker_find_interval_for_field(obj_bson_value_t *value, obj_ordered_interval_list_t *oil, int expected_direction, int *new_interval_index) {
     int i;
     /* binary search, find lower bound */
     int lo = 0;
@@ -256,7 +359,7 @@ obj_index_key_state_t obj_index_bounds_checker_check_key(obj_index_bounds_checke
 }
 
 /* if we can advance any of the first fields_to_check fields and still be in index bounds */
-obj_bool_t obj_index_bounds_checker_space_left_to_advance(obj_index_bounds_checker_t *checker, int fields_to_check, obj_array_t *values) {
+static obj_bool_t obj_index_bounds_checker_space_left_to_advance(obj_index_bounds_checker_t *checker, int fields_to_check, obj_array_t *values) {
     int i;
     int interval_index;
     obj_ordered_interval_list_t *oil = NULL;
@@ -284,7 +387,7 @@ obj_bool_t obj_index_bounds_checker_space_left_to_advance(obj_index_bounds_check
     return false;
 }
 
-obj_bool_t obj_index_bounds_checker_find_left_most(obj_index_bounds_checker_t *checker, obj_array_t *values, int *where, obj_interval_location_t *what) {
+static obj_bool_t obj_index_bounds_checker_find_left_most(obj_index_bounds_checker_t *checker, obj_array_t *values, int *where, obj_interval_location_t *what) {
     int i;
     obj_bson_value_t *value = NULL;
     obj_interval_location_t location;

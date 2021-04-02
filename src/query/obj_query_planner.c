@@ -93,7 +93,6 @@ static obj_query_plan_tree_base_node_t *obj_query_plan_analyze_data_access(obj_q
 static obj_query_plan_tree_base_node_t *obj_query_plan_build_collection_scan(obj_standard_query_t *sq) {
     obj_query_plan_tree_collection_scan_node_t *collection_scan_node = obj_query_plan_tree_collection_scan_node_create();
     obj_query_plan_tree_base_node_t *root = NULL;
-    collection_scan_node->direction = 1;
     collection_scan_node->base.filter = sq->root;
     /* TODO find collection */
     /* collection_scan_node->collection */

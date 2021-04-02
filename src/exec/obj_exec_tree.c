@@ -51,7 +51,7 @@ static obj_exec_tree_exec_state_t obj_exec_tree_eof_node_work(obj_exec_tree_base
 static obj_exec_tree_node_type_t obj_exec_tree_eof_node_get_type();
 static obj_bool_t obj_exec_tree_eof_node_is_eof(obj_exec_tree_base_node_t *node);
 
-/* execute query plan tree */
+
 
 /* record set methods, for or node */
 
@@ -462,10 +462,9 @@ static obj_exec_tree_node_methods_t obj_exec_tree_collection_scan_node_methods =
     obj_exec_tree_collection_scan_node_is_eof
 };
 
-obj_exec_tree_collection_scan_node_t *obj_exec_tree_collection_scan_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter, int direction, obj_collection_catalog_entry_t *collection) {
+obj_exec_tree_collection_scan_node_t *obj_exec_tree_collection_scan_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter, obj_collection_catalog_entry_t *collection) {
     obj_exec_tree_collection_scan_node_t *collection_scan_node = obj_alloc(sizeof(obj_exec_tree_collection_scan_node_t));
     obj_exec_tree_init_base((obj_exec_tree_base_node_t *)collection_scan_node, &obj_exec_tree_collection_scan_node_methods);
-    collection_scan_node->direction = direction;
     collection_scan_node->ws = ws;
     collection_scan_node->filter = filter;
     collection_scan_node->collection = collection;
@@ -480,7 +479,7 @@ static obj_exec_tree_exec_state_t obj_exec_tree_collection_scan_node_work(obj_ex
     obj_exec_tree_collection_scan_node_t *collection_scan_node = (obj_exec_tree_collection_scan_node_t *)node;
     obj_record_t *record;
     if (collection_scan_node->iter == NULL) {
-        collection_scan_node->iter = obj_record_store_iterator_create(collection_scan_node->collection->record_store, collection_scan_node->direction);
+        collection_scan_node->iter = obj_record_store_iterator_create(collection_scan_node->collection->record_store);
         return OBJ_EXEC_TREE_STATE_NEED_TIME;
     }
     record = obj_record_store_iterator_next(collection_scan_node->iter);
@@ -515,34 +514,93 @@ static obj_bool_t obj_exec_tree_collection_scan_node_is_eof(obj_exec_tree_base_n
 }
 
 /* ********** index scan node ********** */
-/*
-obj_plan_tree_index_scan_node_t *obj_plan_tree_index_scan_node_create() {
-    obj_plan_tree_index_scan_node_t *node = (obj_plan_tree_index_scan_node_t *)obj_alloc(sizeof(obj_plan_tree_index_scan_node_t));
-    if (node == NULL) {
-        return NULL;
-    }
 
-    return node;
+static obj_exec_tree_node_methods_t obj_exec_tree_index_scan_node_methods = {
+    obj_exec_tree_index_scan_node_work,
+    obj_exec_tree_index_scan_node_get_type,
+    obj_exec_tree_index_scan_node_is_eof
+};
+
+obj_exec_tree_index_scan_node_t *obj_exec_tree_index_scan_node_create(obj_exec_working_set_t *ws, obj_expr_base_expr_t *filter) {
+    obj_exec_tree_index_scan_node_t *index_scan_node = (obj_exec_tree_index_scan_node_t *)obj_alloc(sizeof(obj_exec_tree_index_scan_node_t));
+    
+    return index_scan_node;
 }
-*/
-/* get type */
-/*
-static obj_plan_tree_node_type_t obj_plan_tree_index_scan_get_type() {
-    return OBJ_PLAN_TREE_NODE_TYPE_INDEX_SCAN;
+
+static obj_index_key_entry_t obj_exec_tree_index_scan_node_init_index_scan_node(obj_exec_tree_index_scan_node_t *index_scan_node) {
+    index_scan_node->iter = ;
+    
 }
-*/
+
 /* index scan node work() */
-/*
-static obj_plan_tree_exec_state_t obj_plan_tree_index_scan_node_work(obj_plan_working_set_id_t *out) {
+static obj_exec_tree_exec_state_t obj_exec_tree_index_scan_node_work(obj_exec_tree_base_node_t *node, obj_exec_working_set_id_t *out) {
+    obj_exec_tree_index_scan_node_t *index_scan_node = (obj_exec_tree_index_scan_node_t *)node;
+    obj_index_key_entry_t kv;
+    switch (index_scan_node->scan_state) {
+        case OBJ_EXEC_TREE_INDEX_SCAN_STATE_INITIALIZING: {
+            /* init */
+            kv = obj_exec_tree_index_scan_node_init_index_scan_node(index_scan_node);
+            break;
+        }
+        case OBJ_EXEC_TREE_INDEX_SCAN_STATE_GETTING_NEXT: {
+            kv = obj_index_iterator_next(index_scan_node->iter);
+            break;
+        }
+        case OBJ_EXEC_TREE_INDEX_SCAN_STATE_NEED_SEEK: {
+            kv = obj_index_iterator_seek(index_scan_node->iter, &index_scan_node->seek_point);
+            break;
+        }
+        case OBJ_EXEC_TREE_INDEX_SCAN_STATE_HIT_END:
+            return OBJ_EXEC_TREE_STATE_EOF;
+        default:
+            obj_assert(0);
+    }
+    if (kv.key != NULL && index_scan_node->checker != NULL) {
+        switch (obj_index_bounds_checker_check_key(index_scan_node->checker, kv.key, &index_scan_node->seek_point)) {
+            case OBJ_INDEX_KEY_STATE_VALID:
+                break;
+            case OBJ_INDEX_KEY_STATE_DONE:
+                kv.key = NULL;
+                kv.record = NULL;
+                break;
+            case OBJ_INDEX_KEY_STATE_MUST_ADVANCE:
+                index_scan_node->scan_state = OBJ_EXEC_TREE_INDEX_SCAN_STATE_NEED_SEEK;
+                return OBJ_EXEC_TREE_STATE_NEED_TIME;
+        }
+    }
+    if (kv.key == NULL) {
+        index_scan_node->end = true;
+        index_scan_node->scan_state = OBJ_EXEC_TREE_INDEX_SCAN_STATE_HIT_END;
+        /* TODO destroy iterator */
+        return OBJ_EXEC_TREE_STATE_EOF;
+    }
+    index_scan_node->scan_state = OBJ_EXEC_TREE_INDEX_SCAN_STATE_GETTING_NEXT;
+    /* deal with filter */
+    if (index_scan_node->filter != NULL) {
+        if (!index_scan_node->filter->methods->match(index_scan_node->filter, kv.key)) {
+            return OBJ_EXEC_TREE_STATE_NEED_TIME;
+        }
+    }
+    obj_exec_working_set_id_t id = obj_exec_working_set_allocate(index_scan_node->ws);
+    obj_exec_working_set_member_t *member = obj_exec_working_set_get(index_scan_node->ws, id);
+    member->record = kv.record;
+    *out = id;
+    return OBJ_EXEC_TREE_STATE_ADVANCED;
+}
+
+
+/* get type */
+static obj_exec_tree_node_type_t obj_exec_tree_index_scan_node_get_type() {
+    return OBJ_EXEC_TREE_NODE_TYPE_INDEX_SCAN;
+}
+
+/* is eof */
+static obj_bool_t obj_exec_tree_index_scan_node_is_eof(obj_exec_tree_base_node_t *node) {
+    obj_exec_tree_index_scan_node_t *index_scan_node = (obj_exec_tree_index_scan_node_t *)node;
+    return index_scan_node->end;
 
 }
-*/
-/* is eof */
-/*
-static obj_bool_t obj_plan_tree_index_scan_node_is_eof(obj_plan_tree_base_node_t *node) {
-    obj_plan_tree_index_scan_node_t *index_scan_node = (obj_plan_tree_index_scan_node_t *)node;
-}
-*/
+
 /* ********** sort node ********** */
 
 static obj_exec_tree_node_methods_t obj_exec_tree_sort_node_methods = {

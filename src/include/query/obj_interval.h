@@ -61,6 +61,7 @@ obj_bool_t obj_interval_is_empty(obj_interval_t *interval);
 obj_bool_t obj_interval_is_point(obj_interval_t *interval);
 obj_bool_t obj_interval_is_null(obj_interval_t *interval);
 obj_interval_direction_t obj_interval_get_direction(obj_interval_t *interval);
+obj_bool_t obj_interval_equals(obj_interval_t *interval1, obj_interval_t *interval2);
 obj_interval_compare_result_t obj_interval_compare(obj_interval_t *interval1, obj_interval_t *interval2);
 void obj_interval_intersect(obj_interval_t *interval1, obj_interval_t *interval2, obj_interval_compare_result_t cmp);
 void obj_interval_dump(obj_interval_t *interval);

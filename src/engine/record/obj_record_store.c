@@ -157,23 +157,16 @@ int obj_record_store_iterator_num(obj_record_store_t *record_store) {
 /* ********** record store iterator methods ********** */
 
 /* create an iterator */
-obj_record_store_iterator_t *obj_record_store_iterator_create(obj_record_store_t *record_store, int direction){
+obj_record_store_iterator_t *obj_record_store_iterator_create(obj_record_store_t *record_store){
     obj_record_store_iterator_t *iter = obj_alloc(sizeof(obj_record_store_iterator_t));
-    obj_record_store_iterator_init(iter, record_store, direction);
+    obj_record_store_iterator_init(iter, record_store);
     return iter;
 }
 
 /* init an iterator */
-void obj_record_store_iterator_init(obj_record_store_iterator_t *iter, obj_record_store_t *record_store, int direction) {
+void obj_record_store_iterator_init(obj_record_store_iterator_t *iter, obj_record_store_t *record_store) {
     iter->record_store = record_store;
-    iter->direction = direction;
-    if (direction == 1) {
-        /* forward */
-        iter->current = obj_record_store_get_first_record(record_store);
-    } else {
-        /* backward */
-        iter->current = obj_record_store_get_last_record(record_store);
-    }
+    iter->current = obj_record_store_get_first_record(record_store);
 }
 
 void obj_record_store_iterator_destroy(obj_record_store_iterator_t *iter) {
@@ -193,13 +186,7 @@ inline obj_record_t *obj_record_store_iterator_next(obj_record_store_iterator_t 
 /* move to next */
 static inline void obj_record_store_iterator_advance(obj_record_store_iterator_t *iter) {
     if (!obj_record_store_iterator_is_eof(iter)) {
-        if (iter->direction == 1) {
-            /* forward */
-            iter->current = obj_record_store_get_next_record(iter->current);
-        } else {
-            /* backwward */
-            iter->current = obj_record_store_get_prev_record(iter->current);
-        }
+        iter->current = obj_record_store_get_next_record(iter->current);
     }
 }
 

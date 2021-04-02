@@ -37,8 +37,6 @@ struct obj_record_store_s {
 struct obj_record_store_iterator_s {
     /* record_store */
     obj_record_store_t *record_store;
-    /* 1/-1 */
-    int direction;
     obj_record_t *current;
 };
 
@@ -52,8 +50,8 @@ void obj_record_store_add(obj_record_store_t *record_store, obj_bson_t *bson);
 int obj_record_store_iterator_num(obj_record_store_t *record_store);
 
 /* record store iterator methods */
-obj_record_store_iterator_t *obj_record_store_iterator_create(obj_record_store_t *record_store, int direction);
-void obj_record_store_iterator_init(obj_record_store_iterator_t *iter, obj_record_store_t *record_store, int direction);
+obj_record_store_iterator_t *obj_record_store_iterator_create(obj_record_store_t *record_store);
+void obj_record_store_iterator_init(obj_record_store_iterator_t *iter, obj_record_store_t *record_store);
 void obj_record_store_iterator_destroy(obj_record_store_iterator_t *iter);
 obj_record_t *obj_record_store_iterator_next(obj_record_store_iterator_t *iter);
 
