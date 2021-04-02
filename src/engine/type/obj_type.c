@@ -7,6 +7,7 @@ static void *obj_typename_set_key_get(void *data);
 static void obj_typename_set_key_set(void *data, void *key);
 
 static obj_bool_t obj_check_type_define_internal(obj_bson_value_t *value);
+static obj_bool_t obj_check_type(obj_bson_t *prototype, obj_bson_t *data);
 static obj_bool_t obj_check_type_internal(obj_bson_value_t *proto_value, obj_bson_value_t *data_value);
 
 
@@ -135,7 +136,7 @@ static obj_bool_t obj_check_type_define_internal(obj_bson_value_t *value) {
 }
 
 /* check type of data */
-obj_bool_t obj_check_type(obj_bson_t *prototype, obj_bson_t *data) {
+static obj_bool_t obj_check_type(obj_bson_t *prototype, obj_bson_t *data) {
     obj_bson_iter_t proto_iter;
     char *proto_key = NULL;
     obj_bson_type_t proto_type;

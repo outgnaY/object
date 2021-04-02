@@ -8,7 +8,6 @@ typedef struct obj_collection_catalog_entry_pair_s obj_collection_catalog_entry_
 typedef struct obj_db_catalog_entry_s obj_db_catalog_entry_t;
 typedef struct obj_collection_catalog_entry_s obj_collection_catalog_entry_t;
 typedef struct obj_index_catalog_entry_s obj_index_catalog_entry_t;
-typedef struct obj_index_catalog_s obj_index_catalog_t;
 
 
 struct obj_db_catalog_entry_pair_s {
@@ -18,7 +17,7 @@ struct obj_db_catalog_entry_pair_s {
 
 struct obj_collection_catalog_entry_pair_s {
     char *collection;
-    obj_db_catalog_entry_t *entry;
+    obj_collection_catalog_entry_t *entry;
 };
 
 /* database entry */
@@ -30,19 +29,22 @@ struct obj_db_catalog_entry_s {
 struct obj_collection_catalog_entry_s {
     /* record store */
     obj_record_store_t *record_store;
-    /* object prototype */
-    /* obj_bson_t *prototype; */
+    /* type checker */
+    obj_type_checker_t checker;
+    /* [index catalog entry *] */
+    obj_array_t indexes;
 };
 
 /* an index */
 struct obj_index_catalog_entry_s {
-
+    /* number of fields, for compound indexes */
+    int nfields;
+    /* {"a": 1, "b": -1} */
+    obj_bson_t *key_pattern;
+    /* index */
+    obj_skiplist_t *skiplist;
 };
 
-/* indexes */
-struct obj_index_catalog_s {
-
-};
 
 
 extern obj_prealloc_map_methods_t db_catalog_entry_map_methods;
@@ -52,6 +54,6 @@ void obj_db_catalog_entry_destroy(obj_db_catalog_entry_t *db_entry);
 
 /* collection catalog entry methods */
 obj_collection_catalog_entry_t *obj_collection_catalog_entry_create();
-void obj_colleciton_catalog_entry_destroy(obj_collection_catalog_entry_t *collection_entry);
+void obj_collection_catalog_entry_destroy(obj_collection_catalog_entry_t *collection_entry);
 
 #endif  /* OBJ_CATALOG_H */

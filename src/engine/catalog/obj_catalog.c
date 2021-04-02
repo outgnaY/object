@@ -153,14 +153,19 @@ void obj_db_catalog_entry_destroy(obj_db_catalog_entry_t *db_entry) {
 /* ********** collection catalog entry methods ********** */
 
 /* create collection catalog entry */
-obj_collection_catalog_entry_t *obj_collection_catalog_entry_create() {
+obj_collection_catalog_entry_t *obj_collection_catalog_entry_create(obj_bson_t *prototype) {
+    if (!obj_check_type_define(prototype)) {
+        return NULL;
+    }
     obj_collection_catalog_entry_t *collection_entry = obj_alloc(sizeof(obj_collection_catalog_entry_t));
     collection_entry->record_store = obj_record_store_create();
+    collection_entry->checker.prototype = prototype;
+    obj_array_init(&collection_entry->indexes, sizeof(obj_index_catalog_entry_t *));
     return collection_entry;
 }
 
 /* destroy collection catalog entry */
-void obj_colleciton_catalog_entry_destroy(obj_collection_catalog_entry_t *collection_entry) {
+void obj_collection_catalog_entry_destroy(obj_collection_catalog_entry_t *collection_entry) {
     /* no iterators exist */
     obj_assert(obj_record_store_iterator_num(collection_entry->record_store) == 0);
     /* destroy record store */
@@ -168,3 +173,5 @@ void obj_colleciton_catalog_entry_destroy(obj_collection_catalog_entry_t *collec
     /* TODO clear other structures */
     obj_free(collection_entry);
 }
+
+/* ********** index catalog entry methods ********** */

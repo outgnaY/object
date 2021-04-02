@@ -11,7 +11,7 @@ static obj_bool_t obj_index_bounds_checker_find_left_most(obj_index_bounds_check
 /* ********** index bounds methods ********** */
 
 /* translate expr to index bounds */
-void obj_index_bounds_translate(obj_expr_base_expr_t *expr, char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out) {
+void obj_index_bounds_translate(obj_expr_base_expr_t *expr, char *key, obj_bson_value_t *value, obj_ordered_interval_list_t *out) {
     obj_assert(out->intervals.size == 0);
     /* must be compare expression */
     obj_assert(expr->type >= OBJ_EXPR_TYPE_EQ && expr->type <= OBJ_EXPR_TYPE_GTE);
@@ -25,18 +25,18 @@ void obj_index_bounds_translate(obj_expr_base_expr_t *expr, char *key, obj_bson_
 }
 
 /* translate expr and intersect with current intervals */
-void obj_index_bounds_translate_and_intersect(obj_expr_base_expr_t *expr, char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out) {
+void obj_index_bounds_translate_and_intersect(obj_expr_base_expr_t *expr, char *key, obj_bson_value_t *value, obj_ordered_interval_list_t *out) {
     obj_ordered_interval_list_t oil;
-    obj_index_bounds_translate(expr, key, value, index_entry, &oil);
+    obj_index_bounds_translate(expr, key, value, &oil);
     /* do intersect */
     obj_ordered_interval_list_intersect(out, &oil);
     out->name = oil.name;
 }
 
 /* translate expr and union with current intervals */
-void obj_index_bounds_translate_and_union(obj_expr_base_expr_t *expr, char *key, obj_bson_value_t *value, obj_query_index_entry_t *index_entry, obj_ordered_interval_list_t *out) {
+void obj_index_bounds_translate_and_union(obj_expr_base_expr_t *expr, char *key, obj_bson_value_t *value, obj_ordered_interval_list_t *out) {
     obj_ordered_interval_list_t oil;
-    obj_index_bounds_translate(expr, key, value, index_entry, &oil);
+    obj_index_bounds_translate(expr, key, value, &oil);
     /* do union */
     obj_ordered_interval_list_union(out, &oil);
     out->name = oil.name;
@@ -172,6 +172,13 @@ obj_bool_t obj_index_bounds_is_single_interval(obj_index_bounds_t *bounds, obj_b
 }
 
 /* ********** index bounds checker methods ********** */
+
+/* create index bounds checker */
+obj_index_bounds_checker_t *obj_index_bounds_checker_create(obj_index_bounds_t *bounds, obj_bson_t *key_pattern) {
+    obj_index_bounds_checker_t *checker = obj_alloc(sizeof(obj_index_bounds_checker_t));
+    obj_index_bounds_checker_init(checker, bounds, key_pattern);
+    return checker;
+}
 
 /* init index bounds checker */
 void obj_index_bounds_checker_init(obj_index_bounds_checker_t *checker, obj_index_bounds_t *bounds, obj_bson_t *key_pattern) {

@@ -118,7 +118,7 @@ obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_array_t *
     obj_query_index_get_fields(sq->root, &fields);
     /* find relevant indexes */
     obj_array_t relevant_indexes;
-    obj_array_init(&relevant_indexes, sizeof(obj_query_index_entry_t));
+    obj_array_init(&relevant_indexes, sizeof(obj_index_catalog_entry_t));
     obj_query_index_find_relevant_indexes(&fields, indexes, &relevant_indexes);
     /* obj_query_planner_dump_relevant_indexes(&relevant_indexes); */
     /*

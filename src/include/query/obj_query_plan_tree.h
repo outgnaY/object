@@ -66,7 +66,7 @@ struct obj_query_plan_tree_collection_scan_node_s {
 struct obj_query_plan_tree_index_scan_node_s {
     obj_query_plan_tree_base_node_t base;
     /* index key pattern */
-    obj_query_index_entry_t index_entry;
+    obj_index_catalog_entry_t *index_entry;
     /* index bounds */
     obj_index_bounds_t bounds;
 };
@@ -104,7 +104,7 @@ obj_query_plan_tree_or_node_t *obj_query_plan_tree_or_node_create();
 /* collection scan node */
 obj_query_plan_tree_collection_scan_node_t *obj_query_plan_tree_collection_scan_node_create();
 /* index scan node */
-obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_create(obj_query_index_entry_t *index_entry);
+obj_query_plan_tree_index_scan_node_t *obj_query_plan_tree_index_scan_node_create(obj_index_catalog_entry_t *index_entry);
 /* sort node */
 obj_query_plan_tree_sort_node_t *obj_query_plan_tree_sort_node_create();
 /* skip node */

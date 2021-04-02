@@ -8,17 +8,10 @@
 /* forward declaration */
 typedef struct obj_query_plan_tree_base_node_s obj_query_plan_tree_base_node_t;
 
-typedef struct obj_query_index_entry_s obj_query_index_entry_t;
 typedef struct obj_query_index_scan_build_state_s obj_query_index_scan_build_state_t;
 typedef struct obj_query_index_ordered_interval_list_s obj_query_index_ordered_interval_list_t;
 
 
-
-
-struct obj_query_index_entry_s {
-    int nfields;
-    obj_bson_t *key_pattern;
-};
 
 
 struct obj_query_index_scan_build_state_s {

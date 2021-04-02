@@ -3,9 +3,12 @@
 
 #include "obj_core.h"
 
+/* forward declaration */
+typedef struct obj_index_catalog_entry_s obj_index_catalog_entry_t;
+
 /* skiplist */
-typedef struct obj_skiplist_node_s obj_skiplist_node_t;
 typedef struct obj_skiplist_level_s obj_skiplist_level_t;
+typedef struct obj_skiplist_node_s obj_skiplist_node_t;
 typedef struct obj_skiplist_s obj_skiplist_t;
 
 /* index */
@@ -19,6 +22,10 @@ typedef struct obj_index_iterator_s obj_index_iterator_t;
 
 /* ********** skiplist ********** */
 
+struct obj_skiplist_level_s {
+    obj_skiplist_node_t *forward;
+};
+
 struct obj_skiplist_node_s {
     /* key */
     obj_bson_t *key;
@@ -26,10 +33,6 @@ struct obj_skiplist_node_s {
     obj_record_t *record;
     obj_skiplist_node_t *backward;
     obj_skiplist_level_t level[];
-};
-
-struct obj_skiplist_level_s {
-    obj_skiplist_node_t *forward;
 };
 
 struct obj_skiplist_s {
@@ -87,9 +90,11 @@ struct obj_index_iterator_s {
 #define OBJ_SKIPLIST_MAXLEVEL 32
 
 
+void obj_index_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_record_t *record);
+
+obj_index_iterator_t *obj_index_iterator_create(obj_index_catalog_entry_t *index_entry);
 void obj_index_iterator_set_end_position(obj_index_iterator_t *iter, obj_bson_t *key, obj_bool_t inclusive);
-void obj_index_iterator_seek_end_cursor(obj_index_iterator_t *iter);
-obj_index_key_entry_t obj_index_iterator_seek(obj_index_iterator_t *iter, obj_bson_t *key);
+obj_index_key_entry_t obj_index_iterator_seek(obj_index_iterator_t *iter, obj_bson_t *key, obj_bool_t inclusive);
 obj_index_key_entry_t obj_index_iterator_seek_with_seek_point(obj_index_iterator_t *iter, obj_index_seek_point_t *seek_point);
 obj_index_key_entry_t obj_index_iterator_next(obj_index_iterator_t *iter);
 

@@ -33,7 +33,7 @@ static int obj_query_plan_iter_memo_id_for_expr(obj_query_plan_iter_t *pi, obj_e
 static void obj_query_plan_iter_assign_predicate(obj_query_plan_iter_index_assignment_t *index_assignment, obj_expr_base_expr_t *pred, int position);
 static void obj_query_plan_iter_one_index(obj_query_plan_iter_t *pi, obj_prealloc_map_t *index_to_first, obj_prealloc_map_t *index_to_not_first, obj_array_t *subnodes, obj_query_plan_iter_and_node_t *and_node);
 static void obj_query_plan_iter_get_indexed_preds(obj_expr_base_expr_t *expr, obj_array_t *indexed_preds);
-static int obj_query_plan_iter_get_position(obj_query_index_entry_t *index_entry, obj_expr_base_expr_t *pred);
+static int obj_query_plan_iter_get_position(obj_index_catalog_entry_t *index_entry, obj_expr_base_expr_t *pred);
 static obj_bool_t obj_query_plan_iter_next_memo(obj_query_plan_iter_t *pi, int id);
 
 
@@ -444,7 +444,7 @@ static void obj_query_plan_iter_one_index(obj_query_plan_iter_t *pi, obj_preallo
         obj_array_push_back(&and_node->choices, &state);
     }
     /* for each first, assign predicate */
-    obj_query_index_entry_t *index_entry = NULL;
+    obj_index_catalog_entry_t *index_entry = NULL;
     obj_prealloc_map_entry_t *first_entry = NULL;
     obj_prealloc_map_entry_t *not_first_entry = NULL;
     obj_array_t *first_preds = NULL;
@@ -458,7 +458,7 @@ static void obj_query_plan_iter_one_index(obj_query_plan_iter_t *pi, obj_preallo
             index_id = *(int *)obj_prealloc_map_get_key(index_to_first, first_entry);
             first_preds = (obj_array_t *)obj_prealloc_map_get_value(index_to_first, first_entry);
             obj_assert(first_preds != NULL);
-            index_entry = (obj_query_index_entry_t *)obj_array_get_index(pi->indexes, index_id);
+            index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(pi->indexes, index_id);
             obj_query_plan_iter_index_assignment_t index_assign;
             obj_query_plan_iter_index_assignment_init(&index_assign);
             index_assign.index = index_id;
@@ -506,7 +506,7 @@ static void obj_query_plan_iter_get_indexed_preds(obj_expr_base_expr_t *expr, ob
 }
 
 /* find pred's path position in index */
-static int obj_query_plan_iter_get_position(obj_query_index_entry_t *index_entry, obj_expr_base_expr_t *pred) {
+static int obj_query_plan_iter_get_position(obj_index_catalog_entry_t *index_entry, obj_expr_base_expr_t *pred) {
     obj_assert(pred->tag != NULL);
     obj_expr_relevant_tag_t *rt = (obj_expr_relevant_tag_t *)pred->tag;
     int position = 0;

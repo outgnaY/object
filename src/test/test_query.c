@@ -16,10 +16,9 @@ int main() {
     obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
         "find", OBJ_BSON_BCON_UTF8("db.coll"),
         "filter", "{",
-            "$or", "[",
+            "$and", "[",
                 "{", "x", OBJ_BSON_BCON_INT32(4), "}",
                 "{", "y", OBJ_BSON_BCON_INT32(5), "}",
-                "{", "z", OBJ_BSON_BCON_INT32(8), "}",
             "]",
         "}"
     );
@@ -62,10 +61,10 @@ int main() {
         "y", OBJ_BSON_BCON_INT32(1)
     );
     obj_array_t indexes;
-    obj_array_init(&indexes, sizeof(obj_query_index_entry_t));
-    obj_query_index_entry_t entry1 = {2, kp1};
-    obj_query_index_entry_t entry2 = {1, kp2};
-    obj_query_index_entry_t entry3 = {1, kp3};
+    obj_array_init(&indexes, sizeof(obj_index_catalog_entry_t));
+    obj_index_catalog_entry_t entry1 = {2, kp1, NULL};
+    obj_index_catalog_entry_t entry2 = {1, kp2, NULL};
+    obj_index_catalog_entry_t entry3 = {1, kp3, NULL};
     
     obj_array_push_back(&indexes, &entry1);
     obj_array_push_back(&indexes, &entry2);
@@ -97,7 +96,7 @@ int main() {
         obj_record_store_add(record_store, data);
     }
     obj_array_t indexes;
-    obj_array_init(&indexes, sizeof(obj_query_index_entry_t));
+    obj_array_init(&indexes, sizeof(obj_index_catalog_entry_t));
     obj_status_with_t status_with_plan = obj_query_planner_plan(sq, &indexes);
     obj_query_plan_tree_base_node_t *plan_tree = (obj_query_plan_tree_base_node_t *)status_with_plan.data;
     ((obj_query_plan_tree_collection_scan_node_t *)plan_tree)->collection = collection;

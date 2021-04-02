@@ -7,8 +7,8 @@ static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_and(obj_ex
 static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_or(obj_expr_base_expr_t *root, obj_array_t *indexes);
 static obj_bool_t obj_query_index_should_merge_with_leaf(obj_expr_base_expr_t *expr, obj_query_index_scan_build_state_t *state);
 static void obj_query_index_merge_with_leaf(obj_expr_base_expr_t *expr, obj_query_index_scan_build_state_t *state);
-static obj_query_plan_tree_base_node_t *obj_query_index_make_leaf_node(obj_query_index_entry_t *index_entry, int pos, obj_expr_base_expr_t *expr);
-static void obj_query_index_finish_leaf_node(obj_query_plan_tree_base_node_t *node, obj_query_index_entry_t *index_entry);
+static obj_query_plan_tree_base_node_t *obj_query_index_make_leaf_node(obj_index_catalog_entry_t *index_entry, int pos, obj_expr_base_expr_t *expr);
+static void obj_query_index_finish_leaf_node(obj_query_plan_tree_base_node_t *node, obj_index_catalog_entry_t *index_entry);
 static void obj_query_index_finish_and_output_leaf(obj_query_index_scan_build_state_t *state, obj_array_t *out);
 static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root, obj_array_t *indexes, obj_array_t *out, obj_bool_t *full_indexed);
 static obj_bool_t obj_query_index_process_index_scans_subnode(obj_query_index_scan_build_state_t *state, obj_array_t *out);
@@ -58,14 +58,14 @@ void obj_query_index_get_fields(obj_expr_base_expr_t *root, obj_set_t *out) {
 /* 
  * find relevant indexes 
  * fields: char *
- * all_indexes: [obj_query_index_entry_t]
- * out: [obj_query_index_entry_t]
+ * all_indexes: [obj_index_catalog_entry_t]
+ * out: [obj_index_catalog_entry_t]
  * e.x.  
  */
 void obj_query_index_find_relevant_indexes(obj_set_t *fields, obj_array_t *all_indexes, obj_array_t *out) {
     int i = 0;
     for (i = 0; i < all_indexes->size; i++) {
-        obj_query_index_entry_t *index_entry = (obj_query_index_entry_t *)obj_array_get_index(all_indexes, i);
+        obj_index_catalog_entry_t *index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(all_indexes, i);
         obj_bson_iter_t iter;
         char *key;
         obj_bson_type_t bson_type;
@@ -112,7 +112,7 @@ void obj_query_index_rate_indexes(obj_expr_base_expr_t *root, obj_array_t *index
         for (i = 0; i < indexes->size; i++) {
             obj_bson_iter_t iter;
             char *key;
-            obj_query_index_entry_t *index_entry = (obj_query_index_entry_t *)obj_array_get_index(indexes, i);
+            obj_index_catalog_entry_t *index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(indexes, i);
             obj_bson_type_t bson_type;
             obj_bson_iter_init(&iter, index_entry->key_pattern);
             obj_assert(obj_bson_iter_next_internal(&iter, &key, &bson_type));
@@ -165,7 +165,7 @@ obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_data_access(obj_e
         /* compare expressions */
         if (obj_query_index_expr_is_bounds_generating(root)) {
             obj_expr_index_tag_t *index_tag = (obj_expr_index_tag_t *)root->tag;
-            obj_query_index_entry_t *index_entry = (obj_query_index_entry_t *)obj_array_get_index(indexes, index_tag->index);
+            obj_index_catalog_entry_t *index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(indexes, index_tag->index);
             obj_query_plan_tree_base_node_t *node = obj_query_index_make_leaf_node(index_entry, index_tag->pos, root);
             obj_query_index_finish_leaf_node(node, index_entry);
             return node;
@@ -246,7 +246,7 @@ static obj_bool_t obj_query_index_should_merge_with_leaf(obj_expr_base_expr_t *e
         return false;
     }
     int pos = state->index_tag->pos;
-    obj_query_index_entry_t *index_entry = (obj_query_index_entry_t *)obj_array_get_index(state->indexes, state->cur_index);
+    obj_index_catalog_entry_t *index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(state->indexes, state->cur_index);
     obj_query_plan_tree_node_type_t node_type = node->methods->get_type();
     obj_expr_type_t merge_type = state->root->type;
     obj_assert(node_type == OBJ_QUERY_PLAN_TREE_NODE_TYPE_INDEX_SCAN);
@@ -260,7 +260,7 @@ static void obj_query_index_merge_with_leaf(obj_expr_base_expr_t *expr, obj_quer
     obj_query_plan_tree_base_node_t *node = state->current_scan;
     obj_assert(node != NULL);
     obj_expr_type_t root_type = state->root->type;
-    obj_query_index_entry_t *index_entry = (obj_query_index_entry_t *)obj_array_get_index(state->indexes, state->cur_index);
+    obj_index_catalog_entry_t *index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(state->indexes, state->cur_index);
     int pos = state->index_tag->pos;
     obj_query_plan_tree_index_scan_node_t *index_scan_node = (obj_query_plan_tree_index_scan_node_t *)node;
     obj_index_bounds_t *bounds_to_fill = NULL;
@@ -280,14 +280,14 @@ static void obj_query_index_merge_with_leaf(obj_expr_base_expr_t *expr, obj_quer
     obj_ordered_interval_list_t *oil = (obj_ordered_interval_list_t *)obj_array_get_index(&bounds_to_fill->fields, pos);
     if (oil->name == NULL) {
         obj_assert(oil->intervals.size == 0);
-        obj_index_bounds_translate(expr, key, value, index_entry, oil);
+        obj_index_bounds_translate(expr, key, value, oil);
     } else {
         if (root_type == OBJ_EXPR_TYPE_AND) {
             /* AND */
-            obj_index_bounds_translate_and_intersect(expr, key, value, index_entry, oil);
+            obj_index_bounds_translate_and_intersect(expr, key, value, oil);
         } else if (root_type = OBJ_EXPR_TYPE_OR) {
             /* OR */
-            obj_index_bounds_translate_and_union(expr, key, value, index_entry, oil);
+            obj_index_bounds_translate_and_union(expr, key, value, oil);
         }
     }
 }
@@ -312,7 +312,7 @@ static void obj_query_index_handle_filter_and(obj_query_index_scan_build_state_t
 
 }
 */
-static obj_query_plan_tree_base_node_t *obj_query_index_make_leaf_node(obj_query_index_entry_t *index_entry, int pos, obj_expr_base_expr_t *expr) {
+static obj_query_plan_tree_base_node_t *obj_query_index_make_leaf_node(obj_index_catalog_entry_t *index_entry, int pos, obj_expr_base_expr_t *expr) {
     obj_query_plan_tree_index_scan_node_t *index_scan_node = obj_query_plan_tree_index_scan_node_create(index_entry);
     obj_array_init_size(&index_scan_node->bounds.fields, sizeof(obj_ordered_interval_list_t), index_entry->nfields);
     obj_array_resize(&index_scan_node->bounds.fields, index_entry->nfields);
@@ -336,11 +336,11 @@ static obj_query_plan_tree_base_node_t *obj_query_index_make_leaf_node(obj_query
         obj_assert(obj_bson_iter_next_internal(&iter, &key, &bson_type));
     }
     value = obj_bson_iter_value(&iter);
-    obj_index_bounds_translate(expr, key, value, index_entry, oil);
+    obj_index_bounds_translate(expr, key, value, oil);
     return (obj_query_plan_tree_base_node_t *)index_scan_node;
 }
 
-static void obj_query_index_finish_leaf_node(obj_query_plan_tree_base_node_t *node, obj_query_index_entry_t *index_entry) {
+static void obj_query_index_finish_leaf_node(obj_query_plan_tree_base_node_t *node, obj_index_catalog_entry_t *index_entry) {
     obj_assert(node->methods->get_type() == OBJ_QUERY_PLAN_TREE_NODE_TYPE_INDEX_SCAN);
     obj_query_plan_tree_index_scan_node_t *index_scan_node = (obj_query_plan_tree_index_scan_node_t *)node;
     obj_index_bounds_t *bounds = &index_scan_node->bounds;
@@ -390,7 +390,7 @@ static void obj_query_index_finish_leaf_node(obj_query_plan_tree_base_node_t *no
 }
 
 static void obj_query_index_finish_and_output_leaf(obj_query_index_scan_build_state_t *state, obj_array_t *out) {
-    obj_query_index_entry_t *index_entry = (obj_query_index_entry_t *)obj_array_get_index(state->indexes, state->cur_index);
+    obj_index_catalog_entry_t *index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(state->indexes, state->cur_index);
     obj_query_index_finish_leaf_node(state->current_scan, index_entry);
     /*
     if (state->root->type == OBJ_EXPR_TYPE_OR) {
@@ -440,7 +440,7 @@ static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root
             }
             /* reset state */
             obj_query_index_scan_build_state_reset(&state, state.index_tag);
-            obj_query_index_entry_t *index_entry = (obj_query_index_entry_t *)obj_array_get_index(indexes, state.cur_index);
+            obj_index_catalog_entry_t *index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(indexes, state.cur_index);
             /* create new */
             state.current_scan = obj_query_index_make_leaf_node(index_entry, state.index_tag->pos, child);
             /* obj_query_index_handle_filter(&state); */
