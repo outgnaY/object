@@ -553,7 +553,7 @@ static obj_index_key_entry_t obj_exec_tree_index_scan_node_init_index_scan_node(
     } else {
         obj_index_key_entry_t kv = {NULL, NULL};
         index_scan_node->checker = obj_index_bounds_checker_create(index_scan_node->bounds, index_scan_node->index_entry->key_pattern);
-        if (obj_index_bounds_checker_get_start_seek_point(index_scan_node->checker, &index_scan_node->seek_point)) {
+        if (!obj_index_bounds_checker_get_start_seek_point(index_scan_node->checker, &index_scan_node->seek_point)) {
             return kv;
         }
         return obj_index_iterator_seek_with_seek_point(index_scan_node->iter, &index_scan_node->seek_point);
@@ -583,6 +583,7 @@ static obj_exec_tree_exec_state_t obj_exec_tree_index_scan_node_work(obj_exec_tr
         default:
             obj_assert(0);
     }
+    printf("kv.key %p\n", kv.key);
     if (kv.key != NULL && index_scan_node->checker != NULL) {
         switch (obj_index_bounds_checker_check_key(index_scan_node->checker, kv.key, &index_scan_node->seek_point)) {
             case OBJ_INDEX_KEY_STATE_VALID:
@@ -597,6 +598,7 @@ static obj_exec_tree_exec_state_t obj_exec_tree_index_scan_node_work(obj_exec_tr
         }
     }
     if (kv.key == NULL) {
+        printf("NULL\n");
         index_scan_node->end = true;
         index_scan_node->scan_state = OBJ_EXEC_TREE_INDEX_SCAN_STATE_HIT_END;
         /* TODO destroy iterator */
@@ -605,6 +607,7 @@ static obj_exec_tree_exec_state_t obj_exec_tree_index_scan_node_work(obj_exec_tr
     index_scan_node->scan_state = OBJ_EXEC_TREE_INDEX_SCAN_STATE_GETTING_NEXT;
     /* deal with filter */
     if (index_scan_node->filter != NULL) {
+        printf("filter\n");
         if (!index_scan_node->filter->methods->match(index_scan_node->filter, kv.key)) {
             return OBJ_EXEC_TREE_STATE_NEED_TIME;
         }

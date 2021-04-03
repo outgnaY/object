@@ -187,7 +187,9 @@ static obj_bool_t obj_bson_visit_print_visit_all(obj_bson_t *bson) {
 }
 
 obj_bool_t obj_bson_visit_print_visit(obj_bson_t *bson) {
-    return obj_bson_visit_print_visit_all(bson);
+    obj_bool_t res = obj_bson_visit_print_visit_all(bson);
+    printf("\n");
+    return res;
 }
 
 /* ----------validate bson ---------- */

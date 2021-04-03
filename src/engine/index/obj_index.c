@@ -1,16 +1,14 @@
 #include "obj_core.h"
 
 /* skiplist methods */
-static obj_skiplist_t *obj_skiplist_create();
-static void obj_skiplist_destroy(obj_skiplist_t *skiplist);
 static obj_skiplist_node_t *obj_skiplist_node_create(int level, obj_bson_t *key, obj_record_t *record);
 static void obj_skiplist_node_destroy(obj_skiplist_node_t *node);
 static int obj_skiplist_random_level();
-static void obj_skiplist_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_record_t *record);
 static obj_bool_t obj_skiplist_locate(obj_skiplist_t *skiplist, obj_bson_t *key, obj_bool_t inclusive, obj_skiplist_node_t **out);
 static obj_skiplist_node_t *obj_skiplist_advance_to(obj_skiplist_t *skiplist, obj_skiplist_node_t *current, obj_bson_t *key, obj_bool_t inclusive);
 static obj_bool_t obj_skiplist_locate_seek_point(obj_skiplist_t *skiplist, obj_index_seek_point_t *seek_point, obj_skiplist_node_t **out);
 static obj_skiplist_node_t *obj_skiplist_advance_to_seek_point(obj_skiplist_t *skiplist, obj_skiplist_node_t *current, obj_index_seek_point_t *seek_point);
+static void obj_skiplist_node_dump(obj_skiplist_node_t *node);
 
 /* index methods */
 static int obj_index_key_order_get(obj_index_key_order_t order, int i);
@@ -33,27 +31,28 @@ static void obj_index_iterator_advance(obj_index_iterator_t *iter);
 /* ********** skiplist methods ********** */
 
 /* create skiplist */
-static obj_skiplist_t *obj_skiplist_create() {
+obj_skiplist_t *obj_skiplist_create(obj_index_key_order_t order) {
     obj_skiplist_t *skiplist = obj_alloc(sizeof(obj_skiplist_t));
     skiplist->level = 1;
     skiplist->length = 0;
     skiplist->head = obj_skiplist_node_create(OBJ_SKIPLIST_MAXLEVEL, NULL, NULL);
     int i;
     for (i = 0; i < OBJ_SKIPLIST_MAXLEVEL; i++) {
-        skiplist->head->level[i].forward = NULL;
+        skiplist->head->levels[i].forward = NULL;
     }
     skiplist->head->backward = NULL;
     skiplist->tail = NULL;
+    skiplist->order = order;
     return skiplist;
 }
 
 /* destroy skiplist */
-static void obj_skiplist_destroy(obj_skiplist_t *skiplist) {
-    obj_skiplist_node_t *node = skiplist->head->level[0].forward;
+void obj_skiplist_destroy(obj_skiplist_t *skiplist) {
+    obj_skiplist_node_t *node = skiplist->head->levels[0].forward;
     obj_skiplist_node_t *next = NULL;
     obj_free(skiplist->head);
     while (node) {
-        next = node->level[0].forward;
+        next = node->levels[0].forward;
         obj_skiplist_node_destroy(node);
         node = next;
     }
@@ -63,6 +62,7 @@ static void obj_skiplist_destroy(obj_skiplist_t *skiplist) {
 /* create skiplist node */
 static obj_skiplist_node_t *obj_skiplist_node_create(int level, obj_bson_t *key, obj_record_t *record) {
     obj_skiplist_node_t *node = obj_alloc(sizeof(obj_skiplist_node_t) + level * sizeof(obj_skiplist_level_t));
+    node->level = level;
     node->key = key;
     node->record = record;
     return node;
@@ -77,20 +77,20 @@ static void obj_skiplist_node_destroy(obj_skiplist_node_t *node) {
 static int obj_skiplist_random_level() {
     int level = 1;
     while ((random() & 0xffff) < (OBJ_SKIPLIST_P * 0xffff)) {
-        level += 1;;
+        level += 1;
     }
     return (level < OBJ_SKIPLIST_MAXLEVEL) ? level : OBJ_SKIPLIST_MAXLEVEL;
 }
 
 /* insert */
-static void obj_skiplist_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_record_t *record) {
+void obj_skiplist_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_record_t *record) {
     obj_skiplist_node_t *update[OBJ_SKIPLIST_MAXLEVEL];
     obj_skiplist_node_t *x;
     int i, level;
     x = skiplist->head;
     for (i = skiplist->level - 1; i >= 0; i--) {
-        while (x->level[i].forward && obj_index_key_compare(x->level[i].forward->key, key, skiplist->order) == -1) {
-            x = x->level[i].forward;
+        while (x->levels[i].forward && obj_index_key_compare(x->levels[i].forward->key, key, skiplist->order) == -1) {
+            x = x->levels[i].forward;
         }
         update[i] = x;
     }
@@ -103,17 +103,17 @@ static void obj_skiplist_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_r
     }
     x = obj_skiplist_node_create(level, key, record);
     for (i = 0; i < level; i++) {
-        x->level[i].forward = update[i]->level[i].forward;
-        update[i]->level[i].forward = x;
+        x->levels[i].forward = update[i]->levels[i].forward;
+        update[i]->levels[i].forward = x;
     }
-    x->backward = (update[0] = skiplist->head) ? NULL : update[0];
-    if (x->level[0].forward) {
-        x->level[0].forward->backward = x;
+    x->backward = (update[0] == skiplist->head) ? NULL : update[0];
+    if (x->levels[0].forward) {
+        x->levels[0].forward->backward = x;
     } else {
         skiplist->tail = x;
     }
     skiplist->length++;
-    return x;
+    /* return x; */
 }
 
 /* delete */
@@ -127,21 +127,21 @@ static obj_bool_t obj_skiplist_locate(obj_skiplist_t *skiplist, obj_bson_t *key,
     if (inclusive) {
         for (i = skiplist->level - 1; i >= 0; i--) {
             /* < seek point */
-            while (node->level[i].forward && obj_index_key_compare(node->level[i].forward, key, skiplist->order) == -1) {
-                node = node->level[i].forward;
+            while (node->levels[i].forward && obj_index_key_compare(node->levels[i].forward->key, key, skiplist->order) == -1) {
+                node = node->levels[i].forward;
             }
         }
     } else {
         for (i = skiplist->level - 1; i >= 0; i--) {
             /* <= seek point */
-            while (node->level[i].forward && obj_index_key_compare(node->level[i].forward, key, skiplist->order) <= 0) {
-                node = node->level[i].forward;
+            while (node->levels[i].forward && obj_index_key_compare(node->levels[i].forward->key, key, skiplist->order) <= 0) {
+                node = node->levels[i].forward;
             }
         }
     }
     
     /* maybe NULL */
-    *out = node->level[0].forward;
+    *out = node->levels[0].forward;
     if (*out == NULL) {
         return false;
     }
@@ -157,26 +157,24 @@ static obj_bool_t obj_skiplist_locate(obj_skiplist_t *skiplist, obj_bson_t *key,
 /* advance to */
 static obj_skiplist_node_t *obj_skiplist_advance_to(obj_skiplist_t *skiplist, obj_skiplist_node_t *current, obj_bson_t *key, obj_bool_t inclusive) {
     obj_skiplist_node_t *node = current;
+    obj_bson_visit_print_visit(node->key);
     int i;
     if (inclusive) {
-        for (i = skiplist->level - 1; i >= 0; i--) {
-            while (node->level[i].forward && obj_index_key_compare(node->level[i].forward, key, skiplist->order) == -1) {
-                node = node->level[i].forward;
+        for (i = current->level - 1; i >= 0; i--) {
+            while (node->levels[i].forward && obj_index_key_compare(node->levels[i].forward->key, key, skiplist->order) == -1) {
+                node = node->levels[i].forward;
             }
         }
     } else {
-        for (i = skiplist->level - 1; i >= 0; i--) {
-            while (node->level[i].forward && obj_index_key_compare(node->level[i].forward, key, skiplist->order) <= 0) {
-                node = node->level[i].forward;
+        for (i = current->level - 1; i >= 0; i--) {
+            while (node->levels[i].forward && obj_index_key_compare(node->levels[i].forward->key, key, skiplist->order) <= 0) {
+                node = node->levels[i].forward;
             }
         }
     }
     
     /* maybe NULL */
-    if (node->level[0].forward == NULL) {
-        return NULL;
-    }
-    return node->level[0].forward;
+    return node->levels[0].forward;
 }
 
 
@@ -187,12 +185,12 @@ static obj_bool_t obj_skiplist_locate_seek_point(obj_skiplist_t *skiplist, obj_i
     int i;
     for (i = skiplist->level - 1; i >= 0; i--) {
         /* < seek point */
-        while (node->level[i].forward && obj_index_key_compare_with_seek_point(node->level[i].forward->key, seek_point, skiplist->order) == -1) {
-            node = node->level[i].forward;
+        while (node->levels[i].forward && obj_index_key_compare_with_seek_point(node->levels[i].forward->key, seek_point, skiplist->order) == -1) {
+            node = node->levels[i].forward;
         }
     }
     /* maybe NULL */
-    *out = node->level[0].forward;
+    *out = node->levels[0].forward;
     if (*out == NULL) {
         return false;
     }
@@ -209,14 +207,31 @@ static obj_bool_t obj_skiplist_locate_seek_point(obj_skiplist_t *skiplist, obj_i
 static obj_skiplist_node_t *obj_skiplist_advance_to_seek_point(obj_skiplist_t *skiplist, obj_skiplist_node_t *current, obj_index_seek_point_t *seek_point) {
     obj_skiplist_node_t *node = current;
     int i;
-    for (i = skiplist->level - 1; i >= 0; i--) {
+    for (i = current->level - 1; i >= 0; i--) {
         /* < seek point */
-        while (node->level[i].forward && obj_index_key_compare_with_seek_point(node->level[i].forward->key, seek_point, skiplist->order) == -1) {
-            node = node->level[i].forward;
+        while (node->levels[i].forward && obj_index_key_compare_with_seek_point(node->levels[i].forward->key, seek_point, skiplist->order) == -1) {
+            node = node->levels[i].forward;
         }
     }
     /* maybe NULL */
-    return node->level[0].forward;
+    return node->levels[0].forward;
+}
+
+void obj_skiplist_dump(obj_skiplist_t *skiplist) {
+    printf("********** skiplist **********\n");
+    obj_skiplist_node_t *node = skiplist->head->levels[0].forward;
+    int i = 0;
+    while (node) {
+        printf("%d:\n", i);
+        obj_skiplist_node_dump(node);
+        node = node->levels[0].forward;
+        i++;
+    }
+}
+
+static void obj_skiplist_node_dump(obj_skiplist_node_t *node) {
+    printf("key:\n");
+    obj_bson_visit_print_visit(node->key);
 }
 
 
@@ -411,12 +426,6 @@ static int obj_index_key_compare_with_seek_point(obj_bson_t *left, obj_index_see
 
 }
 
-/* insert */
-void obj_index_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_record_t *record) {
-    /* TODO evict */
-    obj_skiplist_insert(skiplist, key, record);
-}
-
 
 /* ********** index iterator methods ********** */
 
@@ -426,7 +435,7 @@ obj_index_iterator_t *obj_index_iterator_create(obj_index_catalog_entry_t *index
     iter->end_state.node = NULL;
     iter->skiplist = index_entry->skiplist;
     /* init: head->next */
-    iter->cur_node = index_entry->skiplist->head->level[0].forward;
+    iter->cur_node = index_entry->skiplist->head->levels[0].forward;
     return iter;
 }
 
@@ -437,6 +446,7 @@ static inline obj_bool_t obj_index_iterator_is_eof(obj_index_iterator_t *iter) {
 
 /* mark eof */
 static inline void obj_index_iterator_mark_eof(obj_index_iterator_t *iter) {
+    printf("mark eof\n");
     iter->cur_node = NULL;
 }
 
@@ -454,6 +464,7 @@ static inline obj_bool_t obj_index_iterator_at_or_past_end_point_after_seeking(o
     }
     /* compare */
     int cmp = obj_index_key_compare(iter->cur_node->key, iter->end_state.key, iter->skiplist->order);
+    printf("cmp = %d\n", cmp);
     return iter->end_state.inclusive ? cmp > 0 : cmp >= 0;
 }
 
@@ -471,10 +482,9 @@ inline void obj_index_iterator_set_end_position(obj_index_iterator_t *iter, obj_
 
 /* seek end cursor */
 static inline void obj_index_iterator_seek_end_cursor(obj_index_iterator_t *iter) {
-    if (!obj_index_iterator_has_end_state(iter)) {
-        return;
-    }
     obj_skiplist_locate(iter->skiplist, iter->end_state.key, iter->end_state.inclusive, &iter->end_state.node);
+    printf("end node\n");
+    obj_skiplist_node_dump(iter->end_state.node);
 }
 
 static inline obj_index_key_entry_t obj_index_iterator_curr(obj_index_iterator_t *iter) {
@@ -491,6 +501,7 @@ obj_index_key_entry_t obj_index_iterator_seek(obj_index_iterator_t *iter, obj_bs
     if (obj_index_iterator_is_eof(iter)) {
         return obj_index_iterator_curr(iter);
     }
+    obj_bson_visit_print_visit(iter->cur_node->key);
     int cmp = obj_index_key_compare(iter->cur_node->key, key, iter->skiplist->order);
     if (cmp < 0) {
         /* from current position */
@@ -546,7 +557,7 @@ obj_index_key_entry_t obj_index_iterator_next(obj_index_iterator_t *iter) {
 
 /* advance one step */
 static void obj_index_iterator_advance(obj_index_iterator_t *iter) {
-    iter->cur_node = iter->cur_node->level[0].forward;
+    iter->cur_node = iter->cur_node->levels[0].forward;
 }    
 
 

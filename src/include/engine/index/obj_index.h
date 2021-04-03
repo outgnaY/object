@@ -32,7 +32,8 @@ struct obj_skiplist_node_s {
     /* value */
     obj_record_t *record;
     obj_skiplist_node_t *backward;
-    obj_skiplist_level_t level[];
+    int level;
+    obj_skiplist_level_t levels[];
 };
 
 struct obj_skiplist_s {
@@ -89,9 +90,13 @@ struct obj_index_iterator_s {
 #define OBJ_SKIPLIST_P 0.25
 #define OBJ_SKIPLIST_MAXLEVEL 32
 
+/* skiplist */
+obj_skiplist_t *obj_skiplist_create(obj_index_key_order_t order);
+void obj_skiplist_destroy(obj_skiplist_t *skiplist);
+void obj_skiplist_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_record_t *record);
+void obj_skiplist_dump(obj_skiplist_t *skiplist);
 
-void obj_index_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_record_t *record);
-
+/* index iterator */
 obj_index_iterator_t *obj_index_iterator_create(obj_index_catalog_entry_t *index_entry);
 void obj_index_iterator_set_end_position(obj_index_iterator_t *iter, obj_bson_t *key, obj_bool_t inclusive);
 obj_index_key_entry_t obj_index_iterator_seek(obj_index_iterator_t *iter, obj_bson_t *key, obj_bool_t inclusive);

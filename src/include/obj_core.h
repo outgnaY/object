@@ -102,10 +102,10 @@
 
 
 /* exec */
-
 #include "exec/obj_exec_working_set.h"
 #include "exec/obj_exec_tree.h"
-#include "exec/obj_plan_executor.h"
+
+#include "query/obj_query_plan_executor.h"
 
 /* client library */
 #include "client/obj_client.h"

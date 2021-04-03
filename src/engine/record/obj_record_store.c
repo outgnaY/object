@@ -11,7 +11,6 @@ static obj_record_t *obj_record_store_get_first_record(obj_record_store_t *recor
 static obj_record_t *obj_record_store_get_last_record(obj_record_store_t *record_store);
 static obj_record_t *obj_record_store_get_next_record(obj_record_t *record);
 static obj_record_t *obj_record_store_get_prev_record(obj_record_t *record);
-static void obj_record_store_add_record(obj_record_store_t *record_store, obj_record_t *record);
 static void obj_record_store_remove_record(obj_record_store_t *record_store, obj_record_t *record);
 static void obj_record_store_record_destroy(obj_record_t *record);
 
@@ -125,7 +124,7 @@ static inline obj_record_t *obj_record_store_get_prev_record(obj_record_t *recor
 }
 
 /* add record to the record store */
-static void obj_record_store_add_record(obj_record_store_t *record_store, obj_record_t *record) {
+void obj_record_store_add_record(obj_record_store_t *record_store, obj_record_t *record) {
     OBJ_EMBEDDED_LIST_ADD_LAST(list, record_store->record_list, record);
 }
 

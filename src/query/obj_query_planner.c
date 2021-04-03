@@ -104,8 +104,9 @@ static obj_query_plan_tree_base_node_t *obj_query_plan_build_collection_scan(obj
 /* 
  * Entrance: generate query plan for a query 
  */
-obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_array_t *indexes) {
+obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_collection_catalog_entry_t *collection) {
     printf("begin planning...\n");
+    obj_array_t *indexes = obj_collection_catalog_entry_get_indexes(collection);
     /* possible query plans */
     obj_array_t plans;
     obj_array_init(&plans, sizeof(obj_query_plan_tree_base_node_t *));

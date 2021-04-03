@@ -44,6 +44,7 @@ struct obj_query_plan_tree_base_node_s {
     obj_query_plan_tree_node_methods_t *methods;
     obj_array_t children;
     obj_expr_base_expr_t *filter;
+    
 };
 
 /* and node */

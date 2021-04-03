@@ -31,7 +31,7 @@ struct obj_collection_catalog_entry_s {
     obj_record_store_t *record_store;
     /* type checker */
     obj_type_checker_t checker;
-    /* [index catalog entry *] */
+    /* [index catalog entry] */
     obj_array_t indexes;
 };
 
@@ -53,7 +53,8 @@ obj_db_catalog_entry_t *obj_db_catalog_entry_create();
 void obj_db_catalog_entry_destroy(obj_db_catalog_entry_t *db_entry);
 
 /* collection catalog entry methods */
-obj_collection_catalog_entry_t *obj_collection_catalog_entry_create();
+obj_collection_catalog_entry_t *obj_collection_catalog_entry_create(obj_bson_t *prototype);
 void obj_collection_catalog_entry_destroy(obj_collection_catalog_entry_t *collection_entry);
+obj_array_t *obj_collection_catalog_entry_get_indexes(obj_collection_catalog_entry_t *collection_entry);
 
 #endif  /* OBJ_CATALOG_H */

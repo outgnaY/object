@@ -46,6 +46,7 @@ obj_record_store_t *obj_record_store_create();
 void obj_record_store_init(obj_record_store_t *record_store);
 void obj_record_store_destroy(obj_record_store_t *record_store);
 int obj_record_store_num_records(obj_record_store_t *record_store);
+void obj_record_store_add_record(obj_record_store_t *record_store, obj_record_t *record);;
 void obj_record_store_add(obj_record_store_t *record_store, obj_bson_t *bson);
 int obj_record_store_iterator_num(obj_record_store_t *record_store);
 
