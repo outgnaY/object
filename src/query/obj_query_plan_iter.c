@@ -312,28 +312,32 @@ static obj_bool_t obj_query_plan_iter_prep_memo(obj_query_plan_iter_t *pi, obj_e
         obj_expr_relevant_tag_t *rt = NULL;
         obj_prealloc_map_entry_t *entry = NULL;
         int index_id;
+        obj_bool_t create;
         for (i = 0; i < indexed_preds.size; i++) {
             child = (obj_expr_base_expr_t *)obj_array_get_index_value(&indexed_preds, i, uintptr_t);
             rt = (obj_expr_relevant_tag_t *)child->tag;
             for (j = 0; j < rt->first.size; j++) {
                 index_id = obj_array_get_index_value(&rt->first, j, int);
                 /* add to index_to_first */
-                entry = obj_prealloc_map_find_add_key_if_not_exists(&index_to_first, &index_id);
-                if (entry != NULL) {
-                    obj_array_t *expr_arr = obj_prealloc_map_get_value(&index_to_first, entry);
+                entry = obj_prealloc_map_find_add_key_if_not_exists(&index_to_first, &index_id, &create);
+                obj_array_t *expr_arr = obj_prealloc_map_get_value(&index_to_first, entry);
+                if (create) {
                     obj_array_init(expr_arr, sizeof(obj_expr_base_expr_t *));
-                    obj_array_push_back(expr_arr, &child);
                 }
+                obj_array_push_back(expr_arr, &child);
+                
             }
             for (j = 0; j < rt->not_first.size; j++) {
                 index_id = obj_array_get_index_value(&rt->not_first, j, int);
                 /* add to index_to_not_first */
-                entry = obj_prealloc_map_find_add_key_if_not_exists(&index_to_not_first, &index_id);
-                if (entry != NULL) {
-                    obj_array_t *expr_arr = obj_prealloc_map_get_value(&index_to_first, entry);
+                entry = obj_prealloc_map_find_add_key_if_not_exists(&index_to_not_first, &index_id, &create);
+                
+                obj_array_t *expr_arr = obj_prealloc_map_get_value(&index_to_first, entry);
+                if (create) {
                     obj_array_init(expr_arr, sizeof(obj_expr_base_expr_t *));
-                    obj_array_push_back(expr_arr, &child);
                 }
+                obj_array_push_back(expr_arr, &child);
+                
             }
         }
         /* no way to use index */

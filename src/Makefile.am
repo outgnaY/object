@@ -44,7 +44,7 @@ all:
 	mv -f test_set ../bin/test_set
 	mv -f test_query ../bin/test_query
 	mv -f test_interval ../bin/test_interval
-	mv -f obj_daemon.o obj_thread.o obj.o bson/*.o concurrency/*.o engine/catalog/*.o engine/record/*.o engine/type/*.o exec/*.o expr/*.o mem/*.o network/*.o query/*.o test/*.o util/*.o ../obj
+	mv -f obj_daemon.o obj_thread.o obj.o bson/*.o concurrency/*.o engine/catalog/*.o engine/index/*.o engine/record/*.o engine/type/*.o exec/*.o expr/*.o mem/*.o network/*.o query/*.o test/*.o util/*.o ../obj
 clean:
 	rm -f ../bin/object
 	rm -f ../bin/test_bson

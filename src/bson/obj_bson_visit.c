@@ -11,6 +11,8 @@ static obj_bool_t obj_bson_visit_print_visit_bool(obj_bson_iter_t *iter, obj_boo
 static obj_bool_t obj_bson_visit_print_visit_null(obj_bson_iter_t *iter, void *data);
 static obj_bool_t obj_bson_visit_print_visit_int32(obj_bson_iter_t *iter, obj_int32_t v_int32, void *data);
 static obj_bool_t obj_bson_visit_print_visit_int64(obj_bson_iter_t *iter, obj_int64_t v_int64, void *data);
+static obj_bool_t obj_bson_visit_print_visit_min(obj_bson_iter_t *iter, void *data);
+static obj_bool_t obj_bson_visit_print_visit_max(obj_bson_iter_t *iter, void *data);
 static obj_bool_t obj_bson_visit_print_visit_all(obj_bson_t *bson);
 
 /* validate bson */
@@ -32,7 +34,9 @@ static obj_bool_t obj_bson_visit_validate_visit_all( obj_bson_t *bson, obj_bson_
     obj_bson_visit_print_visit_bool,
     obj_bson_visit_print_visit_null,
     obj_bson_visit_print_visit_int32,
-    obj_bson_visit_print_visit_int64
+    obj_bson_visit_print_visit_int64,
+    obj_bson_visit_print_visit_min,
+    obj_bson_visit_print_visit_max
 };
 
  obj_bson_visit_visitor_t obj_bson_visit_validate_visitors = {
@@ -163,6 +167,18 @@ static obj_bool_t obj_bson_visit_print_visit_int64(obj_bson_iter_t *iter, obj_in
     obj_bson_visit_print_state_t *state = (obj_bson_visit_print_state_t *)data;
     printf("[int64]");
     printf("%ld", v_int64);
+    return true;
+}
+
+static obj_bool_t obj_bson_visit_print_visit_min(obj_bson_iter_t *iter, void *data) {
+    printf("[min]");
+    printf("min");
+    return true;
+}
+
+static obj_bool_t obj_bson_visit_print_visit_max(obj_bson_iter_t *iter, void *data) {
+    printf("[max]");
+    printf("max");
     return true;
 }
 

@@ -139,7 +139,6 @@ static obj_bool_t obj_skiplist_locate(obj_skiplist_t *skiplist, obj_bson_t *key,
             }
         }
     }
-    
     /* maybe NULL */
     *out = node->levels[0].forward;
     if (*out == NULL) {
@@ -157,7 +156,6 @@ static obj_bool_t obj_skiplist_locate(obj_skiplist_t *skiplist, obj_bson_t *key,
 /* advance to */
 static obj_skiplist_node_t *obj_skiplist_advance_to(obj_skiplist_t *skiplist, obj_skiplist_node_t *current, obj_bson_t *key, obj_bool_t inclusive) {
     obj_skiplist_node_t *node = current;
-    obj_bson_visit_print_visit(node->key);
     int i;
     if (inclusive) {
         for (i = current->level - 1; i >= 0; i--) {
@@ -446,7 +444,6 @@ static inline obj_bool_t obj_index_iterator_is_eof(obj_index_iterator_t *iter) {
 
 /* mark eof */
 static inline void obj_index_iterator_mark_eof(obj_index_iterator_t *iter) {
-    printf("mark eof\n");
     iter->cur_node = NULL;
 }
 
@@ -464,7 +461,6 @@ static inline obj_bool_t obj_index_iterator_at_or_past_end_point_after_seeking(o
     }
     /* compare */
     int cmp = obj_index_key_compare(iter->cur_node->key, iter->end_state.key, iter->skiplist->order);
-    printf("cmp = %d\n", cmp);
     return iter->end_state.inclusive ? cmp > 0 : cmp >= 0;
 }
 
@@ -482,9 +478,18 @@ inline void obj_index_iterator_set_end_position(obj_index_iterator_t *iter, obj_
 
 /* seek end cursor */
 static inline void obj_index_iterator_seek_end_cursor(obj_index_iterator_t *iter) {
-    obj_skiplist_locate(iter->skiplist, iter->end_state.key, iter->end_state.inclusive, &iter->end_state.node);
-    printf("end node\n");
-    obj_skiplist_node_dump(iter->end_state.node);
+    /* find last node <= end_state */
+    obj_bool_t res = obj_skiplist_locate(iter->skiplist, iter->end_state.key, iter->end_state.inclusive, &iter->end_state.node);
+    if (!res) {
+        if (iter->end_state.node != NULL) {
+            iter->end_state.node = iter->end_state.node->backward;
+            if (iter->end_state.node == NULL) {
+                /* eof */
+                iter->cur_node = NULL;
+            }
+        }
+        
+    }
 }
 
 static inline obj_index_key_entry_t obj_index_iterator_curr(obj_index_iterator_t *iter) {
@@ -501,7 +506,6 @@ obj_index_key_entry_t obj_index_iterator_seek(obj_index_iterator_t *iter, obj_bs
     if (obj_index_iterator_is_eof(iter)) {
         return obj_index_iterator_curr(iter);
     }
-    obj_bson_visit_print_visit(iter->cur_node->key);
     int cmp = obj_index_key_compare(iter->cur_node->key, key, iter->skiplist->order);
     if (cmp < 0) {
         /* from current position */
@@ -547,11 +551,12 @@ obj_index_key_entry_t obj_index_iterator_next(obj_index_iterator_t *iter) {
     if (obj_index_iterator_is_eof(iter)) {
         return obj_index_iterator_curr(iter);
     }
-    /* advance */
-    obj_index_iterator_advance(iter);
     if (obj_index_iterator_at_end_point(iter)) {
         obj_index_iterator_mark_eof(iter);
+        return obj_index_iterator_curr(iter);
     }
+    /* advance */
+    obj_index_iterator_advance(iter);
     return obj_index_iterator_curr(iter);
 }
 

@@ -237,7 +237,7 @@ void obj_prealloc_map_delete_all(obj_prealloc_map_t *map) {
     }
 }
 
-obj_prealloc_map_entry_t *obj_prealloc_map_find_add_key_if_not_exists(obj_prealloc_map_t *map, void *key) {
+obj_prealloc_map_entry_t *obj_prealloc_map_find_add_key_if_not_exists(obj_prealloc_map_t *map, void *key, obj_bool_t *create) {
     obj_prealloc_map_entry_t *entry = NULL;
     obj_uint64_t hash;
     int index;
@@ -245,6 +245,7 @@ obj_prealloc_map_entry_t *obj_prealloc_map_find_add_key_if_not_exists(obj_preall
     index = obj_prealloc_map_index(hash, map->bucket_size);
     entry = map->bucket[index];
     void *cur_key = NULL;
+    *create = false;
     while (entry) {
         cur_key = obj_prealloc_map_get_key(map, entry);
         if (key == cur_key || obj_prealloc_map_compare_keys(map, key, cur_key) == 0) {
@@ -259,6 +260,7 @@ obj_prealloc_map_entry_t *obj_prealloc_map_find_add_key_if_not_exists(obj_preall
     /* set key */
     obj_prealloc_map_set_key(map, entry, key);
     ++map->size;
+    *create = true;
     return entry;
 }
 

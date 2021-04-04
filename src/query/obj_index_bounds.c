@@ -27,18 +27,22 @@ void obj_index_bounds_translate(obj_expr_base_expr_t *expr, char *key, obj_bson_
 /* translate expr and intersect with current intervals */
 void obj_index_bounds_translate_and_intersect(obj_expr_base_expr_t *expr, char *key, obj_bson_value_t *value, obj_ordered_interval_list_t *out) {
     obj_ordered_interval_list_t oil;
+    obj_ordered_interval_list_init(&oil);
     obj_index_bounds_translate(expr, key, value, &oil);
     /* do intersect */
     obj_ordered_interval_list_intersect(out, &oil);
+    obj_ordered_interval_list_destroy_static(&oil);
     out->name = oil.name;
 }
 
 /* translate expr and union with current intervals */
 void obj_index_bounds_translate_and_union(obj_expr_base_expr_t *expr, char *key, obj_bson_value_t *value, obj_ordered_interval_list_t *out) {
     obj_ordered_interval_list_t oil;
+    obj_ordered_interval_list_init(&oil);
     obj_index_bounds_translate(expr, key, value, &oil);
     /* do union */
     obj_ordered_interval_list_union(out, &oil);
+    obj_ordered_interval_list_destroy_static(&oil);
     out->name = oil.name;
 }
 
@@ -87,6 +91,7 @@ obj_bool_t obj_index_bounds_is_single_interval(obj_index_bounds_t *bounds, obj_b
     obj_interval_t *interval = NULL;
     obj_bson_value_t *start = NULL;
     obj_bson_value_t *end = NULL;
+    /* obj_index_bounds_dump(bounds); */
     /* skip over point intervals */
     for (field_index = 0; field_index < bounds->fields.size; field_index++) {
         oil = (obj_ordered_interval_list_t *)obj_array_get_index(&bounds->fields, field_index);
@@ -162,7 +167,7 @@ obj_bool_t obj_index_bounds_is_single_interval(obj_index_bounds_t *bounds, obj_b
             break;
         }
     }
-
+    
     if (field_index >= bounds->fields.size) {
         *start_key_out = start_key;
         *end_key_out = end_key;

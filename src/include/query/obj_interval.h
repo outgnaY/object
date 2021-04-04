@@ -73,6 +73,7 @@ obj_bool_t obj_interval_is_key_element_ahead_of_interval(obj_interval_t *interva
 void obj_ordered_interval_list_intersect(obj_ordered_interval_list_t *oil1, obj_ordered_interval_list_t *oil2);
 void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_ordered_interval_list_t *oil2);
 void obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil);
+void obj_ordered_interval_list_destroy_static(obj_ordered_interval_list_t *oil);
 void obj_ordered_interval_list_reverse(obj_ordered_interval_list_t *oil);
 void obj_ordered_interval_list_dump(obj_ordered_interval_list_t *oil);
 

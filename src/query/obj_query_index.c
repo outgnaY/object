@@ -443,6 +443,7 @@ static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root
             obj_index_catalog_entry_t *index_entry = (obj_index_catalog_entry_t *)obj_array_get_index(indexes, state.cur_index);
             /* create new */
             state.current_scan = obj_query_index_make_leaf_node(index_entry, state.index_tag->pos, child);
+            obj_assert(state.current_scan);
             /* obj_query_index_handle_filter(&state); */
         }
         state.cur_child++;

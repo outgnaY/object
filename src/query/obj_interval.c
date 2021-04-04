@@ -516,7 +516,6 @@ void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_orde
         }
         next = (obj_interval_t *)obj_array_get_index(oil1_intervals, i + 1);
         obj_interval_compare_result_t cmp = obj_interval_compare(cur, next);
-        /* printf("%d %d %d\n", i, cmp, result.size); */
         if (cmp == OBJ_INTERVAL_COMPARE_RESULT_PRECEDES) {
             obj_array_push_back(&result, cur);
             cur = next;
@@ -548,6 +547,10 @@ void obj_ordered_interval_list_union(obj_ordered_interval_list_t *oil1, obj_orde
 void obj_ordered_interval_list_init(obj_ordered_interval_list_t *oil) {
     oil->name = NULL;
     obj_array_init(&oil->intervals, sizeof(obj_interval_t));
+}
+
+void obj_ordered_interval_list_destroy_static(obj_ordered_interval_list_t *oil) {
+    obj_array_destroy_static(&oil->intervals);
 }
 
 /* reverse interval list */

@@ -48,7 +48,7 @@ void obj_prealloc_map_add(obj_prealloc_map_t *map, void *key, void *value);
 void obj_prealloc_map_delete_entry(obj_prealloc_map_t *map, obj_prealloc_map_entry_t *entry);
 void obj_prealloc_map_delete(obj_prealloc_map_t *map, void *key, obj_bool_t nofree);
 void obj_prealloc_map_delete_all(obj_prealloc_map_t *map);
-obj_prealloc_map_entry_t *obj_prealloc_map_find_add_key_if_not_exists(obj_prealloc_map_t *map, void *key);
+obj_prealloc_map_entry_t *obj_prealloc_map_find_add_key_if_not_exists(obj_prealloc_map_t *map, void *key, obj_bool_t *create);
 obj_prealloc_map_entry_t *obj_prealloc_map_find(obj_prealloc_map_t *map, void *key);
 obj_bool_t obj_prealloc_map_is_empty(obj_prealloc_map_t *map);
 void obj_prealloc_map_default_key_free(void *key);

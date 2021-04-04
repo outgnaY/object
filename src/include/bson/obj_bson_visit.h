@@ -22,6 +22,8 @@ struct obj_bson_visit_visitor_s {
     obj_bool_t (*visit_null)(obj_bson_iter_t *iter, void *data);
     obj_bool_t (*visit_int32)(obj_bson_iter_t *iter, obj_int32_t v_int32, void *data);
     obj_bool_t (*visit_int64)(obj_bson_iter_t *iter, obj_int64_t v_int64, void *data);
+    obj_bool_t (*visit_min)(obj_bson_iter_t *iter, void *data);
+    obj_bool_t (*visit_max)(obj_bson_iter_t *iter, void *data);
 };
 
 /* for debug */

@@ -477,6 +477,16 @@ obj_bool_t obj_bson_iter_visit_all(obj_bson_iter_t *iter, obj_bson_visit_visitor
                     return false;
                 }
                 break;
+            case OBJ_BSON_TYPE_MIN:
+                if (visitor->visit_min && !visitor->visit_min(iter, data)) {
+                    return false;
+                }
+                break;
+            case OBJ_BSON_TYPE_MAX:
+                if (visitor->visit_max && !visitor->visit_max(iter, data)) {
+                    return false;
+                }
+                break;
             default:
                 break;
         }
