@@ -14,6 +14,10 @@ struct obj_engine_s {
     */
 };
 
+extern obj_engine_t *g_engine;
+
+void obj_global_engine_init();
+void obj_global_engine_destroy();
 
 
 #endif  /* OBJ_ENGINE_H */

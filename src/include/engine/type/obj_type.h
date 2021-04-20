@@ -13,6 +13,7 @@ struct obj_type_checker_s {
     obj_bson_t *prototype;
 };
 
+void obj_type_checker_destroy_static(obj_type_checker_t *checker);
 obj_bool_t obj_type_checker_check_type(obj_type_checker_t *checker, obj_bson_t *data);
 obj_bool_t obj_check_type_define(obj_bson_t *prototype);
 

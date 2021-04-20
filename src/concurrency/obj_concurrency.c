@@ -34,12 +34,16 @@ obj_bool_t obj_global_lock_unlock(obj_global_lock_t *global_lock) {
 }
 
 void obj_db_lock_init(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *db) {
+    obj_db_lock_init_with_len(db_lock, locker, mode, db, obj_strlen(db));
+}
+
+void obj_db_lock_init_with_len(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *db, int len) {
     obj_assert(db_lock);
     obj_assert(locker);
     db_lock->locker = locker;
     db_lock->mode = mode;
     db_lock->result = OBJ_LOCK_RESULT_INVALID;
-    db_lock->rid = obj_lock_resource_id(OBJ_LOCK_RESOURCE_DATABASE, db, obj_strlen(db));
+    db_lock->rid = obj_lock_resource_id(OBJ_LOCK_RESOURCE_DATABASE, db, len);
 }
 
 void obj_db_lock_init_with_deadline(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *db, obj_abs_time_msecond deadline) {
@@ -68,12 +72,16 @@ obj_bool_t obj_db_lock_unlock(obj_db_lock_t *db_lock) {
 }
 
 void obj_collection_lock_init(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *collection) {
+    obj_collection_lock_init_with_len(collection_lock, locker, mode, collection, obj_strlen(collection));
+}
+
+void obj_collection_lock_init_with_len(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *collection, int len) {
     obj_assert(collection_lock);
     obj_assert(locker);
     collection_lock->locker = locker;
     collection_lock->mode = mode;
     collection_lock->result = OBJ_LOCK_RESULT_INVALID;
-    collection_lock->rid = obj_lock_resource_id(OBJ_LOCK_RESOURCE_COLLECTION, collection, obj_strlen(collection));
+    collection_lock->rid = obj_lock_resource_id(OBJ_LOCK_RESOURCE_COLLECTION, collection, len);
 }
 
 void obj_collection_lock_init_with_deadline(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *collection, obj_abs_time_msecond deadline) {

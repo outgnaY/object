@@ -299,6 +299,8 @@ static obj_exec_tree_exec_state_t obj_exec_tree_and_node_read_first_child(obj_ex
     } else if (child_state == OBJ_EXEC_TREE_STATE_INTERNAL_ERROR) {
         /* error occurred */
         return child_state;
+    } else {
+        return child_state;
     }
 }
 

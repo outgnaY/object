@@ -22,12 +22,31 @@ int main() {
         "}"
     );
     */
+    /*
     obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
         "find", OBJ_BSON_BCON_UTF8("db.coll"),
         "filter", "{",
             "$and", "[",
                 "{", "x", "{", "$lte", OBJ_BSON_BCON_INT32(8), "}", "}",
                 "{", "x", "{", "$gte", OBJ_BSON_BCON_INT32(5), "}", "}",
+            "]",
+        "}"
+    );
+    */
+    obj_bson_t *cmd = OBJ_BSON_BCON_NEW(
+        "find", OBJ_BSON_BCON_UTF8("db.coll"),
+        "filter", "{",
+            "$or", "[",
+                "{", 
+                    "$and", "[",
+                        "{", "x", "{", "$lte", OBJ_BSON_BCON_INT32(8), "}", "}",
+                        "{", "x", "{", "$gte", OBJ_BSON_BCON_INT32(2), "}", "}",
+                        "{", "y", "{", "$gte", OBJ_BSON_BCON_INT32(5), "}", "}",
+                    "]",
+                "}",
+                "{",
+                    "z", "{", "$gte", OBJ_BSON_BCON_INT32(5), "}",
+                "}",
             "]",
         "}"
     );
@@ -55,7 +74,8 @@ int main() {
     */
     obj_bson_t *prototype = OBJ_BSON_BCON_NEW(
         "x", OBJ_BSON_BCON_INT32(OBJ_BSON_TYPE_INT32),
-        "y", OBJ_BSON_BCON_INT32(OBJ_BSON_TYPE_INT32)
+        "y", OBJ_BSON_BCON_INT32(OBJ_BSON_TYPE_INT32),
+        "z", OBJ_BSON_BCON_INT32(OBJ_BSON_TYPE_INT32)
     );
     obj_collection_catalog_entry_t *collection = obj_collection_catalog_entry_create(prototype);
     obj_bson_t *kp1 = OBJ_BSON_BCON_NEW(
@@ -68,13 +88,17 @@ int main() {
     obj_bson_t *kp3 = OBJ_BSON_BCON_NEW(
         "y", OBJ_BSON_BCON_INT32(1)
     );
-    obj_index_catalog_entry_t entry1 = {2, kp1, obj_skiplist_create(0)};
-    obj_index_catalog_entry_t entry2 = {1, kp2, obj_skiplist_create(0)};
-    obj_index_catalog_entry_t entry3 = {1, kp3, obj_skiplist_create(0)};
+    obj_bson_t *kp4 = OBJ_BSON_BCON_NEW(
+        "z", OBJ_BSON_BCON_INT32(1)
+    );
+    obj_index_catalog_entry_t entry1 = {2, kp1, obj_skiplist_create(0), 0};
+    obj_index_catalog_entry_t entry2 = {1, kp2, obj_skiplist_create(0), 1};
+    obj_index_catalog_entry_t entry3 = {1, kp3, obj_skiplist_create(0), 2};
+    obj_index_catalog_entry_t entry4 = {1, kp4, obj_skiplist_create(0), 3};
     obj_array_push_back(&collection->indexes, &entry1);
     obj_array_push_back(&collection->indexes, &entry2);
     obj_array_push_back(&collection->indexes, &entry3);
-
+    obj_array_push_back(&collection->indexes, &entry4);
     obj_record_store_t *record_store = collection->record_store;
     /* init data */
     int i;
@@ -89,9 +113,13 @@ int main() {
         obj_bson_t *key3 = OBJ_BSON_BCON_NEW(
             "y", OBJ_BSON_BCON_INT32(i * 2)
         );
+        obj_bson_t *key4 = OBJ_BSON_BCON_NEW(
+            "z", OBJ_BSON_BCON_INT32(i * 3)
+        );
         obj_bson_t *data = OBJ_BSON_BCON_NEW(
             "x", OBJ_BSON_BCON_INT32(i),
-            "y", OBJ_BSON_BCON_INT32(i * 2)
+            "y", OBJ_BSON_BCON_INT32(i * 2),
+            "z", OBJ_BSON_BCON_INT32(i * 3)
         );
         obj_record_t *record = obj_alloc(sizeof(obj_record_t));
         record->bson = data;
@@ -99,6 +127,7 @@ int main() {
         obj_skiplist_insert(entry1.skiplist, key1, record);
         obj_skiplist_insert(entry2.skiplist, key2, record);
         obj_skiplist_insert(entry3.skiplist, key3, record);
+        obj_skiplist_insert(entry4.skiplist, key4, record);
     }
     /*
     obj_skiplist_dump(entry1.skiplist);
@@ -117,11 +146,12 @@ int main() {
     obj_query_plan_executor_exec_state_t state = OBJ_QUERY_PLAN_EXECUTOR_EXEC_STATE_ADVANCED;
     obj_record_t *out;
     int cnt = 0;
+    /*
     while ((state = obj_query_plan_executor_get_next(executor, &out)) == OBJ_QUERY_PLAN_EXECUTOR_EXEC_STATE_ADVANCED) {
         cnt++;
     }
     printf("cnt = %d\n", cnt);
-
+    */
     gettimeofday(&end, NULL);
     time_interval(start, end);
 

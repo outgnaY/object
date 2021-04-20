@@ -5,13 +5,17 @@ noinst_PROGRAMS = object test_bson test_req test_string test_array test_expr tes
 AM_CPPFLAGS = -I$(srcdir)/include
 
 object_SOURCES = obj_daemon.c obj_thread.c obj.c \
-				 bson/obj_bson_iter.c bson/obj_bson_validate.c bson/obj_bson_visit.c bson/obj_bson.c \
+				 bson/obj_bson_bcon.c bson/obj_bson_iter.c bson/obj_bson_validate.c bson/obj_bson_visit.c bson/obj_bson.c \
+				 command/obj_command.c \
+				 concurrency/obj_concurrency.c concurrency/obj_lock.c concurrency/obj_locker.c \
+				 engine/catalog/obj_catalog.c engine/index/obj_index.c engine/record/obj_record_store.c engine/type/obj_type.c engine/obj_engine.c \
+				 exec/obj_exec_tree.c exec/obj_exec_working_set.c \
 				 expr/obj_expr_optimize.c expr/obj_expr_parse.c expr/obj_expr.c \
 				 mem/obj_mem_simple.c mem/obj_mem.c \
-				 util/obj_prealloc_map.c util/obj_set.c util/obj_list.c util/obj_math.c util/obj_siphash.c util/obj_string.c util/obj_status_with.c util/obj_array.c \
-				 concurrency/obj_concurrency.c concurrency/obj_lock.c concurrency/obj_locker.c \
 				 network/obj_buffer.c network/obj_conn.c network/obj_proto.c \
-				 query/obj_interval.c 
+				 query/obj_index_bounds.c query/obj_interval.c query/obj_query_index.c query/obj_query_plan_executor.c query/obj_query_plan_iter.c query/obj_query_plan_tree.c query/obj_query_planner.c query/obj_query.c \
+				 util/obj_array.c util/obj_list.c util/obj_math.c util/obj_object_pool.c util/obj_prealloc_map.c util/obj_rbtree.c util/obj_set.c util/obj_siphash.c util/obj_status_with.c util/obj_string.c util/obj_stringdata.c
+			
 test_bson_SOURCES = test/test_bson.c bson/obj_bson_bcon.c bson/obj_bson_iter.c bson/obj_bson_validate.c bson/obj_bson_visit.c bson/obj_bson.c mem/obj_mem_simple.c mem/obj_mem.c util/obj_list.c util/obj_math.c util/obj_string.c
 test_req_SOURCES = test/test_req.c mem/obj_mem_simple.c mem/obj_mem.c bson/obj_bson.c util/obj_math.c bson/obj_bson_iter.c util/obj_string.c
 test_string_SOURCES = test/test_string.c util/obj_string.c

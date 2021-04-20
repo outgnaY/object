@@ -102,6 +102,10 @@ enum obj_global_error_code {
     OBJ_CODE_QUERY_MISSING_FIELD = 40003,
     /* query planner error code */
     OBJ_CODE_QUERY_PLAN_NOMEM = 50001,
+    /* index */
+    OBJ_CODE_INDEX_NUM_EXCEED = 60001,
+    OBJ_CODE_INDEX_DUPLICATE = 60002,
+    OBJ_CODE_INDEX_KEY_PATTERN_INVALID = 60003
 };
 
 

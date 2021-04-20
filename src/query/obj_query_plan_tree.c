@@ -141,6 +141,10 @@ void obj_query_plan_tree_dump(obj_query_plan_tree_base_node_t *root, int skip) {
         printf(" ");
     }
     root->methods->dump(root);
+    if (root->filter) {
+        printf("filter:\n");
+        obj_expr_dump(root->filter);
+    }
     obj_query_plan_tree_base_node_t *child = NULL;
     for (i = 0; i < root->children.size; i++) {
         child = (obj_query_plan_tree_base_node_t *)obj_array_get_index_value(&root->children, i, uintptr_t);
@@ -263,6 +267,7 @@ static obj_query_plan_tree_node_type_t obj_query_plan_tree_index_scan_node_get_t
 static void obj_query_plan_tree_index_scan_node_dump(obj_query_plan_tree_base_node_t *node) {
     obj_query_plan_tree_index_scan_node_t *index_scan_node = (obj_query_plan_tree_index_scan_node_t *)node;
     printf("%s:\n", obj_query_plan_tree_node_type_str_map[node->methods->get_type()]);
+    printf("index: %d\n", index_scan_node->index_entry->index);
     obj_index_bounds_dump(&index_scan_node->bounds);
 }
 

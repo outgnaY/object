@@ -107,6 +107,9 @@
 
 #include "query/obj_query_plan_executor.h"
 
+/* commands */
+#include "command/obj_command.h"
+
 /* client library */
 #include "client/obj_client.h"
 

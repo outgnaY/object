@@ -2,6 +2,9 @@
 
 obj_engine_t *g_engine;
 
+static obj_engine_t *obj_engine_create();
+static void obj_engine_init(obj_engine_t *engine);
+static void obj_engine_destroy(obj_engine_t *engine);
 
 /* init global storage engine */
 void obj_global_engine_init() {
@@ -34,3 +37,4 @@ static void obj_engine_destroy(obj_engine_t *engine) {
     obj_prealloc_map_destroy_static(&engine->map);
     obj_free(engine);
 }
+

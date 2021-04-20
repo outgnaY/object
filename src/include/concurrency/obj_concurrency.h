@@ -40,12 +40,14 @@ obj_global_lock_t *obj_global_lock_create_with_deadline(obj_locker_t *locker, ob
 obj_lock_result_t obj_global_lock_lock(obj_global_lock_t *global_lock);
 obj_bool_t obj_global_lock_unlock(obj_global_lock_t *global_lock);
 void obj_db_lock_init(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *db);
+void obj_db_lock_init_with_len(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *db, int len);
 void obj_db_lock_init_with_deadline(obj_db_lock_t *db_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *db, obj_abs_time_msecond deadline);
 obj_db_lock_t *obj_db_lock_create(obj_locker_t *locker, obj_lock_mode_t mode, char *db);
 obj_db_lock_t *obj_db_lock_create_with_deadline(obj_locker_t *locker, obj_lock_mode_t mode, char *db, obj_abs_time_msecond deadline);
 obj_lock_result_t obj_db_lock_lock(obj_db_lock_t *db_lock);
 obj_bool_t obj_db_lock_unlock(obj_db_lock_t *db_lock);
 void obj_collection_lock_init(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *collection);
+void obj_collection_lock_init_with_len(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *collection, int len);
 void obj_collection_lock_init_with_deadline(obj_collection_lock_t *collection_lock, obj_locker_t *locker, obj_lock_mode_t mode, char *collection, obj_abs_time_msecond deadline);
 obj_collection_lock_t *obj_collection_lock_create(obj_locker_t *locker, obj_lock_mode_t mode, char *collection);
 obj_collection_lock_t *obj_collection_lock_with_deadline(obj_locker_t *locker, obj_lock_mode_t mode, char *collection, obj_abs_time_msecond deadline);

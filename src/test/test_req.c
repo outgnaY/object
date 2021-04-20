@@ -1,6 +1,32 @@
 #include "obj_core.h"
 
+int main() {
+    struct timeval start;
+    struct timeval end;
+    int sockfd;
+    struct sockaddr_in addr;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    bzero(&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(6666);
+    inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+    if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        fprintf(stderr, "connection failed\n");
+    }
+    obj_uint8_t recv_buf[1024];
+    obj_uint8_t send_buf[1024];
+    obj_bson_t *create_database_cmd = OBJ_BSON_BCON_NEW(
+        "create_database", "db1"
+    );
+    obj_memcpy(send_buf, create_database_cmd->data, create_database_cmd->len);
+    gettimeofday(&start, NULL);
+    write(sockfd, send_buf, create_database_cmd->len);
+    gettimeofday(&end, NULL);
+    return 0;
+}
+
 /* a simple cilent */
+/*
 int main() {
     obj_global_mem_context_init();
     int sockfd;
@@ -15,8 +41,6 @@ int main() {
     }
     obj_uint8_t recv_buf[1024];
     obj_uint8_t send_buf[1024];
-    /* send message */
-    /* delete message */
     obj_int32_t len = sizeof(obj_msg_header_t);
     obj_int32_t op = obj_int32_to_le(OBJ_MSG_OP_DELETE);
     obj_int32_t flags = obj_int32_to_le(1);
@@ -24,7 +48,6 @@ int main() {
     const char *collection_name = "test_collection\0";
     selector = obj_bson_create();
     obj_bson_append_utf8(selector, "key1", 4, "value1", 6);
-    /* obj_bson_append_utf8(selector, "key2", 4, "value2", 6); */
     len += obj_strlen(collection_name) + 1;
     len += sizeof(obj_int32_t);
     len += selector->len;
@@ -52,14 +75,13 @@ int main() {
     printf("begin\n");
     gettimeofday(&start, NULL);
     for (i = 0; i < 50000; i++) {
-        /* printf("%d\n", i); */
-        /* send */
+        
         write(sockfd, send_buf, curr);
         nread = 0;
         curr_read = 0;
         expect = 0;
         flag = false;
-        /* receive */
+        
         while (true) {
             curr_read = read(sockfd, recv_buf, avail);
             if (curr_read > 0) {
@@ -103,3 +125,4 @@ int main() {
     close(sockfd);
     return 0;
 }
+*/

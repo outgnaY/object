@@ -96,6 +96,12 @@ void obj_skiplist_destroy(obj_skiplist_t *skiplist);
 void obj_skiplist_insert(obj_skiplist_t *skiplist, obj_bson_t *key, obj_record_t *record);
 void obj_skiplist_dump(obj_skiplist_t *skiplist);
 
+/* index */
+obj_bson_t *obj_get_index_key(obj_bson_t *object, obj_bson_t *key_pattern);
+obj_bool_t obj_index_type_is_valid(obj_bson_type_t bson_type);
+obj_bool_t obj_index_key_pattern_is_valid(obj_bson_t *prototype, obj_bson_t *key_pattern, obj_index_key_order_t *order, int *nfields);
+obj_index_key_order_t obj_index_key_order_get(obj_bson_t *key_pattern);
+
 /* index iterator */
 obj_index_iterator_t *obj_index_iterator_create(obj_index_catalog_entry_t *index_entry);
 void obj_index_iterator_set_end_position(obj_index_iterator_t *iter, obj_bson_t *key, obj_bool_t inclusive);

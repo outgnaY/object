@@ -30,7 +30,6 @@ static void obj_buffer_make_room(obj_buffer_t *buf, int len) {
         int readable = obj_buffer_readable_bytes(buf);
         obj_memmove(buf->buf, buf->buf + buf->read_index, readable);
         buf->read_index = 0;
-        buf->v_read_index = 0; 
         buf->write_index = readable;
     }
 }
@@ -44,7 +43,6 @@ obj_buffer_t *obj_buffer_create() {
     }
     buffer->buf = obj_alloc(OBJ_BUFFER_INIT_SIZE);
     buffer->buf_size = OBJ_BUFFER_INIT_SIZE;
-    buffer->v_read_index = 0;
     buffer->read_index = 0;
     buffer->write_index = 0;
     return buffer;
@@ -62,7 +60,6 @@ obj_buffer_t *obj_buffer_create_with_size(int size) {
     }
     buffer->buf = obj_alloc(size);
     buffer->buf_size = size;
-    buffer->v_read_index = 0;
     buffer->read_index = 0;
     buffer->write_index = 0;
     return buffer;
@@ -82,9 +79,6 @@ int obj_buffer_readable_bytes(obj_buffer_t *buf) {
     return buf->write_index - buf->read_index;
 }
 
-int obj_buffer_v_readable_bytes(obj_buffer_t *buf) {
-    return buf->write_index - buf->v_read_index;
-}
 
 /* writable bytes of buffer */
 int obj_buffer_writable_bytes(obj_buffer_t *buf) {
@@ -104,10 +98,6 @@ obj_bool_t obj_buffer_can_read_int32(obj_buffer_t *buf) {
     return obj_buffer_readable_bytes(buf) >= sizeof(obj_int32_t);
 }
 
-obj_bool_t obj_buffer_v_can_read_int32(obj_buffer_t *buf) {
-    return obj_buffer_v_readable_bytes(buf) >= sizeof(obj_int32_t);
-}
-
 obj_int32_t obj_buffer_read_int32_unsafe(obj_buffer_t *buf) {
     obj_int32_t len_le;
     len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->read_index)));
@@ -115,61 +105,25 @@ obj_int32_t obj_buffer_read_int32_unsafe(obj_buffer_t *buf) {
     return obj_int32_from_le(len_le);
 }
 
-obj_int32_t obj_buffer_v_read_int32_unsafe(obj_buffer_t *buf) {
+obj_int32_t obj_buffer_peek_int32_unsafe(obj_buffer_t *buf) {
     obj_int32_t len_le;
-    len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->v_read_index)));
-    obj_buffer_v_retrieve(buf, sizeof(obj_int32_t));
+    len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->read_index)));
     return obj_int32_from_le(len_le);
 }
 
-obj_int32_t obj_buffer_v_peek_int32_unsafe(obj_buffer_t *buf) {
-    obj_int32_t len_le;
-    len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->v_read_index)));
-    return obj_int32_from_le(len_le);
-}
-
-obj_msg_header_t obj_buffer_v_peek_msg_header_unsafe(obj_buffer_t *buf) {
-    obj_int32_t len_le;
-    obj_int32_t op_le;
-    len_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->v_read_index)));
-    op_le = (obj_int32_t)(*((obj_int32_t *)(buf->buf + buf->v_read_index + sizeof(obj_int32_t))));
-    obj_msg_header_t header;
-    header.len = obj_int32_to_le(len_le);
-    header.opCode = obj_int32_to_le(op_le);
-    return header;
-}
-
-
-/* read cstring */
-char *obj_buffer_v_read_string_unsafe(obj_buffer_t *buf, int *len) {
-    int old_index = buf->read_index;
-    /* TODO probably unsafe? */
-    *len = (int)obj_strlen(buf->buf + buf->v_read_index);
-    /* do not allow length == 0 */
-    if (*len == 0 || *len > obj_buffer_v_readable_bytes(buf)) {
-        return NULL;
-    }
-    obj_buffer_v_retrieve(buf, *len + 1);
-    return buf->buf + old_index;
-}
-
-/* read bson and validate */
-obj_bson_t *obj_buffer_v_read_bson_unsafe(obj_buffer_t *buf, obj_int32_t len) {
+obj_bson_t *obj_buffer_read_bson_unsafe(obj_buffer_t *buf, obj_int32_t len) {
     obj_bson_t *bson;
     obj_bool_t validate;
-    bson = obj_bson_create_with_data(buf->buf + buf->v_read_index, len);
-    if (bson == NULL) {
-        return NULL;
-    }
-    obj_buffer_v_retrieve(buf, len);
+    bson = obj_bson_create_with_data(buf->buf + buf->read_index, len);
+    obj_buffer_retrieve(buf, len);
     validate = obj_bson_visit_validate_visit(bson, OBJ_BSON_VALIDATE_FLAG_NONE);
     if (!validate) {
-        /* invalid bson */
         obj_bson_destroy(bson);
         return NULL;
     }
     return bson;
 }
+
 
 void obj_buffer_retrieve(obj_buffer_t *buf, int len) {
     int readable = obj_buffer_readable_bytes(buf);
@@ -181,15 +135,6 @@ void obj_buffer_retrieve(obj_buffer_t *buf, int len) {
     }
 }
 
-void obj_buffer_v_reset(obj_buffer_t *buf) {
-    buf->v_read_index = buf->read_index;
-}
-
-/* move virtual read index */
-void obj_buffer_v_retrieve(obj_buffer_t *buf, int len) {
-    obj_assert(len <= obj_buffer_v_readable_bytes(buf));
-    buf->v_read_index += len;
-}
 
 /* append */
 void obj_buffer_append(obj_buffer_t *buf, void *data, int len) {

@@ -11,7 +11,9 @@ static obj_skiplist_node_t *obj_skiplist_advance_to_seek_point(obj_skiplist_t *s
 static void obj_skiplist_node_dump(obj_skiplist_node_t *node);
 
 /* index methods */
-static int obj_index_key_order_get(obj_index_key_order_t order, int i);
+static obj_bool_t obj_index_path_is_valid(obj_bson_t *prototype, char *path);
+static int obj_index_key_order_get_index(obj_index_key_order_t order, int i);
+static void obj_index_key_order_set_index(obj_index_key_order_t *order, int i, obj_bool_t negative);
 static unsigned obj_index_key_order_descending(obj_index_key_order_t order, unsigned mask);
 static int obj_index_key_value_compare(obj_bson_value_t *value1, obj_bson_value_t *value2);
 static int obj_index_key_compare(obj_bson_t *key1, obj_bson_t *key2, obj_index_key_order_t order);
@@ -70,6 +72,7 @@ static obj_skiplist_node_t *obj_skiplist_node_create(int level, obj_bson_t *key,
 
 /* destroy skiplist node */
 static void obj_skiplist_node_destroy(obj_skiplist_node_t *node) {
+    obj_bson_destroy(node->key);
     obj_free(node);
 }
 
@@ -236,14 +239,90 @@ static void obj_skiplist_node_dump(obj_skiplist_node_t *node) {
 
 /* ********** index methods ********** */
 
+obj_bson_t *obj_get_index_key(obj_bson_t *object, obj_bson_t *key_pattern) {
+    obj_bson_t *index_key = obj_bson_create();
+    obj_bson_iter_t iter;
+    char *key = NULL;
+    obj_bson_type_t bson_type;
+    obj_bson_iter_init(&iter, key_pattern);
+    while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
+        obj_bson_value_t *value = obj_bson_get_path(object, key);
+        obj_bson_append_value(index_key, key, obj_strlen(key), value);
+    }
+    return index_key;
+}
+
+inline obj_bool_t obj_index_type_is_valid(obj_bson_type_t bson_type) {
+    return bson_type == OBJ_BSON_TYPE_DOUBLE || bson_type == OBJ_BSON_TYPE_UTF8 || bson_type == OBJ_BSON_TYPE_BINARY || bson_type == OBJ_BSON_TYPE_INT32 || bson_type == OBJ_BSON_TYPE_INT64;
+}
+
+/* check if the given path is valid */
+static obj_bool_t obj_index_path_is_valid(obj_bson_t *prototype, char *path) {
+    obj_bson_value_t *value = obj_bson_get_path(prototype, path);
+    if (value == NULL || value->type != OBJ_BSON_TYPE_INT32) {
+        return false;
+    }
+    return obj_index_type_is_valid(value->value.v_int32);
+}
+
+obj_bool_t obj_index_key_pattern_is_valid(obj_bson_t *prototype, obj_bson_t *key_pattern, obj_index_key_order_t *order, int *nfields) {
+    obj_bson_iter_t iter;
+    char *key = NULL;
+    obj_bson_type_t bson_type;
+    obj_bson_value_t *value = NULL;
+    obj_bson_iter_init(&iter, key_pattern);
+    int i = 0;
+    while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
+        if (bson_type != OBJ_BSON_TYPE_INT32) {
+            return false;
+        }
+        value = obj_bson_iter_value(&iter);
+        /* check path */
+        if (!obj_index_path_is_valid(prototype, key)) {
+            return false;
+        }
+        obj_index_key_order_set_index(order, i, value->value.v_int32 < 0);
+        i++;
+    }
+    if (i == 0) {
+        return false;
+    }
+    *nfields = i;
+    return true;
+}
+
+obj_index_key_order_t obj_index_key_order_get(obj_bson_t *key_pattern) {
+    obj_index_key_order_t order;
+    obj_bson_iter_t iter;
+    char *key = NULL;
+    obj_bson_type_t bson_type;
+    obj_bson_value_t *value = NULL;
+    obj_bson_iter_init(&iter, key_pattern);
+    int i = 0;
+    while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
+        value = obj_bson_iter_value(&iter);
+        obj_index_key_order_set_index(&order, i, value->value.v_int32 < 0);
+        i++;
+    }
+    return order;
+}
+
 /* 
  * for key pattern {a: 1, b: -1} 
  * get(0) == 1; get(1) == -1
  */
-static int obj_index_key_order_get(obj_index_key_order_t order, int i) {
+static inline int obj_index_key_order_get_index(obj_index_key_order_t order, int i) {
     return ((1 << i) & order) ? -1 : 1;
 }
 
+static inline void obj_index_key_order_set_index(obj_index_key_order_t *order, int i, obj_bool_t negative) {
+    if (negative) {
+        *order = (*order) | (1 << i);
+    } else {
+        *order = (*order) & (!(1 << i));
+    }
+}    
+    
 static unsigned obj_index_key_order_descending(obj_index_key_order_t order, unsigned mask) {
     return order & mask;
 }

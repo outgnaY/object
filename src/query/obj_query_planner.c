@@ -128,22 +128,24 @@ obj_status_with_t obj_query_planner_plan(obj_standard_query_t *sq, obj_collectio
     if (relevant_indexes.size > 0) {
         /* set relevant tag for expression tree */
         obj_query_index_rate_indexes(sq->root, &relevant_indexes);
+        obj_expr_dump(sq->root);
         obj_query_plan_iter_t pi;
         obj_query_plan_iter_init(&pi, &relevant_indexes, sq->root);
         obj_expr_base_expr_t *tag_tree = NULL;
         while ((tag_tree = obj_query_plan_iter_get_next(&pi)) != NULL) {
             /* sort by index tag */
             obj_expr_sort_using_tags(tag_tree);
+            obj_expr_dump(tag_tree);
             obj_query_plan_tree_base_node_t *plan_root = NULL;
             plan_root = obj_query_index_build_indexed_data_access(tag_tree, &relevant_indexes);
             if (plan_root == NULL) {
                 continue;
             }
             plan_root = obj_query_plan_analyze_data_access(sq->qr, plan_root);
-            /*
+            
             printf("********** plan tree: **********\n");
             obj_query_plan_tree_dump(plan_root, 0);
-            */
+            
             /* add to plans */
             obj_array_push_back(&plans, &plan_root);
             

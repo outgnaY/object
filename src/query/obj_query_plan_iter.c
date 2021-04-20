@@ -177,6 +177,7 @@ static void obj_query_plan_iter_node_destroy(void *ptr) {
 static void obj_query_plan_iter_and_node_init(obj_query_plan_iter_base_node_t *node) {
     node->node_type = OBJ_QUERY_PLAN_ITER_NODE_TYPE_AND;
     obj_query_plan_iter_and_node_t *and_node = &node->and_node;
+    and_node->counter = 0;
     obj_array_init(&and_node->choices, sizeof(obj_query_plan_iter_and_iter_state_t));
     obj_array_set_free(&and_node->choices, obj_query_plan_iter_and_iter_state_destroy_static);
 }
@@ -563,4 +564,6 @@ static obj_bool_t obj_query_plan_iter_next_memo(obj_query_plan_iter_t *pi, int i
         return true;
     }
 }
+
+
 

@@ -216,7 +216,7 @@ static obj_query_plan_tree_base_node_t *obj_query_index_build_indexed_or(obj_exp
         return NULL;
     }
     /* all children must be indexed */
-    if (index_scan_nodes.size != root->methods->num_child(root)) {
+    if (!full_indexed) {
         return NULL;
     }
     obj_query_plan_tree_base_node_t *or_result = NULL;
@@ -404,6 +404,7 @@ static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root
     obj_query_index_scan_build_state_t state;
     obj_query_index_scan_build_state_init(&state, root, indexes);
     obj_expr_base_expr_t *child = NULL;
+    *full_indexed = true;
     while (state.cur_child < root->methods->num_child(root)) {
         child = root->methods->get_child(root, state.cur_child);
         /* if there is no tag, it's not using an index. because we have sorted children with tags first, stop */
@@ -448,7 +449,6 @@ static obj_bool_t obj_query_index_process_index_scans(obj_expr_base_expr_t *root
         }
         state.cur_child++;
     }
-    *full_indexed = true;
     if (state.current_scan != NULL) {
         obj_query_index_finish_and_output_leaf(&state, out);
     }

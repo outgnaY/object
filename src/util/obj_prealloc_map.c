@@ -124,7 +124,7 @@ obj_prealloc_map_entry_t *obj_prealloc_map_add_key(obj_prealloc_map_t *map, void
     return entry;
 }
 
-void obj_prealloc_map_add(obj_prealloc_map_t *map, void *key, void *value) {
+obj_bool_t obj_prealloc_map_add(obj_prealloc_map_t *map, void *key, void *value) {
     obj_prealloc_map_entry_t *entry = NULL;
     int index;
     obj_uint64_t hash;
@@ -138,7 +138,7 @@ void obj_prealloc_map_add(obj_prealloc_map_t *map, void *key, void *value) {
     while (entry) {
         cur_key = obj_prealloc_map_get_key(map, entry);
         if (key == cur_key || obj_prealloc_map_compare_keys(map, key, cur_key) == 0) {
-            return;
+            return false;
         }
         entry = entry->next;
     }
@@ -155,6 +155,7 @@ void obj_prealloc_map_add(obj_prealloc_map_t *map, void *key, void *value) {
     obj_prealloc_map_set_key(map, entry, key); 
     obj_prealloc_map_set_value(map, entry, value);
     ++map->size;
+    return true;
 }
 
 void obj_prealloc_map_delete_entry(obj_prealloc_map_t *map, obj_prealloc_map_entry_t *entry) {
@@ -181,7 +182,7 @@ free:
     return;
 }
 
-void obj_prealloc_map_delete(obj_prealloc_map_t *map, void *key, obj_bool_t nofree) {
+obj_bool_t obj_prealloc_map_delete(obj_prealloc_map_t *map, void *key, obj_bool_t nofree) {
     obj_prealloc_map_entry_t *entry, *prev_entry;
     obj_uint64_t hash;
     int index;
@@ -213,11 +214,12 @@ void obj_prealloc_map_delete(obj_prealloc_map_t *map, void *key, obj_bool_t nofr
                 obj_free(entry);
             }
             map->size--;
-            return;
+            return true;
         }
         prev_entry = entry;
         entry = entry->next;
     }
+    return false;
 }
 
 void obj_prealloc_map_delete_all(obj_prealloc_map_t *map) {
