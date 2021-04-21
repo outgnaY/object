@@ -97,7 +97,7 @@ void obj_conn_queue_item_freelist_init();
 void obj_conn_queue_init(obj_conn_queue_t *cq);
 obj_conn_queue_item_t *obj_conn_queue_pop(obj_conn_queue_t *cq);
 void obj_conn_queue_free_item(obj_conn_queue_item_t *item);
-obj_bool_t obj_conn_add_reply(obj_conn_t *c, obj_msg_reply_t *reply);
+void obj_conn_add_reply(obj_conn_t *c, obj_bson_t *reply);
 void obj_conn_conns_init();
 obj_conn_context_t *obj_conn_context_create();
 void obj_conn_context_destroy(obj_conn_context_t *context);

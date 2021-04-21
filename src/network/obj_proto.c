@@ -9,8 +9,7 @@ obj_bool_t obj_proto_read_command(obj_conn_t *c) {
     obj_bool_t parse_res;
     if (obj_buffer_can_read_int32(c->inbuf)) {
         /* length */
-        /* len = obj_buffer_v_read_int32_unsafe(c->inbuf); */
-        len = obj_buffer_v_peek_int32_unsafe(c->inbuf);
+        len = obj_buffer_peek_int32_unsafe(c->inbuf);
         /* check length */
         if (len > OBJ_MSG_MAX_LEN) {
             /* close the connection */

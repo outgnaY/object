@@ -16,8 +16,8 @@ static obj_conn_queue_item_t *obj_conn_queue_new_item();
 static void obj_conn_reset_cmd_handler(obj_conn_t *c);
 static obj_conn_read_result_t obj_conn_read(obj_conn_t *c);
 static obj_bool_t obj_conn_has_pending_reply(obj_conn_t *c);
-static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *reply);
-static obj_bool_t obj_conn_add_reply_to_list(obj_conn_t *c, obj_msg_reply_t *reply);
+static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_bson_t *reply);
+static void obj_conn_add_reply_to_list(obj_conn_t *c, obj_bson_t *reply);
 static obj_conn_write_result_t obj_conn_write(obj_conn_t *c);
 static void obj_drive_machine(obj_conn_t *c);
 static void obj_conn_maxconns_handler(const evutil_socket_t fd, const short which, void *arg);
@@ -155,7 +155,7 @@ static obj_bool_t obj_conn_has_pending_reply(obj_conn_t *c) {
 }
 
 /* add reply to buffer */
-static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *reply) {
+static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_bson_t *reply) {
     /* printf("add reply to buffer, len: %d\n", reply->header.len); */
     int available = 0;
     obj_int32_t len;
@@ -165,39 +165,25 @@ static obj_bool_t obj_conn_add_reply_to_buffer(obj_conn_t *c, obj_msg_reply_t *r
         return false;
     }
     available = obj_buffer_writable_bytes(c->outbuf);
-    len = reply->header.len;
+    len = reply->len;
     if (len > available) {
         return false;
     }
+
     /* append reply */
-    /* header */
-    obj_buffer_append_int32(c->outbuf, reply->header.len);
-    obj_buffer_append_int32(c->outbuf, reply->header.opCode);
-    /* response_flags */
-    obj_buffer_append_int32(c->outbuf, reply->response_flags);
-    /* cursor_id */
-    obj_buffer_append_int64(c->outbuf, reply->cursor_id);
-    /* start_from */
-    obj_buffer_append_int32(c->outbuf, reply->start_from);
-    /* num_return */
-    obj_buffer_append_int32(c->outbuf, reply->num_return);
-    /* objects */
-    for (i = 0; i < reply->num_return; i++) {
-        obj_buffer_append_bson(c->outbuf, reply->objects[i]);
-    }
-    
+    obj_buffer_append_bson(c->outbuf, reply);
     return true;
 }
 
 /* add reply to list */
-static obj_bool_t obj_conn_add_reply_to_list(obj_conn_t *c, obj_msg_reply_t *reply) {
+static void obj_conn_add_reply_to_list(obj_conn_t *c, obj_bson_t *reply) {
     /* printf("add reply to list, len:%d\n", reply->header.len); */
     obj_list_node_t *tail_node = obj_list_get_tail(c->reply_list);
     obj_conn_reply_block_t *tail = tail_node ? (obj_conn_reply_block_t *)obj_list_node_value(tail_node) : NULL;
     obj_buffer_t *buf;
     obj_bool_t res = false;
     int i;
-    int size = reply->header.len;
+    int size = reply->len;
     if (tail) {
         if (obj_buffer_writable_bytes(tail->buf) < size) {
             goto new_block;
@@ -206,53 +192,23 @@ static obj_bool_t obj_conn_add_reply_to_list(obj_conn_t *c, obj_msg_reply_t *rep
     } 
 new_block:
     tail = obj_alloc(sizeof(obj_conn_reply_block_t));
-    if (tail == NULL) {
-        goto clean;
-    }
     if (size < OBJ_BUFFER_INIT_SIZE) {
         size = OBJ_BUFFER_INIT_SIZE;
     }
     buf = obj_buffer_create_with_size(size);
-    if (buf == NULL) {
-        goto clean;
-    }
     tail->buf = buf;
     /* link to last */
     obj_list_add_node_tail(c->reply_list, tail);
 add:
     /* have enough space, add reply */
-    /* header */
-    obj_buffer_append_int32(tail->buf, reply->header.len);
-    obj_buffer_append_int32(tail->buf, reply->header.opCode);
-    /* response_flags */
-    obj_buffer_append_int32(tail->buf, reply->response_flags);
-    /* cursor_id */
-    obj_buffer_append_int64(tail->buf, reply->cursor_id);
-    /* start_from */
-    obj_buffer_append_int32(tail->buf, reply->start_from);
-    /* num_return */
-    obj_buffer_append_int32(tail->buf, reply->num_return);
-    /* objects */
-    for (i = 0; i < reply->num_return; i++) {
-        obj_buffer_append_bson(tail->buf, reply->objects[i]);
-    }
-    return true;
-clean:
-    if (tail != NULL) {
-        obj_free(tail);
-    }
-    if (buf != NULL) {
-        obj_buffer_destroy(buf);
-    }
-    return false;
+    obj_buffer_append_bson(tail->buf, reply);
 }
 
 /* add reply */
-obj_bool_t obj_conn_add_reply(obj_conn_t *c, obj_msg_reply_t *reply) {
+void obj_conn_add_reply(obj_conn_t *c, obj_bson_t *reply) {
     if (!obj_conn_add_reply_to_buffer(c, reply)) {
-        return obj_conn_add_reply_to_list(c, reply);
+        obj_conn_add_reply_to_list(c, reply);
     }
-    return true;
 }
 
 /* send data */
