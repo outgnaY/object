@@ -11,20 +11,23 @@ static void obj_process_create_collection_command(obj_conn_t *c, obj_bson_t *com
 static void obj_process_delete_collection_command(obj_conn_t *c, obj_bson_t *command_bson);
 static void obj_process_create_database_command(obj_conn_t *c, obj_bson_t *command_bson);
 static void obj_process_delete_database_command(obj_conn_t *c, obj_bson_t *command_bson);
+static void obj_process_list_databases_command(obj_conn_t *c, obj_bson_t *command_bson);
+static void obj_process_list_collections_command(obj_conn_t *c, obj_bson_t *command_bson);
 
 
-
-static obj_command_processor_pair_t obj_command_processors[10] = {
-    {"insert", obj_process_insert_command},
-    {"delete", obj_process_delete_command},
-    {"update", obj_process_update_command},
-    {"find", obj_process_find_command},
-    {"create", obj_process_create_index_command},
-    {"delete", obj_process_delete_index_command},
+static obj_command_processor_pair_t obj_command_processors[] = {
     {"create_collection", obj_process_create_collection_command},
-    {"delete_collection", obj_process_delete_collection_command},
     {"create_database", obj_process_create_database_command},
-    {"delete_database", obj_process_delete_database_command}
+    {"create_index", obj_process_create_index_command},
+    {"delete", obj_process_delete_command},
+    {"delete_collection", obj_process_delete_collection_command},
+    {"delete_database", obj_process_delete_database_command},
+    {"delete_index", obj_process_delete_index_command},
+    {"find", obj_process_find_command},
+    {"insert", obj_process_insert_command},
+    {"list_collections", obj_process_list_collections_command},
+    {"list_databases", obj_process_list_databases_command},
+    {"update", obj_process_update_command}
 };
 
 /* get command processor */
@@ -33,13 +36,13 @@ static int obj_get_command_processor(char *command_name) {
     int hi = OBJ_NELEM(obj_command_processors) - 1;
     int mid;
     int res;
-    while (lo < hi) {
+    while (lo <= hi) {
         mid = (lo + hi) / 2;
         res = obj_strcmp(command_name, obj_command_processors[mid].name);
         if (res < 0) {
-            lo = mid + 1;
-        } else if (res > 0) {
             hi = mid - 1;
+        } else if (res > 0) {
+            lo = mid + 1;
         } else {
             return mid;
         }
@@ -48,14 +51,17 @@ static int obj_get_command_processor(char *command_name) {
 }
 
 void obj_process_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("process command\n");
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
     obj_bson_type_t bson_type;
-    if (!obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
-        if (bson_type != OBJ_BSON_TYPE_UTF8)
-        /* TODO error reply */
-        
+    if (!obj_bson_iter_next_internal(&iter, &key, &bson_type)) {        
+        /* TODO reply error */
+        return;
+    }
+    if (bson_type != OBJ_BSON_TYPE_UTF8) {
+        /* TODO reply error */
         return;
     }
     int index = obj_get_command_processor(key);
@@ -165,6 +171,7 @@ static void obj_process_insert_command(obj_conn_t *c, obj_bson_t *command_bson) 
 
 }
 
+
 /** 
  * delete command
  * {
@@ -222,6 +229,8 @@ static void obj_process_find_command(obj_conn_t *c, obj_bson_t *command_bson) {
  * }
  */
 static void obj_process_create_index_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("create index\n");
+    obj_bson_t *reply = obj_bson_create();
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
@@ -233,29 +242,34 @@ static void obj_process_create_index_command(obj_conn_t *c, obj_bson_t *command_
     int full_name_len = value->value.v_utf8.len;
 
     if (!obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     if (bson_type != OBJ_BSON_TYPE_UTF8) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     value = obj_bson_iter_value(&iter);
     char *index_name = value->value.v_utf8.str;
     int index_name_len = value->value.v_utf8.len;
-    /* copy index name */
-    char *index_name_copy = obj_alloc(index_name_len + 1);
-    obj_memcpy(index_name_copy, index_name, index_name_len);
-    index_name_copy[index_name_len] = '\0';
 
     if (!obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     if (bson_type != OBJ_BSON_TYPE_OBJECT) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
+    
     value = obj_bson_iter_value(&iter);
     obj_bson_t key_pattern;
     obj_bson_t *key_pattern_copy;    
@@ -268,9 +282,15 @@ static void obj_process_create_index_command(obj_conn_t *c, obj_bson_t *command_
     obj_collection_lock_t collection_lock;
     char *pos = obj_strchr(full_name, '.');
     if (pos == NULL || (pos - full_name) == full_name_len - 1) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
+    /* copy index name */
+    char *index_name_copy = obj_alloc(index_name_len + 1);
+    obj_memcpy(index_name_copy, index_name, index_name_len);
+    index_name_copy[index_name_len] = '\0';
     *pos = '\0';
 
     obj_global_lock_init(&global_lock, c->context->locker, OBJ_LOCK_MODE_IX);
@@ -283,38 +303,43 @@ static void obj_process_create_index_command(obj_conn_t *c, obj_bson_t *command_
     obj_collection_lock_lock(&collection_lock);
     db_entry = obj_db_catalog_entry_get(g_engine, full_name);
     if (db_entry == NULL) {
-        /* TODO reply error */
         obj_collection_lock_unlock(&collection_lock);
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
-        return;
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_NOT_EXISTS);
+        goto clean;
     }
     *pos = '.';
     collection_entry = obj_collection_catalog_entry_get(db_entry, full_name);
     if (collection_entry == NULL) {
-        /* TODO collection not found */
         obj_collection_lock_unlock(&collection_lock);
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
-        return;
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_ALREADY_EXISTS);
+        goto clean;
     }
 
     obj_uint8_t *data_copy = obj_alloc(value->value.v_object.len);
     obj_memcpy(data_copy, value->value.v_object.data, value->value.v_object.len);
     key_pattern_copy = obj_bson_create_with_data(data_copy, value->value.v_object.len);
     obj_status_t res = obj_create_index(collection_entry, key_pattern_copy, index_name_copy);
-    if (!obj_status_isok(&res)) {
-        /* TODO reply error */
+    if (!obj_status_is_ok(&res)) {
         obj_collection_lock_unlock(&collection_lock);
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
-        return;
+        obj_bson_append_int32(reply, "code", 4, res.code);
+        goto clean;
     }
     obj_collection_lock_unlock(&collection_lock);
     obj_db_lock_unlock(&db_lock);
     obj_global_lock_unlock(&global_lock);
-    /* TODO reply */
-    
+    obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
+    return;
+clean:
+    obj_conn_add_reply(c, reply);
+    obj_free(index_name_copy);
 }
 
 /**
@@ -325,6 +350,8 @@ static void obj_process_create_index_command(obj_conn_t *c, obj_bson_t *command_
  * }
  */
 static void obj_process_delete_index_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("delete index\n");
+    obj_bson_t *reply = obj_bson_create();
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
@@ -337,11 +364,15 @@ static void obj_process_delete_index_command(obj_conn_t *c, obj_bson_t *command_
 
     char *index_name;
     if (!obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     if (bson_type != OBJ_BSON_TYPE_UTF8) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     value = obj_bson_iter_value(&iter);
@@ -353,7 +384,9 @@ static void obj_process_delete_index_command(obj_conn_t *c, obj_bson_t *command_
     obj_collection_lock_t collection_lock;
     char *pos = obj_strchr(full_name, '.');
     if (pos == NULL || (pos - full_name) == full_name_len - 1) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     *pos = '\0';
@@ -367,35 +400,42 @@ static void obj_process_delete_index_command(obj_conn_t *c, obj_bson_t *command_
     obj_collection_lock_lock(&collection_lock);
     db_entry = obj_db_catalog_entry_get(g_engine, full_name);
     if (db_entry == NULL) {
-        /* TODO db not found */
         obj_collection_lock_unlock(&collection_lock);
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     *pos = '.';
     collection_entry = obj_collection_catalog_entry_get(db_entry, full_name);
     if (collection_entry == NULL) {
-        /* TODO collection not found */
         obj_collection_lock_unlock(&collection_lock);
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_ALREADY_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     /* delete index */
     if (!obj_delete_index(collection_entry, index_name)) {
-        /* TODO reply error */
         obj_collection_lock_unlock(&collection_lock);
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_INDEX_NOT_FOUND);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
 
     obj_collection_lock_unlock(&collection_lock);
     obj_db_lock_unlock(&db_lock);
     obj_global_lock_unlock(&global_lock);
-    /* TODO reply */
-
+    obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
 }
 
 /**
@@ -406,6 +446,8 @@ static void obj_process_delete_index_command(obj_conn_t *c, obj_bson_t *command_
  * }
  */
 static void obj_process_create_collection_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("create collection\n");
+    obj_bson_t *reply = obj_bson_create();
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
@@ -415,30 +457,30 @@ static void obj_process_create_collection_command(obj_conn_t *c, obj_bson_t *com
     obj_assert(value->type == OBJ_BSON_TYPE_UTF8);
     char *full_name = value->value.v_utf8.str;
     int full_name_len = value->value.v_utf8.len;
-    char *full_name_copy = (char *)obj_alloc(full_name_len + 1);
-    obj_memcpy(full_name_copy, full_name, full_name_len);
-    full_name_copy[full_name_len] = '\0';
 
     obj_bson_t prototype;
     obj_bson_t *prototype_copy = NULL;
     if (!obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     if (bson_type != OBJ_BSON_TYPE_OBJECT) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     value = obj_bson_iter_value(&iter);
     obj_assert(value->type == OBJ_BSON_TYPE_OBJECT);
     obj_bson_init_static_with_len(&prototype, value->value.v_object.data, value->value.v_object.len);
     if (!obj_check_type_define(&prototype)) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_TYPE_DEFINE_INVALID);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
-    obj_uint8_t *data_copy = obj_alloc(value->value.v_object.len);
-    obj_memcpy(data_copy, value->value.v_object.data, value->value.v_object.len);
-    prototype_copy = obj_bson_create_with_data(data_copy, value->value.v_object.len);
     obj_db_catalog_entry_t *db_entry = NULL;
     obj_collection_catalog_entry_t *collection_entry = NULL;
     obj_global_lock_t global_lock;
@@ -446,9 +488,17 @@ static void obj_process_create_collection_command(obj_conn_t *c, obj_bson_t *com
     
     char *pos = obj_strchr(full_name, '.');
     if (pos == NULL || (pos - full_name) == full_name_len - 1) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
+    char *full_name_copy = (char *)obj_alloc(full_name_len + 1);
+    obj_memcpy(full_name_copy, full_name, full_name_len);
+    full_name_copy[full_name_len] = '\0';
+    obj_uint8_t *data_copy = obj_alloc(value->value.v_object.len);
+    obj_memcpy(data_copy, value->value.v_object.data, value->value.v_object.len);
+    prototype_copy = obj_bson_create_with_data(data_copy, value->value.v_object.len);
     /* db.col->db'\0'col */
     *pos = '\0';
     obj_global_lock_init(&global_lock, c->context->locker, OBJ_LOCK_MODE_IX);
@@ -457,30 +507,38 @@ static void obj_process_create_collection_command(obj_conn_t *c, obj_bson_t *com
     obj_db_lock_lock(&db_lock);
     db_entry = obj_db_catalog_entry_get(g_engine, full_name);
     if (db_entry == NULL) {
-        /* TODO db not found */
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
-        return;
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_NOT_EXISTS);
+        goto clean;
     }
     *pos = '.';
     collection_entry = obj_collection_catalog_entry_get(db_entry, full_name);
     if (collection_entry != NULL) {
-        /* TODO collection already exists */
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
-        return;
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_ALREADY_EXISTS);
+        goto clean;
     }
     /* create collection */
     if (!obj_create_collection(db_entry, full_name_copy, prototype_copy)) {
-        /* TODO reply error */
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
-        return;
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_ALREADY_EXISTS);
+        goto clean;
     }
     obj_db_lock_unlock(&db_lock);
     obj_global_lock_unlock(&global_lock);
-    /* TODO reply */
-
+    obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
+    return;
+clean:
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
+    obj_free(full_name_copy);
+    obj_bson_destroy(prototype_copy);
+    obj_free(data_copy);
 }
 
 /**
@@ -490,6 +548,8 @@ static void obj_process_create_collection_command(obj_conn_t *c, obj_bson_t *com
  * }
  */
 static void obj_process_delete_collection_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("delete collection\n");
+    obj_bson_t *reply = obj_bson_create();
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
@@ -505,7 +565,9 @@ static void obj_process_delete_collection_command(obj_conn_t *c, obj_bson_t *com
     int full_name_len = value->value.v_utf8.len;
     char *pos = obj_strchr(full_name, '.');
     if (pos == NULL || (pos - full_name) == full_name_len - 1) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     /* db.col->db'\0'col */
@@ -516,30 +578,37 @@ static void obj_process_delete_collection_command(obj_conn_t *c, obj_bson_t *com
     obj_db_lock_lock(&db_lock);
     db_entry = obj_db_catalog_entry_get(g_engine, full_name);
     if (db_entry == NULL) {
-        /* TODO db not found */
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     /* restore */
     *pos = '.';
     collection_entry = obj_collection_catalog_entry_get(db_entry, full_name);
     if (collection_entry == NULL) {
-        /* TODO collection not found */
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
-    if (!obj_delete_collection(db_entry, pos + 1)) {
-        /* TODO reply error */
+    if (!obj_delete_collection(db_entry, full_name)) {
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     obj_db_lock_unlock(&db_lock);
     obj_global_lock_unlock(&global_lock);
-    /* TODO reply */
-
+    obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
 }
 
 /**
@@ -549,6 +618,8 @@ static void obj_process_delete_collection_command(obj_conn_t *c, obj_bson_t *com
  * }
  */
 static void obj_process_create_database_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("create database\n");
+    obj_bson_t *reply = obj_bson_create();
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
@@ -562,8 +633,10 @@ static void obj_process_create_database_command(obj_conn_t *c, obj_bson_t *comma
     obj_global_lock_lock(&global_lock);
     db_entry = obj_db_catalog_entry_get(g_engine, value->value.v_utf8.str);
     if (db_entry != NULL) {
-        /* TODO db already exists */
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_ALREADY_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     char *db_name = (char *)obj_alloc(value->value.v_utf8.len + 1);
@@ -571,8 +644,9 @@ static void obj_process_create_database_command(obj_conn_t *c, obj_bson_t *comma
     db_name[value->value.v_utf8.len] = '\0';
     obj_create_db(g_engine, db_name);
     obj_global_lock_unlock(&global_lock);
-    /* TODO reply */
-
+    obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
 }
 
 /**
@@ -582,6 +656,7 @@ static void obj_process_create_database_command(obj_conn_t *c, obj_bson_t *comma
  * }
  */
 static void obj_process_delete_database_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    obj_bson_t *reply = obj_bson_create();
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
@@ -595,14 +670,107 @@ static void obj_process_delete_database_command(obj_conn_t *c, obj_bson_t *comma
     obj_global_lock_lock(&global_lock);
     db_entry = obj_db_catalog_entry_get(g_engine, value->value.v_utf8.str);
     if (db_entry == NULL) {
-        /* TODO db not found */
-
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     /* delete database */
     obj_delete_db(g_engine, value->value.v_utf8.str);
     obj_global_lock_unlock(&global_lock);
-    /* TODO reply */
+    obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
+}
 
+/**
+ * list databases command
+ * {
+ *     "list_databases": ""
+ * }
+ */
+static void obj_process_list_databases_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("list databases\n");
+    obj_bson_t *reply = obj_bson_create();
+    obj_bson_t array;
+    obj_bson_iter_t iter;
+    obj_bson_iter_init(&iter, command_bson);
+    char *key = NULL;
+    obj_bson_type_t bson_type;
+    obj_bson_iter_next_internal(&iter, &key, &bson_type);
+    obj_bson_value_t *value = obj_bson_iter_value(&iter);
+    obj_assert(value->type == OBJ_BSON_TYPE_UTF8);
+    /* obj_bson_append_int32(reply, "code", 4, 0); */
+    obj_bson_append_array_begin(reply, "data", 4, &array);
+    int i;
+    obj_prealloc_map_entry_t *entry = NULL;
+    char *db_name;
+    obj_global_lock_t global_lock;
+    obj_global_lock_init(&global_lock, c->context->locker, OBJ_LOCK_MODE_S);
+    obj_global_lock_lock(&global_lock);
+    for (i = 0; i < g_engine->map.bucket_size; i++) {
+        entry = g_engine->map.bucket[i];
+        while (entry != NULL) {
+            db_name = *(char **)obj_prealloc_map_get_key(&g_engine->map, entry);
+            obj_bson_append_utf8(&array, "", 0, db_name, obj_strlen(db_name));
+            entry = entry->next;
+        }
+    }
+    obj_global_lock_unlock(&global_lock);
+    obj_bson_append_array_end(reply, &array);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
+}
+
+/**
+ * list collections command
+ * {
+ *     "list_collections": <string>
+ * }
+ */
+static void obj_process_list_collections_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("list collections\n");
+    obj_bson_t *reply = obj_bson_create();
+    obj_bson_t array;
+    obj_bson_iter_t iter;
+    obj_bson_iter_init(&iter, command_bson);
+    char *key = NULL;
+    obj_bson_type_t bson_type;
+    obj_bson_iter_next_internal(&iter, &key, &bson_type);
+    obj_bson_value_t *value = obj_bson_iter_value(&iter);
+    obj_assert(value->type == OBJ_BSON_TYPE_UTF8);
+    obj_bson_append_array_begin(reply, "data", 4, &array);
+    int i;
+    obj_prealloc_map_entry_t *entry = NULL;
+    obj_db_catalog_entry_t *db_entry = NULL;
+    char *collection_name = NULL;
+    obj_global_lock_t global_lock;
+    obj_db_lock_t db_lock;
+    obj_global_lock_init(&global_lock, c->context->locker, OBJ_LOCK_MODE_IS);
+    obj_db_lock_init(&db_lock, c->context->locker, OBJ_LOCK_MODE_S, value->value.v_utf8.str);
+    obj_global_lock_lock(&global_lock);
+    obj_db_lock_lock(&db_lock);
+    db_entry = obj_db_catalog_entry_get(g_engine, value->value.v_utf8.str);
+    if (db_entry == NULL) {
+        obj_db_lock_unlock(&db_lock);
+        obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
+        return;
+    }
+    for (i = 0; i < db_entry->collections.bucket_size; i++) {
+        entry = db_entry->collections.bucket[i];
+        while (entry != NULL) {
+            collection_name = *(char **)obj_prealloc_map_get_key(&db_entry->collections, entry);
+            obj_bson_append_utf8(&array, "", 0, collection_name, obj_strlen(collection_name));
+            entry = entry->next;
+        }
+    }
+    obj_db_lock_unlock(&db_lock);
+    obj_global_lock_unlock(&global_lock);
+    obj_bson_append_array_end(reply, &array);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
 }

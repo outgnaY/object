@@ -55,7 +55,7 @@ static int obj_db_catalog_entry_map_key_compare(void *key1, void *key2) {
 
 static void obj_db_catalog_entry_map_key_free(void *data) {
     obj_db_catalog_entry_pair_t *pair = (obj_db_catalog_entry_pair_t *)data;
-    obj_free(&pair->db);
+    obj_free(pair->db);
 }
 
 static void obj_db_catalog_entry_map_value_free(void *data) {
@@ -76,7 +76,7 @@ static void *obj_db_catalog_entry_map_value_get(void *data) {
 /* must copy before set */
 static void obj_db_catalog_entry_map_key_set(void *data, void *key) {
     obj_db_catalog_entry_pair_t *pair = (obj_db_catalog_entry_pair_t *)data;
-    obj_memcpy(&pair->db, *(char **)key, sizeof(char *));
+    obj_memcpy(&pair->db, key, sizeof(char *));
 }
 
 static void obj_db_catalog_entry_map_value_set(void *data, void *value) {
@@ -113,7 +113,7 @@ static int obj_collection_catalog_entry_map_key_compare(void *key1, void *key2) 
 
 static void obj_collection_catalog_entry_map_key_free(void *data) {
     obj_collection_catalog_entry_pair_t *pair = (obj_collection_catalog_entry_pair_t *)data;
-    obj_free(&pair->collection);
+    obj_free(pair->collection);
 }
 
 static void obj_collection_catalog_entry_map_value_free(void *data) {
@@ -133,7 +133,7 @@ static void *obj_collection_catalog_entry_map_value_get(void *data) {
 
 static void obj_collection_catalog_entry_map_key_set(void *data, void *key) {
     obj_collection_catalog_entry_pair_t *pair = (obj_collection_catalog_entry_pair_t *)data;
-    obj_memcpy(&pair->collection, *(char **)key, sizeof(char *));
+    obj_memcpy(&pair->collection, key, sizeof(char *));
 }
 
 static void obj_collection_catalog_entry_map_value_set(void *data, void *value) {
@@ -159,20 +159,20 @@ static void obj_db_catalog_entry_destroy(obj_db_catalog_entry_t *db_entry) {
 
 obj_db_catalog_entry_t *obj_db_catalog_entry_get(obj_engine_t *engine, char *db_name) {
     obj_prealloc_map_entry_t *entry = NULL;
-    entry = obj_prealloc_map_find(&engine->map, db_name);
+    entry = obj_prealloc_map_find(&engine->map, &db_name);
     if (entry == NULL) {
         return NULL;
     }
-    return obj_prealloc_map_get_value(&engine->map, entry);
+    return *(obj_db_catalog_entry_t **)obj_prealloc_map_get_value(&engine->map, entry);
 }
 
 void obj_delete_db(obj_engine_t *engine, char *db_name) {
-    obj_prealloc_map_delete(&engine->map, db_name, false);
+    obj_prealloc_map_delete(&engine->map, &db_name, false);
 }
 
 void obj_create_db(obj_engine_t *engine, char *db_name) {
     obj_db_catalog_entry_t *db_entry = obj_db_catalog_entry_create();
-    obj_prealloc_map_add(&engine->map, db_name, db_entry);
+    obj_prealloc_map_add(&engine->map, &db_name, &db_entry);
 }
 
 
@@ -180,9 +180,6 @@ void obj_create_db(obj_engine_t *engine, char *db_name) {
 
 /* create collection catalog entry */
 static obj_collection_catalog_entry_t *obj_collection_catalog_entry_create(obj_bson_t *prototype) {
-    if (!obj_check_type_define(prototype)) {
-        return NULL;
-    }
     obj_collection_catalog_entry_t *collection_entry = obj_alloc(sizeof(obj_collection_catalog_entry_t));
     collection_entry->record_store = obj_record_store_create();
     collection_entry->checker.prototype = prototype;
@@ -204,20 +201,20 @@ static void obj_collection_catalog_entry_destroy(obj_collection_catalog_entry_t 
 
 obj_collection_catalog_entry_t *obj_collection_catalog_entry_get(obj_db_catalog_entry_t *db_entry, char *collection_name) {
     obj_prealloc_map_entry_t *entry = NULL;
-    entry = obj_prealloc_map_find(&db_entry->collections, collection_name);
+    entry = obj_prealloc_map_find(&db_entry->collections, &collection_name);
     if (entry == NULL) {
         return NULL;
     }
-    return obj_prealloc_map_get_value(&db_entry->collections, entry);
+    return *(obj_collection_catalog_entry_t **)obj_prealloc_map_get_value(&db_entry->collections, entry);
 }
 
 obj_bool_t obj_delete_collection(obj_db_catalog_entry_t *db_entry, char *collection_name) {
-    return obj_prealloc_map_delete(&db_entry->collections, collection_name, false);
+    return obj_prealloc_map_delete(&db_entry->collections, &collection_name, false);
 }
 
 obj_bool_t obj_create_collection(obj_db_catalog_entry_t *db_entry, char *collection_name, obj_bson_t *prototype) {
     obj_collection_catalog_entry_t *collection_entry = obj_collection_catalog_entry_create(prototype);
-    return obj_prealloc_map_add(&db_entry->collections, collection_name, collection_entry);
+    return obj_prealloc_map_add(&db_entry->collections, &collection_name, &collection_entry);
 }
 
 /* insert objects */
@@ -281,7 +278,7 @@ obj_status_t obj_create_index(obj_collection_catalog_entry_t *collection_entry, 
     }
     obj_index_key_order_t order;
     int nfields;
-    if (!obj_index_key_pattern_is_valid(&collection_entry->checker.prototype, key_pattern, &order, &nfields)) {
+    if (!obj_index_key_pattern_is_valid(collection_entry->checker.prototype, key_pattern, &order, &nfields)) {
         return obj_status_create("invalid index key pattern", OBJ_CODE_INDEX_KEY_PATTERN_INVALID);
     }
     index_entry.nfields = nfields;
@@ -299,6 +296,7 @@ obj_bool_t obj_delete_index(obj_collection_catalog_entry_t *collection_entry, ch
         if (obj_strcmp(index_entry->name, index_name) == 0) {
             /* found */
             obj_array_remove(&collection_entry->indexes, i);
+            return true;
         }
     }
     return false;

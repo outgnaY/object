@@ -10,7 +10,7 @@ static obj_prepare_execution_result_t obj_prepare_execution(obj_collection_catal
     obj_prepare_execution_result_t result = {sq, NULL, NULL};
     /* plan tree */
     obj_status_with_t status_with_plan = obj_query_planner_plan(sq, collection);
-    if (!obj_status_isok(&status_with_plan)) {
+    if (!obj_status_with_is_ok(&status_with_plan)) {
         return result;
     }
     obj_query_plan_tree_base_node_t *plan_tree = (obj_query_plan_tree_base_node_t *)status_with_plan.data;

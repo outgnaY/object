@@ -1,5 +1,10 @@
 #include "obj_core.h"
 
+void time_interval(struct timeval t1, struct timeval t2) {
+    int us = (t2.tv_sec - t1.tv_sec) * 1000000 + t2.tv_usec - t1.tv_usec;
+    printf("total time: %ds %dus\n", us / 1000000, us - (us / 1000000) * 1000000);
+}
+
 int main() {
     struct timeval start;
     struct timeval end;
@@ -15,13 +20,102 @@ int main() {
     }
     obj_uint8_t recv_buf[1024];
     obj_uint8_t send_buf[1024];
+    int n;
     obj_bson_t *create_database_cmd = OBJ_BSON_BCON_NEW(
         "create_database", "db1"
     );
+    obj_bson_t *list_databases_cmd = OBJ_BSON_BCON_NEW(
+        "list_databases", ""
+    );
+    obj_bson_t *delete_database_cmd = OBJ_BSON_BCON_NEW(
+        "delete_database", "db1"
+    );
+    obj_bson_t *create_collection_cmd = OBJ_BSON_BCON_NEW(
+        "create_collection", "db1.coll1",
+        "prototype", "{", "a", OBJ_BSON_BCON_INT32(OBJ_BSON_TYPE_DOUBLE), "}"
+    );
+    obj_bson_t *list_collections_cmd = OBJ_BSON_BCON_NEW(
+        "list_collections", "db1"
+    );
+    obj_bson_t *delete_collection_cmd = OBJ_BSON_BCON_NEW(
+        "delete_collection", "db1.coll1"
+    );
+    obj_bson_t *create_index_cmd = OBJ_BSON_BCON_NEW(
+        "create_index", "db1.coll1",
+        "name", "index1",
+        "pattern", "{", "a", OBJ_BSON_BCON_INT32(1), "}"
+    );
+    obj_bson_t *delete_index_cmd = OBJ_BSON_BCON_NEW(
+        "delete_index", "db1.coll1",
+        "name", "index1"
+    );
+    obj_bson_t *insert_cmd = OBJ_BSON_BCON_NEW(
+        "insert", "db1.coll1"
+    );
+    
+    
+
+
+    /* create database db1 */
     obj_memcpy(send_buf, create_database_cmd->data, create_database_cmd->len);
-    gettimeofday(&start, NULL);
+    /* gettimeofday(&start, NULL); */
     write(sockfd, send_buf, create_database_cmd->len);
-    gettimeofday(&end, NULL);
+    n = read(sockfd, recv_buf, 1024);
+    /* gettimeofday(&end, NULL); */
+    /* time_interval(start, end); */
+    obj_bson_t *reply1 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply1);
+
+    /* list databases */
+    obj_memcpy(send_buf, list_databases_cmd->data, list_databases_cmd->len);
+    write(sockfd, send_buf, list_databases_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply2 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply2);
+
+    /* create collection */
+    obj_memcpy(send_buf, create_collection_cmd->data, create_collection_cmd->len);
+    write(sockfd, send_buf, create_collection_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply3 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply3);
+
+    /* list collections */
+    obj_memcpy(send_buf, list_collections_cmd->data, list_collections_cmd->len);
+    write(sockfd, send_buf, list_collections_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply4 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply4);
+
+    /* create index */
+    obj_memcpy(send_buf, create_index_cmd->data, create_index_cmd->len);
+    write(sockfd, send_buf, create_index_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply5 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply5);
+
+    /* delete index */
+    obj_memcpy(send_buf, delete_index_cmd->data, delete_index_cmd->len);
+    write(sockfd, send_buf, delete_index_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply6 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply6);
+
+    /* delete collection */
+    obj_memcpy(send_buf, delete_collection_cmd->data, delete_collection_cmd->len);
+    write(sockfd, send_buf, delete_collection_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply7 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply7);
+
+    /* delete databases */
+    obj_memcpy(send_buf, delete_database_cmd->data, delete_database_cmd->len);
+    write(sockfd, send_buf, delete_database_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply8 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply8);
+
+    
     return 0;
 }
 

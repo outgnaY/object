@@ -116,7 +116,7 @@ obj_status_with_t obj_query_standardize(obj_query_request_t *qr) {
     if (!obj_bson_is_empty(&qr->filter)) {
         obj_status_with_t parse_status = obj_expr_parse(&qr->filter);
         /* parse error occurred */
-        if (!obj_status_isok(&parse_status)) {
+        if (!obj_status_with_is_ok(&parse_status)) {
             obj_free(sq);
             return obj_status_with_create(NULL, "parse expression tree error", parse_status.code);
         }

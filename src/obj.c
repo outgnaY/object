@@ -308,6 +308,10 @@ int main(int argc, char **argv) {
     obj_global_mem_context_init();
     /* init connections structure */
     obj_conn_conns_init();
+    /* init global lock manager */
+    obj_global_lock_manager_init();
+    /* init global storage engine */
+    obj_global_engine_init();
     /* set process start time */
     obj_process_started = time(0);
     /* ignore SIGPIPE signals */

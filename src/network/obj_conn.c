@@ -500,10 +500,6 @@ obj_conn_context_t *obj_conn_context_create() {
         return NULL;
     }
     context->locker = obj_locker_create();
-    if (context->locker == NULL) {
-        obj_free(context);
-        return NULL;
-    }
     return context;
 }
 
@@ -555,6 +551,7 @@ obj_conn_t *obj_conn_new(const int sfd, obj_conn_state_t init_state, const short
         fprintf(stderr, "failed to create connection context\n");
         goto clean;
     }
+    c->context = context;
     event_set(&c->event, sfd, event_flags, obj_conn_event_handler, (void *)c);
     event_base_set(base, &c->event);
     c->event_flags = event_flags;

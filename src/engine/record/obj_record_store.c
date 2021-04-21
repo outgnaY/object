@@ -72,6 +72,7 @@ static void obj_record_iter_set_key_set(void *data, void *key) {
 
 /* create a record store */
 obj_record_store_t *obj_record_store_create() {
+    printf("create record store\n");
     obj_record_store_t *record_store = obj_alloc(sizeof(obj_record_store_t));
     obj_record_store_init(record_store);
     return record_store;
@@ -200,6 +201,7 @@ static inline obj_bool_t obj_record_store_iterator_is_eof(obj_record_store_itera
 /* init iterator set */
 static void obj_record_store_iterator_set_init(obj_record_store_iterator_set_t *iter_set) {
     obj_set_init(&iter_set->iters, &record_iter_set_methods, sizeof(obj_record_store_iterator_t *));
+    printf("size: %d\n", iter_set->iters.map.size);
     pthread_mutex_init(&iter_set->mutex, NULL);
 }
 

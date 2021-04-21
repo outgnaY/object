@@ -161,7 +161,7 @@ static obj_status_with_t obj_expr_parse_all(obj_bson_t *bson, obj_expr_parse_lev
                 return obj_status_with_create(NULL, "parser not found", OBJ_CODE_EXPR_PARSER_NOT_FOUND);
             }
             status = fn(key, value, current_level);
-            if (!obj_status_isok(&status)) {
+            if (!obj_status_with_is_ok(&status)) {
                 return status;
             }
             obj_assert(status.data != NULL);
@@ -173,7 +173,7 @@ static obj_status_with_t obj_expr_parse_all(obj_bson_t *bson, obj_expr_parse_lev
             obj_bson_t sub_bson;
             obj_bson_init_static_with_len(&sub_bson, value->value.v_object.data, value->value.v_object.len);
             status = obj_expr_parse_sub(key, &sub_bson, root, next_level);
-            if (!obj_status_isok(&status)) {
+            if (!obj_status_with_is_ok(&status)) {
                 return status;
             }
             continue;
@@ -232,7 +232,7 @@ static obj_status_with_t obj_expr_parse_top_level(obj_expr_type_t expr_type, cha
         obj_bson_t sub_bson;
         obj_bson_init_static_with_len(&sub_bson, child_value->value.v_object.data, child_value->value.v_object.len);
         sub = obj_expr_parse_all(&sub_bson, current_level);
-        if (!obj_status_isok(&sub)) {
+        if (!obj_status_with_is_ok(&sub)) {
             return sub;
         }
         obj_expr_tree_expr_add_child(temp, (obj_expr_base_expr_t *)sub.data);
@@ -250,7 +250,7 @@ static obj_status_with_t obj_expr_parse_sub(char *name, obj_bson_t *bson, obj_ex
     while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
         value = (obj_bson_value_t *)obj_bson_iter_value(&iter);
         obj_status_with_t status = obj_expr_parse_sub_field(bson, name, key, value, current_level);
-        if (!obj_status_isok(&status)) {
+        if (!obj_status_with_is_ok(&status)) {
             return status;
         }
         /* add child */

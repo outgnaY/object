@@ -1,7 +1,10 @@
 #include "obj_core.h"
 
-/* status is ok */
-inline obj_bool_t obj_status_isok(obj_status_with_t *status) {
+inline obj_bool_t obj_status_with_is_ok(obj_status_with_t *status) {
+    return status->code == 0;
+}
+
+inline obj_bool_t obj_status_is_ok(obj_status_t *status) {
     return status->code == 0;
 }
 

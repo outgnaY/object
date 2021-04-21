@@ -1,5 +1,5 @@
-#ifndef OBJ_STATUS_WITH_H
-#define OBJ_STATUS_WITH_H
+#ifndef OBJ_STATUS_H
+#define OBJ_STATUS_H
 
 #include "obj_core.h"
 
@@ -19,8 +19,9 @@ struct obj_status_with_s {
 };
 
 
-obj_bool_t obj_status_isok(obj_status_with_t *status);
+obj_bool_t obj_status_with_is_ok(obj_status_with_t *status);
+obj_bool_t obj_status_is_ok(obj_status_t *status);
 obj_status_t obj_status_create(const char *message, obj_global_error_code_t code);
 obj_status_with_t obj_status_with_create(void *data, const char *message, obj_global_error_code_t code);
 
-#endif  /* OBJ_STATUS_WITH_H */
+#endif  /* OBJ_STATUS_H */

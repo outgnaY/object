@@ -8,7 +8,7 @@ int main() {
     obj_bson_t *query1 = obj_bson_create();
     obj_bson_append_int32(query1, "a", 1, 45);
     obj_status_with_t status1 = obj_expr_parse(query1);
-    obj_assert(obj_status_isok(&status1));
+    obj_assert(obj_status_with_is_ok(&status1));
     printf("**********query 1:**********\n");
     obj_expr_dump((obj_expr_base_expr_t *)status1.data);
     /* simple query2 */
@@ -17,7 +17,7 @@ int main() {
     obj_bson_append_int32(query2, "x1", 2, 5);
     obj_bson_append_int64(query2, "x2", 2, 89);
     obj_status_with_t status2 = obj_expr_parse(query2);
-    obj_assert(obj_status_isok(&status2));
+    obj_assert(obj_status_with_is_ok(&status2));
     printf("**********query 2:**********\n");
     obj_expr_dump((obj_expr_base_expr_t *)status2.data);
     /* simple query3 */
@@ -27,7 +27,7 @@ int main() {
     obj_bson_append_int32(cond3, "$lt", 3, 8);
     obj_bson_append_object(query3, "x", 1, cond3);
     obj_status_with_t status3 = obj_expr_parse(query3);
-    obj_assert(obj_status_isok(&status3));
+    obj_assert(obj_status_with_is_ok(&status3));
     printf("**********query 3:**********\n");
     obj_expr_dump((obj_expr_base_expr_t *)status3.data);
     /* simple query4 */
@@ -38,7 +38,7 @@ int main() {
     obj_bson_append_int32(cond4, "$gt", 3, 5);
     obj_bson_append_object(query4, "x", 1, cond4);
     obj_status_with_t status4 = obj_expr_parse(query4);
-    obj_assert(obj_status_isok(&status4));
+    obj_assert(obj_status_with_is_ok(&status4));
     printf("**********query 4:**********\n");
     obj_expr_dump((obj_expr_base_expr_t *)status4.data);
     /* complicated query7 */
@@ -53,7 +53,7 @@ int main() {
     obj_bson_append_object(arr7, "1", 1, cond72);
     obj_bson_append_array(query7, "$and", 4, arr7);
     obj_status_with_t status7 = obj_expr_parse(query7);
-    obj_assert(obj_status_isok(&status7));
+    obj_assert(obj_status_with_is_ok(&status7));
     printf("**********query 7 **********\n");
     obj_expr_dump((obj_expr_base_expr_t *)status7.data);
     /* complicated query8 */
@@ -68,7 +68,7 @@ int main() {
     obj_bson_append_object(arr8, "1", 1, cond82);
     obj_bson_append_array(query8, "$or", 3, arr8);
     obj_status_with_t status8 = obj_expr_parse(query8);
-    obj_assert(obj_status_isok(&status8));
+    obj_assert(obj_status_with_is_ok(&status8));
     printf("**********query 8 **********\n");
     obj_expr_dump((obj_expr_base_expr_t *)status8.data);
     /* complicated query9 */
@@ -92,7 +92,7 @@ int main() {
     obj_bson_append_object(andarr, "1", 1, andcond92);
     obj_bson_append_array(query9, "$and", 4, andarr);
     obj_status_with_t status9 = obj_expr_parse(query9);
-    obj_assert(obj_status_isok(&status9));
+    obj_assert(obj_status_with_is_ok(&status9));
     printf("**********query 9 **********\n");
     obj_expr_dump((obj_expr_base_expr_t *)status9.data);
     /* **********wrong format query ********** */
@@ -103,7 +103,7 @@ int main() {
     obj_bson_append_bool(cond10, "$lt", 3, true);
     obj_bson_append_object(query10, "x", 1, cond10);
     obj_status_with_t status10 = obj_expr_parse(query10);
-    obj_assert(!obj_status_isok(&status10));
+    obj_assert(!obj_status_with_is_ok(&status10));
     printf("**********query 10:**********\n");
     printf("********** all tests passed! **********\n");
     return 0;
