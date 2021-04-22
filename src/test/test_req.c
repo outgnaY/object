@@ -50,11 +50,16 @@ int main() {
         "name", "index1"
     );
     obj_bson_t *insert_cmd = OBJ_BSON_BCON_NEW(
-        "insert", "db1.coll1"
+        "insert", "db1.coll1",
+        "objects", "[",
+            "{", "a", OBJ_BSON_BCON_DOUBLE(1.65), "}",
+            "{", "a", OBJ_BSON_BCON_DOUBLE(1), "}",
+        "]"
     );
-    
-    
-
+    obj_bson_t *find_cmd = OBJ_BSON_BCON_NEW(
+        "find", "db1.coll1",
+        "filter", "{", "a", OBJ_BSON_BCON_DOUBLE(1), "}"
+    );
 
     /* create database db1 */
     obj_memcpy(send_buf, create_database_cmd->data, create_database_cmd->len);
@@ -94,26 +99,50 @@ int main() {
     obj_bson_t *reply5 = obj_bson_create_with_data(recv_buf, n);
     obj_bson_visit_print_visit(reply5);
 
+    /* insert */
+    /*
+    int i;
+    obj_memcpy(send_buf, insert_cmd->data, insert_cmd->len);
+    for (i = 0; i < 100000; i++) {
+        write(sockfd, send_buf, insert_cmd->len);
+        n = read(sockfd, recv_buf, 1024);
+        obj_bson_t *reply6 = obj_bson_create_with_data(recv_buf, n);
+        obj_bson_visit_print_visit(reply6);
+    }
+    */
+    obj_memcpy(send_buf, insert_cmd->data, insert_cmd->len);
+    write(sockfd, send_buf, insert_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply6 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply6);
+
+    /* find */
+    obj_memcpy(send_buf, find_cmd->data, find_cmd->len);
+    write(sockfd, send_buf, find_cmd->len);
+    n = read(sockfd, recv_buf, 1024);
+    obj_bson_t *reply7 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply7);
+
     /* delete index */
     obj_memcpy(send_buf, delete_index_cmd->data, delete_index_cmd->len);
     write(sockfd, send_buf, delete_index_cmd->len);
     n = read(sockfd, recv_buf, 1024);
-    obj_bson_t *reply6 = obj_bson_create_with_data(recv_buf, n);
-    obj_bson_visit_print_visit(reply6);
+    obj_bson_t *reply8 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply8);
 
     /* delete collection */
     obj_memcpy(send_buf, delete_collection_cmd->data, delete_collection_cmd->len);
     write(sockfd, send_buf, delete_collection_cmd->len);
     n = read(sockfd, recv_buf, 1024);
-    obj_bson_t *reply7 = obj_bson_create_with_data(recv_buf, n);
-    obj_bson_visit_print_visit(reply7);
+    obj_bson_t *reply9 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply9);
 
     /* delete databases */
     obj_memcpy(send_buf, delete_database_cmd->data, delete_database_cmd->len);
     write(sockfd, send_buf, delete_database_cmd->len);
     n = read(sockfd, recv_buf, 1024);
-    obj_bson_t *reply8 = obj_bson_create_with_data(recv_buf, n);
-    obj_bson_visit_print_visit(reply8);
+    obj_bson_t *reply10 = obj_bson_create_with_data(recv_buf, n);
+    obj_bson_visit_print_visit(reply10);
 
     
     return 0;

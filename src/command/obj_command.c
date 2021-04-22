@@ -51,22 +51,30 @@ static int obj_get_command_processor(char *command_name) {
 }
 
 void obj_process_command(obj_conn_t *c, obj_bson_t *command_bson) {
-    printf("process command\n");
+    /* printf("process command\n"); */
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
     obj_bson_type_t bson_type;
     if (!obj_bson_iter_next_internal(&iter, &key, &bson_type)) {        
-        /* TODO reply error */
+        obj_bson_t *reply = obj_bson_create();
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     if (bson_type != OBJ_BSON_TYPE_UTF8) {
-        /* TODO reply error */
+        obj_bson_t *reply = obj_bson_create();
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     int index = obj_get_command_processor(key);
     if (index < 0) {
-        /* TODO error reply */
+        obj_bson_t *reply = obj_bson_create();
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_NOT_FOUND);
+        obj_bson_destroy(reply);
         return;
     }
     /* process command */
@@ -83,6 +91,8 @@ void obj_process_command(obj_conn_t *c, obj_bson_t *command_bson) {
  * }
  */
 static void obj_process_insert_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    /* printf("insert\n"); */
+    obj_bson_t *reply = obj_bson_create();
     obj_bson_iter_t iter;
     obj_bson_iter_init(&iter, command_bson);
     char *key = NULL;
@@ -94,11 +104,15 @@ static void obj_process_insert_command(obj_conn_t *c, obj_bson_t *command_bson) 
     int full_name_len = value->value.v_utf8.len;
 
     if (!obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     if (bson_type != OBJ_BSON_TYPE_ARRAY) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     value = obj_bson_iter_value(&iter);
@@ -113,7 +127,9 @@ static void obj_process_insert_command(obj_conn_t *c, obj_bson_t *command_bson) 
     obj_collection_lock_t collection_lock;
     char *pos = obj_strchr(full_name, '.');
     if (pos == NULL || (pos - full_name) == full_name_len - 1) {
-        /* TODO reply error */
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     *pos = '\0';
@@ -127,38 +143,46 @@ static void obj_process_insert_command(obj_conn_t *c, obj_bson_t *command_bson) 
     obj_collection_lock_lock(&collection_lock);
     db_entry = obj_db_catalog_entry_get(g_engine, full_name);
     if (db_entry == NULL) {
-        /* TODO reply error */
         obj_collection_lock_unlock(&collection_lock);
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     *pos = '.';
     collection_entry = obj_collection_catalog_entry_get(db_entry, full_name);
     if (collection_entry == NULL) {
-        /* TODO collection not found */
         obj_collection_lock_unlock(&collection_lock);
         obj_db_lock_unlock(&db_lock);
         obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_ALREADY_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
         return;
     }
     /* check type */
     while (obj_bson_iter_next_internal(&iter, &key, &bson_type)) {
         if (bson_type != OBJ_BSON_TYPE_OBJECT) {
-            /* TODO reply error */
             obj_collection_lock_unlock(&collection_lock);
             obj_db_lock_unlock(&db_lock);
             obj_global_lock_unlock(&global_lock);
+            obj_bson_append_int32(reply, "code", 4, OBJ_CODE_COMMAND_WRONG_FORMAT);
+            obj_conn_add_reply(c, reply);
+            obj_bson_destroy(reply);
             return;
         }
         value = obj_bson_iter_value(&iter);
         obj_bson_t object;
         obj_bson_init_static_with_len(&object, value->value.v_object.data, value->value.v_object.len);
         if (!obj_type_checker_check_type(&collection_entry->checker, &object)) {
-            /* TODO reply error */
             obj_collection_lock_unlock(&collection_lock);
             obj_db_lock_unlock(&db_lock);
             obj_global_lock_unlock(&global_lock);
+            obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_INSERT_OBJECT_TYPE_ERROR);
+            obj_conn_add_reply(c, reply);
+            obj_bson_destroy(reply);
             return;
         }
     }
@@ -167,8 +191,9 @@ static void obj_process_insert_command(obj_conn_t *c, obj_bson_t *command_bson) 
     obj_collection_lock_unlock(&collection_lock);
     obj_db_lock_unlock(&db_lock);
     obj_global_lock_unlock(&global_lock);
-    /* TODO reply */ 
-
+    obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
 }
 
 
@@ -201,23 +226,82 @@ static void obj_process_update_command(obj_conn_t *c, obj_bson_t *command_bson) 
  * }
  */
 static void obj_process_find_command(obj_conn_t *c, obj_bson_t *command_bson) {
+    printf("find\n");
+    obj_bson_t *reply = obj_bson_create();
     obj_status_with_t status_with_qr = obj_query_parse_from_find_cmd(command_bson);
     /* parse error */
-    if (status_with_qr.data != 0) {
-
+    if (status_with_qr.code != OBJ_CODE_OK) {
+        obj_bson_append_int32(reply, "code", 4, status_with_qr.code);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
+        return;
     }
     obj_status_with_t status_with_sq = obj_query_standardize((obj_query_request_t *)status_with_qr.data);
     obj_standard_query_t *sq = (obj_standard_query_t *)status_with_sq.data;
-    obj_collection_catalog_entry_t *collection = NULL;
+    obj_db_catalog_entry_t *db_entry = NULL;
+    obj_collection_catalog_entry_t *collection_entry = NULL;
+    obj_global_lock_t global_lock;
+    obj_db_lock_t db_lock;
+    obj_collection_lock_t collection_lock;
+    char *full_name = sq->qr->full_name;
+    int full_name_len = obj_strlen(full_name);
+    char *pos = obj_strchr(full_name, '.');
+    if (pos == NULL || (pos - full_name) == full_name_len - 1) {
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_WRONG_FORMAT);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
+        return;
+    }
+    *pos = '\0';
     /* get collection */
+    obj_global_lock_init(&global_lock, c->context->locker, OBJ_LOCK_MODE_IS);
+    obj_db_lock_init_with_len(&db_lock, c->context->locker, OBJ_LOCK_MODE_IS, full_name, pos - full_name);
+    *pos = '.';
+    obj_collection_lock_init_with_len(&collection_lock, c->context->locker, OBJ_LOCK_MODE_IS, full_name, full_name_len);
+    *pos = '\0';
+    obj_global_lock_lock(&global_lock);
+    obj_db_lock_lock(&db_lock);
+    obj_collection_lock_lock(&collection_lock);
+    db_entry = obj_db_catalog_entry_get(g_engine, full_name);
+    if (db_entry == NULL) {
+        obj_db_lock_unlock(&db_lock);
+        obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
+        return;
+    }
+    *pos = '.';
+    collection_entry = obj_collection_catalog_entry_get(db_entry, full_name);
+    if (collection_entry == NULL) {
+        obj_db_lock_unlock(&db_lock);
+        obj_global_lock_unlock(&global_lock);
+        obj_bson_append_int32(reply, "code", 4, OBJ_CODE_DB_COLLECTION_NOT_EXISTS);
+        obj_conn_add_reply(c, reply);
+        obj_bson_destroy(reply);
+        return;
+    }
+    
+    /* TODO check? */
 
-    obj_query_plan_executor_t *executor = obj_get_query_plan_executor_find(collection, sq);
+    obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
+    obj_bson_t objects;
+    obj_bson_append_array_begin(reply, "data", 4, &objects);
+
+    obj_query_plan_executor_t *executor = obj_get_query_plan_executor_find(collection_entry, sq);
     obj_query_plan_executor_exec_state_t state = OBJ_QUERY_PLAN_EXECUTOR_EXEC_STATE_ADVANCED;
     obj_record_t *out;
     while ((state = obj_query_plan_executor_get_next(executor, &out)) == OBJ_QUERY_PLAN_EXECUTOR_EXEC_STATE_ADVANCED) {
-        
+        obj_bson_append_object(&objects, "", 0, out->bson);
     }
+    obj_bson_append_array_end(reply, &objects);
+    obj_collection_lock_unlock(&collection_lock);
+    obj_db_lock_unlock(&db_lock);
+    obj_global_lock_unlock(&global_lock);
     
+
+    obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
 }
 
 /**
@@ -339,6 +423,7 @@ static void obj_process_create_index_command(obj_conn_t *c, obj_bson_t *command_
     return;
 clean:
     obj_conn_add_reply(c, reply);
+    obj_bson_destroy(reply);
     obj_free(index_name_copy);
 }
 
