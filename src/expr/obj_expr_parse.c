@@ -186,12 +186,13 @@ static obj_status_with_t obj_expr_parse_all(obj_bson_t *bson, obj_expr_parse_lev
         obj_expr_tree_expr_add_child(root, eq);
     }
     /* remove useless root $and */
+    /*
     if (1 == obj_array_length(&((obj_expr_tree_expr_t *)root)->expr_list)) {
         obj_expr_base_expr_t *new_root = (obj_expr_base_expr_t *)obj_array_get_index_value(&((obj_expr_tree_expr_t *)root)->expr_list, 0, uintptr_t);
-        /* free old root */
         obj_free(root);
         return obj_status_with_create(new_root, "", 0);
     }
+    */
     return obj_status_with_create(root, "", 0);
 }
 

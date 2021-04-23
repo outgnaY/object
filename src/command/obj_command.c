@@ -287,11 +287,12 @@ static void obj_process_find_command(obj_conn_t *c, obj_bson_t *command_bson) {
     obj_bson_append_int32(reply, "code", 4, OBJ_CODE_OK);
     obj_bson_t objects;
     obj_bson_append_array_begin(reply, "data", 4, &objects);
-
     obj_query_plan_executor_t *executor = obj_get_query_plan_executor_find(collection_entry, sq);
     obj_query_plan_executor_exec_state_t state = OBJ_QUERY_PLAN_EXECUTOR_EXEC_STATE_ADVANCED;
     obj_record_t *out;
+    int cnt = 0;
     while ((state = obj_query_plan_executor_get_next(executor, &out)) == OBJ_QUERY_PLAN_EXECUTOR_EXEC_STATE_ADVANCED) {
+        obj_bson_visit_print_visit(out->bson);
         obj_bson_append_object(&objects, "", 0, out->bson);
     }
     obj_bson_append_array_end(reply, &objects);
@@ -301,6 +302,8 @@ static void obj_process_find_command(obj_conn_t *c, obj_bson_t *command_bson) {
     
 
     obj_conn_add_reply(c, reply);
+    printf("reply size %d\n", reply->len);
+    /* obj_bson_visit_print_visit(reply); */
     obj_bson_destroy(reply);
 }
 
